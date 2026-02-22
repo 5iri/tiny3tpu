@@ -2,8 +2,8 @@
 
 module systolic_array #(
     parameter integer N  = 4,   // array size
-    parameter integer DW = 8,   // data width
-    parameter integer CW = 32   // accumulator width
+    parameter integer DW = 32,  // data width
+    parameter integer CW = 64   // accumulator width
 )(
     input  wire                    clk,
     input  wire                    rst,
@@ -33,7 +33,10 @@ module systolic_array #(
     generate
         for (i = 0; i < N; i = i + 1) begin : ROW
             for (j = 0; j < N; j = j + 1) begin : COL
-                pe PE (
+                pe #(
+                    .DW(DW),
+                    .CW(CW)
+                ) PE (
                     .clk   (clk),
                     .rst   (rst),
                     .clear (clear),
@@ -51,4 +54,3 @@ module systolic_array #(
     endgenerate
 
 endmodule
-

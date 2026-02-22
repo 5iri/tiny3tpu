@@ -1,12 +1,15 @@
-module pe (
-    input clk,
-    input rst,
-    input clear,
-    input signed [7:0] a_in,
-    input signed [7:0] b_in,
-    output reg signed [7:0] a_out,
-    output reg signed [7:0] b_out,
-    output reg signed [31:0] c
+module pe #(
+    parameter integer DW = 32,
+    parameter integer CW = 64
+) (
+    input wire clk,
+    input wire rst,
+    input wire clear,
+    input wire signed [DW-1:0] a_in,
+    input wire signed [DW-1:0] b_in,
+    output reg signed [DW-1:0] a_out,
+    output reg signed [DW-1:0] b_out,
+    output reg signed [CW-1:0] c
 );
     always @(posedge clk or posedge rst) begin
         if (rst) begin
@@ -26,4 +29,3 @@ module pe (
         end
     end
 endmodule
-

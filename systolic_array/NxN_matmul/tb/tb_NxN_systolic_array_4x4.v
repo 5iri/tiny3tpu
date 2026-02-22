@@ -4,8 +4,8 @@ module tb_NxN_systolic_array_4x4;
 
     // ================= PARAMETERS =================
     parameter integer N  = 4;
-    parameter integer DW = 8;
-    parameter integer CW = 32;
+    parameter integer DW = 32;
+    parameter integer CW = 64;
 
     // ================= SIGNALS =================
     reg clk, rst, clear;
@@ -186,4 +186,3 @@ module tb_NxN_systolic_array_4x4;
     end
 
 endmodule
-
