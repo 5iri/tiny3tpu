@@ -1,12 +1,12 @@
 `timescale 1ns/1ps
 
 module top #(
-    parameter int NUM_CORES = 2,
-    parameter int N         = 4,
-    parameter int DW        = 32,
-    parameter int CW        = 64,
-    parameter int CORE_W    = (NUM_CORES <= 1) ? 1 : $clog2(NUM_CORES),
-    parameter int ROW_W     = (N <= 1) ? 1 : $clog2(N)
+    parameter  NUM_CORES = 2,
+    parameter  N         = 4,
+    parameter  DW        = 32,
+    parameter  CW        = 64,
+    parameter  CORE_W    = (NUM_CORES <= 1) ? 1 : $clog2(NUM_CORES),
+    parameter  ROW_W     = (N <= 1) ? 1 : $clog2(N)
 ) (
     input  wire                         clk,
     input  wire                         rst,
@@ -92,7 +92,7 @@ module top #(
     endgenerate
 
     always @(*) begin
-        c_rd_data = '0;
+        c_rd_data = {CW{1'b0}};
         if (c_rd_en) begin
             c_rd_data = core_c_rd_data[c_rd_core];
         end
@@ -110,23 +110,23 @@ module top #(
             state <= ST_IDLE;
             busy <= 1'b0;
             done <= 1'b0;
-            load_core_idx <= '0;
-            load_row_idx <= '0;
-            load_col_idx <= '0;
+            load_core_idx <= {CORE_W{1'b0}};
+            load_row_idx <= {ROW_W{1'b0}};
+            load_col_idx <= {ROW_W{1'b0}};
 
             for (i = 0; i < NUM_CORES; i = i + 1) begin
                 core_start[i] <= 1'b0;
                 core_load_en[i] <= 1'b0;
                 core_load_sel[i] <= 1'b0;
-                core_load_row[i] <= '0;
-                core_load_col[i] <= '0;
-                core_load_data[i] <= '0;
+                core_load_row[i] <= {ROW_W{1'b0}};
+                core_load_col[i] <= {ROW_W{1'b0}};
+                core_load_data[i] <= {DW{1'b0}};
                 core_done_seen[i] <= 1'b0;
 
                 for (j = 0; j < N; j = j + 1) begin
                     for (k = 0; k < N; k = k + 1) begin
-                        ubuf_a[i][j][k] <= '0;
-                        ubuf_b[i][j][k] <= '0;
+                        ubuf_a[i][j][k] <= {DW{1'b0}};
+                        ubuf_b[i][j][k] <= {DW{1'b0}};
                     end
                 end
             end
@@ -152,9 +152,9 @@ module top #(
                 ST_IDLE: begin
                     if (start) begin
                         busy <= 1'b1;
-                        load_core_idx <= '0;
-                        load_row_idx <= '0;
-                        load_col_idx <= '0;
+                        load_core_idx <= {CORE_W{1'b0}};
+                        load_row_idx <= {ROW_W{1'b0}};
+                        load_col_idx <= {ROW_W{1'b0}};
                         for (i = 0; i < NUM_CORES; i = i + 1) begin
                             core_done_seen[i] <= 1'b0;
                         end
@@ -170,11 +170,11 @@ module top #(
                     core_load_data[load_core_idx] <= ubuf_a[load_core_idx][load_row_idx][load_col_idx];
 
                     if (load_col_idx == N-1) begin
-                        load_col_idx <= '0;
+                        load_col_idx <= {ROW_W{1'b0}};
                         if (load_row_idx == N-1) begin
-                            load_row_idx <= '0;
+                            load_row_idx <= {ROW_W{1'b0}};
                             if (load_core_idx == NUM_CORES-1) begin
-                                load_core_idx <= '0;
+                                load_core_idx <= {CORE_W{1'b0}};
                                 state <= ST_LOAD_B;
                             end else begin
                                 load_core_idx <= load_core_idx + 1'b1;
@@ -195,11 +195,11 @@ module top #(
                     core_load_data[load_core_idx] <= ubuf_b[load_core_idx][load_row_idx][load_col_idx];
 
                     if (load_col_idx == N-1) begin
-                        load_col_idx <= '0;
+                        load_col_idx <= {ROW_W{1'b0}};
                         if (load_row_idx == N-1) begin
-                            load_row_idx <= '0;
+                            load_row_idx <= {ROW_W{1'b0}};
                             if (load_core_idx == NUM_CORES-1) begin
-                                load_core_idx <= '0;
+                                load_core_idx <= {CORE_W{1'b0}};
                                 state <= ST_START;
                             end else begin
                                 load_core_idx <= load_core_idx + 1'b1;
