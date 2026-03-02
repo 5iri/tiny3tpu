@@ -9,23 +9,36 @@ module systolic_array #(
     input  wire                    rst,
     input  wire                    clear,
 
-    input  wire signed [DW-1:0]     a_in  [0:N-1],   // row inputs
-    input  wire signed [DW-1:0]     b_in  [0:N-1],   // column inputs
+    // Flattened ports to avoid unpacked-array port synthesis errors.
+    input  wire signed [N*DW-1:0]   a_in,   // row inputs
+    input  wire signed [N*DW-1:0]   b_in,   // column inputs
 
-    output wire signed [CW-1:0]     c_out [0:N-1][0:N-1]
+    output wire signed [N*N*CW-1:0] c_out
 );
 
     // ================= INTERNAL BUSES =================
+    wire signed [DW-1:0] a_vec [0:N-1];
+    wire signed [DW-1:0] b_vec [0:N-1];
+    wire signed [CW-1:0] c_mat [0:N-1][0:N-1];
+
     wire signed [DW-1:0] a_bus [0:N-1][0:N];     // flows right
     wire signed [DW-1:0] b_bus [0:N][0:N-1];     // flows down
 
     genvar i, j;
 
+    // ================= PORT UNPACK =================
+    generate
+        for (i = 0; i < N; i = i + 1) begin : GEN_PORT_UNPACK
+            assign a_vec[i] = a_in[(i*DW) +: DW];
+            assign b_vec[i] = b_in[(i*DW) +: DW];
+        end
+    endgenerate
+
     // ================= INPUT BOUNDARY =================
     generate
-        for (i = 0; i < N; i = i + 1) begin
-            assign a_bus[i][0] = a_in[i];
-            assign b_bus[0][i] = b_in[i];
+        for (i = 0; i < N; i = i + 1) begin : GEN_INPUT_BOUNDARY
+            assign a_bus[i][0] = a_vec[i];
+            assign b_bus[0][i] = b_vec[i];
         end
     endgenerate
 
@@ -47,8 +60,17 @@ module systolic_array #(
                     .b_in  (b_bus[i][j]),
                     .b_out (b_bus[i+1][j]),
 
-                    .c     (c_out[i][j])
+                    .c     (c_mat[i][j])
                 );
+            end
+        end
+    endgenerate
+
+    // ================= PORT PACK =================
+    generate
+        for (i = 0; i < N; i = i + 1) begin : GEN_PORT_PACK_ROW
+            for (j = 0; j < N; j = j + 1) begin : GEN_PORT_PACK_COL
+                assign c_out[(((i*N)+j)*CW) +: CW] = c_mat[i][j];
             end
         end
     endgenerate

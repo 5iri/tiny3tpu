@@ -67,12 +67,12 @@ module tb_tpu_core_wrapper;
         start = 1'b0;
         load_en = 1'b0;
         load_sel = 1'b0;
-        load_row = '0;
-        load_col = '0;
-        load_data = '0;
+        load_row = {($clog2(N)){1'b0}};
+        load_col = {($clog2(N)){1'b0}};
+        load_data = {DW{1'b0}};
         c_rd_en = 1'b0;
-        c_rd_row = '0;
-        c_rd_col = '0;
+        c_rd_row = {($clog2(N)){1'b0}};
+        c_rd_col = {($clog2(N)){1'b0}};
         errors = 0;
 
         #20;
