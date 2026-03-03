@@ -25,6 +25,9 @@ FW_MAX_MODEL_LAYERS = 16
 FW_MAX_MODEL_DIM = 256
 DEFAULT_EPOCHS = 8
 DEFAULT_EPOCHS_16L = 24
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_DATA_ROOT = REPO_ROOT / "data"
+DEFAULT_EXPORT_PATH = REPO_ROOT / "mnist_int8_4layer.json"
 
 HIDDEN_DIM_PRESETS = {
     "default": "128,64,32",
@@ -272,8 +275,8 @@ def save_json(export: ExportModel, out_path: Path) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Train/export MNIST int8 MLP for current hardware path")
-    ap.add_argument("--data-root", type=Path, default=Path("/home/sra-admin/riscv-gpu/data"))
-    ap.add_argument("--out", type=Path, default=Path("/home/sra-admin/riscv-gpu/fpga/mnist_int8_4layer.json"))
+    ap.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
+    ap.add_argument("--out", type=Path, default=DEFAULT_EXPORT_PATH)
     ap.add_argument("--resize", type=int, default=16, help="MNIST resize side (input dim = resize^2)")
     ap.add_argument(
         "--hidden-dims",

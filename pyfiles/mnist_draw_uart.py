@@ -67,6 +67,8 @@ CANVAS_BORDER: Color = (70, 86, 102)
 INK: Color = (19, 210, 233)
 TEXT: Color = (240, 245, 250)
 SUBTEXT: Color = (170, 182, 196)
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_MODEL_PATH = REPO_ROOT / "mnist_int8.json"
 
 
 def normalize_points(points: Sequence[Point], w: int, h: int) -> List[FloatPoint]:
@@ -216,7 +218,7 @@ def main() -> int:
     ap.add_argument("--udp-local-port", type=int, default=0, help="optional local UDP port to bind")
     ap.add_argument("--udp-retries", type=int, default=2, help="UDP retries on timeout (default: 2)")
     ap.add_argument("--timeout", type=float, default=5.0)
-    ap.add_argument("--model", type=Path, default=Path("/home/sra-admin/riscv-gpu/mnist_int8.json"))
+    ap.add_argument("--model", type=Path, default=DEFAULT_MODEL_PATH)
     ap.add_argument("--size", type=int, default=560, help="draw canvas size in pixels")
     ap.add_argument("--thickness", type=int, default=2, help="stroke thickness used in render")
     ap.add_argument("--supersample", type=int, default=8, help="render supersampling factor")

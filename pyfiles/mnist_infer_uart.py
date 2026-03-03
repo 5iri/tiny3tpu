@@ -63,6 +63,10 @@ FW_MAX_MODEL_DIM = 256
 FW_MAX_MODEL_LAYERS = 16
 UDP_MAX_DGRAM_PAYLOAD = 65507
 UDP_MODEL_CHUNK_DATA_BYTES = 1200
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_MODEL_PATH = REPO_ROOT / "mnist_int8.json"
+DEFAULT_IMAGES_PATH = REPO_ROOT / "data" / "MNIST" / "raw" / "t10k-images-idx3-ubyte"
+DEFAULT_LABELS_PATH = REPO_ROOT / "data" / "MNIST" / "raw" / "t10k-labels-idx1-ubyte"
 
 RESP_HEADER_STRUCT = struct.Struct("<iQQII")
 RESP_MATRIX_STRUCT = struct.Struct(f"<{ELEM_COUNT}i")
@@ -798,16 +802,16 @@ def main() -> int:
     ap.add_argument("--udp-local-port", type=int, default=0, help="optional local UDP port to bind")
     ap.add_argument("--udp-retries", type=int, default=2, help="UDP retries on timeout (default: 2)")
     ap.add_argument("--timeout", type=float, default=5.0)
-    ap.add_argument("--model", type=Path, default=Path("/home/sra-admin/riscv-gpu/mnist_int8.json"))
+    ap.add_argument("--model", type=Path, default=DEFAULT_MODEL_PATH)
     ap.add_argument(
         "--images",
         type=Path,
-        default=Path("/home/sra-admin/riscv-gpu/data/MNIST/raw/t10k-images-idx3-ubyte"),
+        default=DEFAULT_IMAGES_PATH,
     )
     ap.add_argument(
         "--labels",
         type=Path,
-        default=Path("/home/sra-admin/riscv-gpu/data/MNIST/raw/t10k-labels-idx1-ubyte"),
+        default=DEFAULT_LABELS_PATH,
     )
     ap.add_argument("--start-index", type=int, default=0)
     ap.add_argument("--count", type=int, default=1)
