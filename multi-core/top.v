@@ -1,12 +1,19 @@
 `timescale 1ns/1ps
 
 module top #(
-    parameter  NUM_CORES = 2,
-    parameter  N         = 4,
-    parameter  DW        = 32,
-    parameter  CW        = 64,
-    parameter  CORE_W    = (NUM_CORES <= 1) ? 1 : $clog2(NUM_CORES),
-    parameter  ROW_W     = (N <= 1) ? 1 : $clog2(N)
+    parameter  NUM_CORES       = 4,
+    parameter  N               = 8,
+    parameter  DW              = 8,
+    parameter  CW              = 32,
+    parameter  NUM_BIG_CORES   = 2,
+    parameter  SMALL_N         = 4,
+    parameter  NUM_SMALL_CORES = NUM_CORES - NUM_BIG_CORES,
+    parameter  BIG_N           = N,
+    parameter  N_MAX           = (BIG_N >= SMALL_N) ? BIG_N : SMALL_N,
+    parameter  CORE_W          = (NUM_CORES <= 1) ? 1 : $clog2(NUM_CORES),
+    parameter  ROW_W           = (N_MAX <= 1) ? 1 : $clog2(N_MAX),
+    parameter  BIG_ROW_W       = (BIG_N <= 1) ? 1 : $clog2(BIG_N),
+    parameter  SMALL_ROW_W     = (SMALL_N <= 1) ? 1 : $clog2(SMALL_N)
 ) (
     input  wire                         clk,
     input  wire                         rst,
@@ -39,9 +46,12 @@ module top #(
 
     reg [2:0] state;
 
-    // Shared UBUF model, banked by core-id for now.
-    reg signed [DW-1:0] ubuf_a [0:NUM_CORES-1][0:N-1][0:N-1];
-    reg signed [DW-1:0] ubuf_b [0:NUM_CORES-1][0:N-1][0:N-1];
+    localparam [ROW_W-1:0] BIG_N_LAST   = BIG_N - 1;
+    localparam [ROW_W-1:0] SMALL_N_LAST = SMALL_N - 1;
+
+    // Shared UBUF model, banked by core-id. Storage is sized to max tile.
+    reg signed [DW-1:0] ubuf_a [0:NUM_CORES-1][0:N_MAX-1][0:N_MAX-1];
+    reg signed [DW-1:0] ubuf_b [0:NUM_CORES-1][0:N_MAX-1][0:N_MAX-1];
 
     reg                       core_start     [0:NUM_CORES-1];
     reg                       core_load_en   [0:NUM_CORES-1];
@@ -66,35 +76,66 @@ module top #(
     integer k;
 
     generate
-        genvar g;
-        for (g = 0; g < NUM_CORES; g = g + 1) begin : GEN_CORES
+        genvar g_big;
+        for (g_big = 0; g_big < NUM_BIG_CORES; g_big = g_big + 1) begin : GEN_BIG_CORES
             tpu_core_wrapper #(
-                .N(N),
+                .N(BIG_N),
                 .DW(DW),
                 .CW(CW)
             ) u_core (
                 .clk(clk),
                 .rst(rst),
-                .start(core_start[g]),
-                .busy(core_busy[g]),
-                .done(core_done[g]),
-                .load_en(core_load_en[g]),
-                .load_sel(core_load_sel[g]),
-                .load_row(core_load_row[g]),
-                .load_col(core_load_col[g]),
-                .load_data(core_load_data[g]),
-                .c_rd_en(c_rd_en && (c_rd_core == g)),
-                .c_rd_row(c_rd_row),
-                .c_rd_col(c_rd_col),
-                .c_rd_data(core_c_rd_data[g])
+                .start(core_start[g_big]),
+                .busy(core_busy[g_big]),
+                .done(core_done[g_big]),
+                .load_en(core_load_en[g_big]),
+                .load_sel(core_load_sel[g_big]),
+                .load_row(core_load_row[g_big][BIG_ROW_W-1:0]),
+                .load_col(core_load_col[g_big][BIG_ROW_W-1:0]),
+                .load_data(core_load_data[g_big]),
+                .c_rd_en(c_rd_en && (c_rd_core == g_big)),
+                .c_rd_row(c_rd_row[BIG_ROW_W-1:0]),
+                .c_rd_col(c_rd_col[BIG_ROW_W-1:0]),
+                .c_rd_data(core_c_rd_data[g_big])
+            );
+        end
+
+        genvar g_small;
+        for (g_small = 0; g_small < NUM_SMALL_CORES; g_small = g_small + 1) begin : GEN_SMALL_CORES
+            localparam integer CORE_IDX = NUM_BIG_CORES + g_small;
+            tpu_core_wrapper #(
+                .N(SMALL_N),
+                .DW(DW),
+                .CW(CW)
+            ) u_core (
+                .clk(clk),
+                .rst(rst),
+                .start(core_start[CORE_IDX]),
+                .busy(core_busy[CORE_IDX]),
+                .done(core_done[CORE_IDX]),
+                .load_en(core_load_en[CORE_IDX]),
+                .load_sel(core_load_sel[CORE_IDX]),
+                .load_row(core_load_row[CORE_IDX][SMALL_ROW_W-1:0]),
+                .load_col(core_load_col[CORE_IDX][SMALL_ROW_W-1:0]),
+                .load_data(core_load_data[CORE_IDX]),
+                .c_rd_en(c_rd_en && (c_rd_core == CORE_IDX) &&
+                         (c_rd_row < SMALL_N) && (c_rd_col < SMALL_N)),
+                .c_rd_row(c_rd_row[SMALL_ROW_W-1:0]),
+                .c_rd_col(c_rd_col[SMALL_ROW_W-1:0]),
+                .c_rd_data(core_c_rd_data[CORE_IDX])
             );
         end
     endgenerate
 
     always @(*) begin
         c_rd_data = {CW{1'b0}};
-        if (c_rd_en) begin
-            c_rd_data = core_c_rd_data[c_rd_core];
+        if (c_rd_en && (c_rd_core < NUM_CORES)) begin
+            if ((c_rd_core >= NUM_BIG_CORES) &&
+                ((c_rd_row >= SMALL_N) || (c_rd_col >= SMALL_N))) begin
+                c_rd_data = {CW{1'b0}};
+            end else begin
+                c_rd_data = core_c_rd_data[c_rd_core];
+            end
         end
 
         all_done = 1'b1;
@@ -123,8 +164,8 @@ module top #(
                 core_load_data[i] <= {DW{1'b0}};
                 core_done_seen[i] <= 1'b0;
 
-                for (j = 0; j < N; j = j + 1) begin
-                    for (k = 0; k < N; k = k + 1) begin
+                for (j = 0; j < N_MAX; j = j + 1) begin
+                    for (k = 0; k < N_MAX; k = k + 1) begin
                         ubuf_a[i][j][k] <= {DW{1'b0}};
                         ubuf_b[i][j][k] <= {DW{1'b0}};
                     end
@@ -140,7 +181,10 @@ module top #(
             end
 
             // Host can program UBUF while accelerator is idle.
-            if (ubuf_wr_en && !busy) begin
+            if (ubuf_wr_en && !busy &&
+                (ubuf_wr_core < NUM_CORES) &&
+                (ubuf_wr_row < N_MAX) &&
+                (ubuf_wr_col < N_MAX)) begin
                 if (ubuf_wr_sel) begin
                     ubuf_b[ubuf_wr_core][ubuf_wr_row][ubuf_wr_col] <= ubuf_wr_data;
                 end else begin
@@ -169,21 +213,40 @@ module top #(
                     core_load_col[load_core_idx] <= load_col_idx;
                     core_load_data[load_core_idx] <= ubuf_a[load_core_idx][load_row_idx][load_col_idx];
 
-                    if (load_col_idx == N-1) begin
-                        load_col_idx <= {ROW_W{1'b0}};
-                        if (load_row_idx == N-1) begin
-                            load_row_idx <= {ROW_W{1'b0}};
-                            if (load_core_idx == NUM_CORES-1) begin
-                                load_core_idx <= {CORE_W{1'b0}};
-                                state <= ST_LOAD_B;
+                    if (load_core_idx < NUM_BIG_CORES) begin
+                        if (load_col_idx == BIG_N_LAST) begin
+                            load_col_idx <= {ROW_W{1'b0}};
+                            if (load_row_idx == BIG_N_LAST) begin
+                                load_row_idx <= {ROW_W{1'b0}};
+                                if (load_core_idx == NUM_CORES-1) begin
+                                    load_core_idx <= {CORE_W{1'b0}};
+                                    state <= ST_LOAD_B;
+                                end else begin
+                                    load_core_idx <= load_core_idx + 1'b1;
+                                end
                             end else begin
-                                load_core_idx <= load_core_idx + 1'b1;
+                                load_row_idx <= load_row_idx + 1'b1;
                             end
                         end else begin
-                            load_row_idx <= load_row_idx + 1'b1;
+                            load_col_idx <= load_col_idx + 1'b1;
                         end
                     end else begin
-                        load_col_idx <= load_col_idx + 1'b1;
+                        if (load_col_idx == SMALL_N_LAST) begin
+                            load_col_idx <= {ROW_W{1'b0}};
+                            if (load_row_idx == SMALL_N_LAST) begin
+                                load_row_idx <= {ROW_W{1'b0}};
+                                if (load_core_idx == NUM_CORES-1) begin
+                                    load_core_idx <= {CORE_W{1'b0}};
+                                    state <= ST_LOAD_B;
+                                end else begin
+                                    load_core_idx <= load_core_idx + 1'b1;
+                                end
+                            end else begin
+                                load_row_idx <= load_row_idx + 1'b1;
+                            end
+                        end else begin
+                            load_col_idx <= load_col_idx + 1'b1;
+                        end
                     end
                 end
 
@@ -194,21 +257,40 @@ module top #(
                     core_load_col[load_core_idx] <= load_col_idx;
                     core_load_data[load_core_idx] <= ubuf_b[load_core_idx][load_row_idx][load_col_idx];
 
-                    if (load_col_idx == N-1) begin
-                        load_col_idx <= {ROW_W{1'b0}};
-                        if (load_row_idx == N-1) begin
-                            load_row_idx <= {ROW_W{1'b0}};
-                            if (load_core_idx == NUM_CORES-1) begin
-                                load_core_idx <= {CORE_W{1'b0}};
-                                state <= ST_START;
+                    if (load_core_idx < NUM_BIG_CORES) begin
+                        if (load_col_idx == BIG_N_LAST) begin
+                            load_col_idx <= {ROW_W{1'b0}};
+                            if (load_row_idx == BIG_N_LAST) begin
+                                load_row_idx <= {ROW_W{1'b0}};
+                                if (load_core_idx == NUM_CORES-1) begin
+                                    load_core_idx <= {CORE_W{1'b0}};
+                                    state <= ST_START;
+                                end else begin
+                                    load_core_idx <= load_core_idx + 1'b1;
+                                end
                             end else begin
-                                load_core_idx <= load_core_idx + 1'b1;
+                                load_row_idx <= load_row_idx + 1'b1;
                             end
                         end else begin
-                            load_row_idx <= load_row_idx + 1'b1;
+                            load_col_idx <= load_col_idx + 1'b1;
                         end
                     end else begin
-                        load_col_idx <= load_col_idx + 1'b1;
+                        if (load_col_idx == SMALL_N_LAST) begin
+                            load_col_idx <= {ROW_W{1'b0}};
+                            if (load_row_idx == SMALL_N_LAST) begin
+                                load_row_idx <= {ROW_W{1'b0}};
+                                if (load_core_idx == NUM_CORES-1) begin
+                                    load_core_idx <= {CORE_W{1'b0}};
+                                    state <= ST_START;
+                                end else begin
+                                    load_core_idx <= load_core_idx + 1'b1;
+                                end
+                            end else begin
+                                load_row_idx <= load_row_idx + 1'b1;
+                            end
+                        end else begin
+                            load_col_idx <= load_col_idx + 1'b1;
+                        end
                     end
                 end
 

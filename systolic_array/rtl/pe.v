@@ -1,6 +1,6 @@
 module pe #(
-    parameter integer DW = 32,
-    parameter integer CW = 64
+    parameter integer DW = 8,
+    parameter integer CW = 32
 ) (
     input wire clk,
     input wire rst,

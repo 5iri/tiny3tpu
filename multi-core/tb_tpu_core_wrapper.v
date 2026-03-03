@@ -1,9 +1,9 @@
 `timescale 1ns/1ps
 
 module tb_tpu_core_wrapper;
-    localparam int N  = 4;
-    localparam int DW = 32;
-    localparam int CW = 64;
+    localparam int N  = 8;
+    localparam int DW = 8;
+    localparam int CW = 32;
 
     logic clk;
     logic rst;

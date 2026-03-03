@@ -1,9 +1,9 @@
 `timescale 1ns/1ps
 
 module systolic_array #(
-    parameter integer N  = 4,   // array size
-    parameter integer DW = 32,  // data width
-    parameter integer CW = 64   // accumulator width
+    parameter integer N  = 8,   // array size
+    parameter integer DW = 8,   // data width
+    parameter integer CW = 32   // accumulator width
 )(
     input  wire                    clk,
     input  wire                    rst,

@@ -4,14 +4,17 @@ module tb_NxN_systolic_array_8x8;
 
     // ================= PARAMETERS =================
     parameter integer N  = 8;
-    parameter integer DW = 32;
-    parameter integer CW = 64;
+    parameter integer DW = 8;
+    parameter integer CW = 32;
 
     // ================= SIGNALS =================
     reg  clk, rst, clear;
     reg  signed [DW-1:0] a_in [0:N-1];
     reg  signed [DW-1:0] b_in [0:N-1];
     wire signed [CW-1:0] c_out [0:N-1][0:N-1];
+    wire signed [N*DW-1:0] a_in_flat;
+    wire signed [N*DW-1:0] b_in_flat;
+    wire signed [N*N*CW-1:0] c_out_flat;
 
     integer A     [0:N-1][0:N-1];
     integer B     [0:N-1][0:N-1];
@@ -20,6 +23,23 @@ module tb_NxN_systolic_array_8x8;
     integer i, j, k, t;
     integer errors;
     integer cycle;
+    genvar gr;
+    genvar gc;
+
+    generate
+        for (gr = 0; gr < N; gr = gr + 1) begin : GEN_AB_PACK
+            assign a_in_flat[(gr*DW) +: DW] = a_in[gr];
+            assign b_in_flat[(gr*DW) +: DW] = b_in[gr];
+        end
+    endgenerate
+
+    generate
+        for (gr = 0; gr < N; gr = gr + 1) begin : GEN_C_UNPACK_R
+            for (gc = 0; gc < N; gc = gc + 1) begin : GEN_C_UNPACK_C
+                assign c_out[gr][gc] = c_out_flat[(((gr*N)+gc)*CW) +: CW];
+            end
+        end
+    endgenerate
 
     // ================= DUT =================
     systolic_array #(
@@ -30,9 +50,9 @@ module tb_NxN_systolic_array_8x8;
         .clk   (clk),
         .rst   (rst),
         .clear (clear),
-        .a_in  (a_in),
-        .b_in  (b_in),
-        .c_out (c_out)
+        .a_in  (a_in_flat),
+        .b_in  (b_in_flat),
+        .c_out (c_out_flat)
     );
 
     // ================= CLOCK =================

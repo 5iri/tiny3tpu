@@ -1,9 +1,9 @@
 `timescale 1ns/1ps
 
 module tpu_core_wrapper #(
-    parameter int N  = 4,
-    parameter int DW = 32,
-    parameter int CW = 64
+    parameter int N  = 8,
+    parameter int DW = 8,
+    parameter int CW = 32
 ) (
     input  wire                         clk,
     input  wire                         rst,
