@@ -1,150 +1,101 @@
-# RISC-V GPU Research Repository
+# tiny3tpu
 
-This repository is a research and learning workspace for building a RISC-V based GPU architecture that avoids custom ISA extensions (the primary exception being the RISC-V Vector extension where appropriate). The goal is to explore GPU building blocks, accelerator micro-architectures, and end-to-end flows using open tools and standard RISC-V features.
+`tiny3tpu` is me trying to make a stupidly small TPU-ish thing do real work on an FPGA and, against reason, it actually runs quantized MNIST end-to-end on hardware.
 
-Status: initial work focused on systolic-array based matrix-multiply building blocks (2x2 and 4x4 example designs), RTL testbenches, and simple simulation flows.
+The whole point here is simple: take a hand-drawn or scripted MNIST digit, shove it through a tiny hardware stack I built, and get a prediction back without pretending this is some giant polished accelerator project.
 
-Contents
-- **Overview**: goals and design philosophy.
-- **systolic_array/**: starting point — example systolic array RTL for matmul and simulation flows.
-- **Roadmap**: planned next steps for the GPU stack.
+This repo is the current pile of parts that makes that happen:
 
-Why this repo
-----------------
-GPUs are complex systems built from well-understood building blocks: vector/SIMD units, memory hierarchies, data-movement engines, and computation accelerators. This repo aims to:
+- cached quantized MNIST model upload and inference
+- a draw-and-infer MNIST demo over the same accelerator protocol
+- blocked `16x16` int8 GEMM on hardware
+- UART and UDP request/response transport
 
-- Study those building blocks in isolation and in combination.
-- Build hardware blocks using synthesizable RTL and open-source tools.
-- Keep the ISA standard (RISC-V + Vector extension) to maximize portability.
+The two writeups about this repo are:
 
-What you'll find here
-----------------------
-Top-level structure (high-level):
+- [Tiny TPU in a Week](https://5iri.me/blog/tiny-tpu-week)
+- [Update: tiny tpu is now bigger!](https://5iri.me/blog/tiny-tpu-is-now-bigger)
 
-- `systolic_array/` — Systolic-array examples and simulation flows.
-	- `2x2_matmul/` — 2x2 processing-element (PE) matrix multiply example.
-		- `rtl/` — Verilog sources for the PE and top-level systolic array.
-			- [systolic_array/2x2_matmul/rtl/mac_pe.v](systolic_array/2x2_matmul/rtl/mac_pe.v)
-			- [systolic_array/2x2_matmul/rtl/systolic_array.v](systolic_array/2x2_matmul/rtl/systolic_array.v)
-			- [systolic_array/2x2_matmul/rtl/systolic_array_tb.v](systolic_array/2x2_matmul/rtl/systolic_array_tb.v)
-		- `simulation/` — Makefile and helper files to run iverilog/vvp simulations and produce waveforms.
-			- [systolic_array/2x2_matmul/simulation/Makefile](systolic_array/2x2_matmul/simulation/Makefile)
-	- `4x4_matmul/` — 4x4 PE example and testbench.
-		- [systolic_array/4x4_matmul/rtl/pe_4x4.v](systolic_array/4x4_matmul/rtl/pe_4x4.v)
-		- [systolic_array/4x4_matmul/rtl/systolic_array_4x4.v](systolic_array/4x4_matmul/rtl/systolic_array_4x4.v)
-		- [systolic_array/4x4_matmul/simulation/Makefile](systolic_array/4x4_matmul/simulation/Makefile)
+![MNIST draw-and-infer demo running on the current stack](https://5iri.me/markdown_files/posts/assets/tiny-tpu-is-now-bigger/mnist-draw-cached-4layer.png)
+![UDP + cached-model MNIST results from the current stack](https://5iri.me/markdown_files/posts/assets/tiny-tpu-is-now-bigger/udp-summary-20-samples.png)
 
-Getting started
------------------
-Prerequisites (recommended):
+## What is working here
 
-- `iverilog` + `vvp` (simulation)
-- `yosys` (synthesis / linting)
-- `gtkwave` or any VCD viewer (optional)
+The thing that is actually alive right now is cached MNIST inference backed by a firmware-controlled `16x16` GEMM engine.
 
-On macOS (Homebrew):
+- The firmware in [firmware.c](/Users/siriboi/github/tiny3tpu/firmware.c) drives a memory-mapped systolic core through pulse-based control registers.
+- Host tools send binary packets for model upload, inference, and raw GEMM over UART or UDP.
+- Quantized MNIST MLPs can be exported from PyTorch, cached on the board, and executed layer-by-layer using the same tiled GEMM engine.
 
-```bash
-brew install icarus-verilog yosys gtkwave
+The RTL under [multi-core](/Users/siriboi/github/tiny3tpu/multi-core) goes wider and gets more experimental, but the checked-in firmware is still the practical, battle-tested path for the setup above.
+
+## Dataflow at a glance
+
+```text
+Python scripts yelling at the board
+    |
+    |  MAT1 / MOD1 / MCH1 / INF1
+    v
+UART or UDP transport
+    |
+    v
+firmware doing all the annoying real work
+    |
+    |  stage tiles, schedule cores, cache models in DDR
+    v
+tiny systolic array pretending to be much bigger than it is
+    |
+    |  blocked int8 GEMM / matvec
+    v
+prediction / matrix result comes back out
+    |
+    |  RSP1 / ACK1 / PRD1
+    v
+host checks if the whole stunt actually worked
 ```
 
-Running the provided simulations
----------------------------------
-Each example has a `simulation/` directory with a `Makefile` to run the RTL tests and generate waveforms. Example:
+The protocol currently includes:
+
+- `MAT1` / `RSP1` for raw GEMM
+- `MOD1` and `MCH1` for model upload
+- `INF1` / `PRD1` for cached-model inference
+
+## Running the host tools
+
+These scripts assume the FPGA is already programmed and the matching firmware is running. If the board is not alive, none of this becomes magically convenient.
+
+Install Python dependencies with:
 
 ```bash
-# 2x2 example
-cd systolic_array/2x2_matmul/simulation
-make
-
-# 4x4 example
-cd ../../4x4_matmul/simulation
-make
+pip install -r requirements.txt
 ```
 
-The Makefiles typically run `iverilog` to produce a `sim.vvp` binary and then run `vvp sim.vvp` producing `wave.vcd`; open that VCD with `gtkwave wave.vcd`.
+The host/demo scripts currently depend on:
 
-Design notes
--------------
-- Systolic arrays are used here as a compute substrate for dense matrix multiply (GEMM). They demonstrate dataflow-style mapping of compute to constant-mesh PE arrays and are a common accelerator building block in GPUs.
-- The long-term plan is to integrate these accelerators with a RISC-V CPU and expose work to them using standard mechanisms (memory-mapped queues, DMA engines, or offload semantics) while keeping the ISA itself standard-compliant.
-- The RISC-V Vector extension is considered the primary ISA-level mechanism for expressing wide-data parallelism; accelerators (like systolic arrays) are complementary and can be targeted from vectorized code or from higher-level runtimes.
+- `pyserial`
+- `pygame`
+- `torch`
+- `torchvision`
+- `numpy`
 
-Roadmap: Building the RISC-V GPU
-----------------------------------
+Examples:
 
-The goal is to build a GPU where the compute cores execute standard RISC-V instructions (RV32IMV or RV64GV), avoiding custom ISA extensions beyond the Vector extension.
+```bash
+# Raw 16x16 GEMM check over UART
+python3 pyfiles/uart_matrix_host.py --port /dev/ttyUSB1
 
-### Architecture Overview
+# Raw 16x16 GEMM check over UDP
+python3 pyfiles/uart_matrix_host.py --udp-host 192.168.1.77
 
-A GPU consists of:
-1. **Many parallel execution units** — SIMT lanes organized into warps
-2. **A warp/thread scheduler** — manages thousands of concurrent threads
-3. **Memory hierarchy** — registers, shared memory, caches, global memory
-4. **Command frontend** — receives work from host, dispatches to compute units
+# Upload cached model and run MNIST inference samples
+python3 pyfiles/mnist_infer_uart.py --udp-host 192.168.1.77 --count 20
 
-### Phase 1: Single RISC-V Vector Core
-- [ ] Integrate or build a minimal RV32IM core (candidates: PicoRV32, VexRiscv, or custom)
-- [ ] Add Vector extension support (study Ara, Vicuna, or build minimal vector ALU)
-- [ ] Test with simple vector programs: vector add, dot product, small matmul
-- [ ] Establish simulation and verification flow
+# Interactive draw-and-infer demo
+python3 pyfiles/mnist_draw_uart.py --udp-host 192.168.1.77
+```
 
-### Phase 2: Multi-lane SIMT Execution
-- [ ] Instantiate multiple scalar pipelines sharing instruction fetch (warp)
-- [ ] Build warp scheduler (round-robin or scoreboard-based)
-- [ ] Implement divergence handling (masked execution for branches)
-- [ ] Add warp-level synchronization primitives
+If you want to train/export a new quantized MNIST model:
 
-### Phase 3: Memory Hierarchy
-- [ ] Design banked register file (GPUs need large register files)
-- [ ] Add shared memory / scratchpad (fast, software-managed, per-workgroup)
-- [ ] Implement L1 data cache or texture-cache style access
-- [ ] Build global memory interface (AXI or similar to external DRAM)
-
-### Phase 4: Compute Dispatch & Host Interface
-- [ ] Command processor: read work descriptors from memory
-- [ ] Thread block / workgroup dispatcher: assign blocks to compute units
-- [ ] Barrier / sync support (`__syncthreads()` equivalent)
-- [ ] DMA engine for bulk data movement
-
-### Phase 5: Software Stack
-- [ ] Minimal runtime to launch kernels from host
-- [ ] Use LLVM RISC-V backend with vector intrinsics for compilation
-- [ ] Write example GPU kernels in C with RVV intrinsics
-- [ ] Simple benchmarks: SAXPY, GEMM, reduction
-
-### Reference Projects
-
-| Project | Description |
-|---------|-------------|
-| [Vortex](https://github.com/vortexgpgpu/vortex) | Open-source RISC-V GPGPU — closest reference architecture |
-| [Ara](https://github.com/pulp-platform/ara) | Full RVV 1.0 vector unit from ETH Zurich |
-| [Vicuna](https://github.com/vproc/vicuna) | Lightweight RVV core |
-| [VexRiscv](https://github.com/SpinalHDL/VexRiscv) | Configurable RISC-V in SpinalHDL |
-| [PicoRV32](https://github.com/YosysHQ/picorv32) | Tiny RV32 core, easy to understand |
-
-### Current Status
-
-✅ **Done**: Systolic array building blocks (2×2, 4×4 matmul PEs) — understanding dataflow compute  
-🔄 **Next**: Phase 1 — integrate a base RISC-V core and add vector support
-
-Contributing
--------------
-Contributions are welcome. Suggested workflow:
-
-1. Open an issue describing the change or feature.
-2. Create a branch and send a PR with clear description and tests where applicable.
-
-Licensing
----------
-This repository does not include an explicit license file yet. If you want to add a license, consider a permissive license such as MIT or Apache-2.0.
-
-Contact / Questions
---------------------
-Open an issue or create a discussion in this repository for questions, design discussions, or coordination.
-
-Acknowledgements
------------------
-This work uses open-source tools such as Icarus Verilog and Yosys for simulation and synthesis research.
-
---
+```bash
+python3 pyfiles/train_mnist_hw.py --epochs 8 --export mnist_int8_4layer.json
+```
