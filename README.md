@@ -21,23 +21,23 @@ The two writeups about this repo are:
 
 ## What is working here
 
-The experimental [StableHLO system compiler](docs_stablehlo.md) accepts portable
+The experimental StableHLO system compiler accepts portable
 StableHLO or MLIR text and generates CPU code plus TPU calls. JAX is one frontend;
 cloth is a validation example. The linked guide records supported operations,
 explicit approximation options, and native/RTL verification results.
 
-The experimental [Rocket RV64GC backend](hardware/kc705_rocket/README.md) adds
+The experimental Rocket RV64GC backend adds
 FP32/FP64 arithmetic alongside the int8 TPU in RTL. Its physical boot attempt
 did not respond, and work on it is stopped. The active cloth demo uses VexRiscv
 at 100 MHz; the linked record preserves the experiment's validation and failure.
 
-The next bring-up milestone for the post is [DDR3 by itself with a hardware-only
-test engine](hardware/kc705_ddr_only/README.md). That isolated target contains no
+The next bring-up milestone for the post is DDR3 by itself with a hardware-only
+test engine. That isolated target contains no
 CPU or accelerator; the remaining connections will be added one at a time after
 repeatable physical memory tests pass. Its simulation status is separate from
 the existing working accelerator setup below.
 
-An [UberDDR3 hardware-only trial](hardware/kc705_uberddr3/README.md) now evaluates
+An UberDDR3 hardware-only trial now evaluates
 the same 100 MHz controller target using only open-source tools. Its validation
 and timing results are recorded separately from the LiteDRAM implementation.
 
@@ -113,9 +113,9 @@ The generic firmware path links `src/runtime.c`,
 `src/firmware_runtime_adapter.c`, and `src/mmio_backend.c`, and defines
 `TINY3TPU_ENABLE_GENERIC_RUNTIME`. Board-specific deployment still needs the
 processor/BSP, memory map, clock/reset integration, constraints, bitstream,
-and physical verification. See [the AXI register map](docs_axi_registers.md).
+and physical verification. See the AXI register map.
 
-See [the generic firmware adapter](docs_firmware_runtime_adapter.md) for the
+See the generic firmware adapter for the
 model upload and execution protocol and board integration requirements.
 
 These scripts assume the FPGA is already programmed and the matching firmware is running. If the board is not alive, none of this becomes magically convenient.
@@ -159,11 +159,11 @@ python3 pyfiles/train_mnist_hw.py --epochs 8 --export mnist_int8_4layer.json
 ## Synapse32 AXI-Stream transport
 
 The optional Synapse32 mailbox and AXI-Stream register-command bridge are
-documented in [docs_synapse32_stream.md](docs_synapse32_stream.md). Tests include
+documented in docs_synapse32_stream.md. Tests include
 RV32 firmware executing on the actual Synapse32 CPU RTL and a JAX-to-TPU RTL
 transport path. This is not yet a KC705 CPU bitstream or physical-board inference.
 
-The [open-source KC705 DDR bring-up](hardware/synapse32/README.md) adds synchronous
+The open-source KC705 DDR bring-up adds synchronous
 boot RAM, a variable-latency CPU memory sequencer, and a LiteDRAM-based board
 target with C calibration and DDR-backed TPU self-test firmware. Hardware
 qualification is tracked separately from the passing CPU/DRAM-model simulation.
