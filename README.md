@@ -1,169 +1,180 @@
 # tiny3tpu
 
-`tiny3tpu` is me trying to make a stupidly small TPU-ish thing do real work on an FPGA and, against reason, it actually runs quantized MNIST end-to-end on hardware.
+`tiny3tpu` is me trying to make a stupidly small TPU-ish thing do real work on an FPGA and, against reason, it actually does.
 
-The whole point here is simple: take a hand-drawn or scripted MNIST digit, shove it through a tiny hardware stack I built, and get a prediction back without pretending this is some giant polished accelerator project.
+It started with matrix multiplication and MNIST: take a digit, shove it through a tiny hardware stack I built, and get a prediction back. Then the obvious bad idea was to make it run other stuff too. So now there is a compiler, a rotating banana, an attention block, and cloth physics that very clearly lets you know when software floating point is having a bad day.
 
-This repo is the current pile of parts that makes that happen:
+The point is still the same: make the hardware actually do the work, without pretending this is some giant polished accelerator project.
 
-- cached quantized MNIST model upload and inference
-- a draw-and-infer MNIST demo over the same accelerator protocol
-- blocked `16x16` int8 GEMM on hardware
-- UART and UDP request/response transport
-
-The two writeups about this repo are:
+The two earlier writeups are:
 
 - [Tiny TPU in a Week](https://5iri.me/blog/tiny-tpu-week)
 - [Update: tiny tpu is now bigger!](https://5iri.me/blog/tiny-tpu-is-now-bigger)
 
-![MNIST draw-and-infer demo running on the current stack](https://5iri.me/markdown_files/posts/assets/tiny-tpu-is-now-bigger/mnist-draw-cached-4layer.png)
-![UDP + cached-model MNIST results from the current stack](https://5iri.me/markdown_files/posts/assets/tiny-tpu-is-now-bigger/udp-summary-20-samples.png)
+## The current pile of parts
 
-## What is working here
+The current board setup is a KC705 with:
 
-The experimental StableHLO system compiler accepts portable
-StableHLO or MLIR text and generates CPU code plus TPU calls. JAX is one frontend;
-cloth is a validation example. The linked guide records supported operations,
-explicit approximation options, and native/RTL verification results.
+- a VexRiscv RV32IM CPU at **100 MHz**
+- **two 4×4 int8 systolic cores**, with int32 accumulation
+- **64 KiB of on-chip RAM**
+- a multiplier-free hyperbolic **CORDIC for exponential**
+- packed MMIO transport between the CPU and TPU
+- UART at **921600 baud** to get commands in and results out
 
-The experimental Rocket RV64GC backend adds
-FP32/FP64 arithmetic alongside the int8 TPU in RTL. Its physical boot attempt
-did not respond, and work on it is stopped. The active cloth demo uses VexRiscv
-at 100 MHz; the linked record preserves the experiment's validation and failure.
+The current demo images have no DDR runtime. The board has DDR hardware; getting a working memory path into this system is a separate problem. Having chips on the PCB unfortunately does not make the software's memory budget bigger.
 
-The next bring-up milestone for the post is DDR3 by itself with a hardware-only
-test engine. That isolated target contains no
-CPU or accelerator; the remaining connections will be added one at a time after
-repeatable physical memory tests pass. Its simulation status is separate from
-the existing working accelerator setup below.
+The CPU handles state, control flow and scalar operations. The TPU does the matrix products it supports. CORDIC handles exponential when the compiler selects that target. Sine, cosine, square root and division still run on the CPU, and this CPU has no hardware FPU.
 
-An UberDDR3 hardware-only trial now evaluates
-the same 100 MHz controller target using only open-source tools. Its validation
-and timing results are recorded separately from the LiteDRAM implementation.
+![Current CPU + TPU + CORDIC system](media/showcase/system-config.png)
 
-The thing that is actually alive right now is cached MNIST inference backed by a firmware-controlled `16x16` GEMM engine.
+[Editable Excalidraw source](media/showcase/system-config.excalidraw).
 
-- The firmware in [firmware.c](firmware.c) drives a memory-mapped systolic core through pulse-based control registers.
-- Host tools send binary packets for model upload, inference, and raw GEMM over UART or UDP.
-- Quantized MNIST MLPs can be exported from PyTorch, cached on the board, and executed layer-by-layer using the same tiled GEMM engine.
+## The compiler bit
 
-The RTL under [multi-core](multi-core) goes wider and gets more experimental, but the checked-in firmware is still the practical, battle-tested path for the setup above.
+I do not want a separate handwritten math kernel for every demo. The idea is to give the compiler a tensor program and let the backend figure out what this pile of hardware can do with it.
 
-## Dataflow at a glance
+The interface is **StableHLO**. JAX is one way to produce it:
 
 ```text
-Python scripts yelling at the board
+JAX function / another StableHLO producer
     |
-    |  MAT1 / MOD1 / MCH1 / INF1
+    | export offline
     v
-UART or UDP transport
+StableHLO
+    |
+    | verify operations, lower them, fuse eligible work,
+    | plan buffers, choose CPU / TPU / CORDIC placement
+    v
+Generated RISC-V code + accelerator calls
     |
     v
-firmware doing all the annoying real work
+KC705 executes the program and keeps its state
     |
-    |  stage tiles, schedule cores, cache models in DDR
+    | UART results
     v
-tiny systolic array pretending to be much bigger than it is
-    |
-    |  blocked int8 GEMM / matvec
-    v
-prediction / matrix result comes back out
-    |
-    |  RSP1 / ACK1 / PRD1
-    v
-host checks if the whole stunt actually worked
+Host generates pixels
 ```
 
-The protocol currently includes:
+JAX runs on the host while exporting and checking a program. It does **not** run the model or physics step in these live board demos. The host sends commands, receives results, and does the projection, lighting and rasterization needed to put something on screen.
 
-- `MAT1` / `RSP1` for raw GEMM
-- `MOD1` and `MCH1` for model upload
-- `INF1` / `PRD1` for cached-model inference
+This is a generic compiler path, but it supports a **subset of StableHLO today**. It does not magically turn arbitrary float math into an int8 graph, and unsupported operations still need backend work. Approximate math and quantized transformations are explicit choices. The banana and cloth are examples, not special compiler passes.
 
-The v1 compiler model container uses a zero-scratch contract for the currently
-supported host operations: `scratch_offset` and `scratch_bytes` are both zero.
-Scratch storage cannot alias the activation arena until a future runtime ABI
-defines an independent scratch region.
+The implementation is in [tools/program](tools/program), with the optional JAX exporter in [tools/jax_stablehlo.py](tools/jax_stablehlo.py).
 
-## Running the host tools
+## Things that actually ran on the board
 
-The C++ compiler and portable C runtime can be built and tested locally:
+### The banana
+
+The CPU updates its angle. The TPU transforms the mesh into camera coordinates. The host turns those coordinates into pixels. About **29.6 ms of board compute per frame** for the reduced 204-vertex mesh.
+
+This is adapted from the banana rendering example in [SRA-VJTI/jaxsim](https://github.com/SRA-VJTI/jaxsim/blob/c0a097bba1c6db10cac7b359fbac11cfedc48c6b/examples/softras_simple_render.py). We are not claiming that the whole upstream renderer runs on the FPGA.
+
+![Rotating banana, using actual board-returned geometry](media/showcase/gifs/banana.gif)
+
+### A trained digit classifier
+
+A small **784 → 10** MNIST classifier, trained offline on 60,000 images and quantized to int8. The quantized model gets **92.78% accuracy on the separate 10,000-image test set**. The float32 version gets 92.85%.
+
+The board does the matrix product, bias, logit scaling and prediction. About **104 ms per image**. The GIF uses the first 20 test images, without picking only the ones that look good. It gets 19 right; the 5 it calls a 6 stays in there because that is what the model actually did.
+
+All ten returned logits matched the native generated-C reference for each of those 20 physical samples. The full test-set accuracy was measured offline; we did not run all 10,000 images through the board.
+
+![Trained MNIST classifier running on the physical KC705](media/showcase/gifs/classifier.gif)
+
+Training and export: [train_classifier.py](sidequests/showcase/train_classifier.py). Board firmware: [classifier_firmware.c](sidequests/showcase/classifier_firmware.c). The [live viewer](sidequests/showcase/classifier_live.py) checks returned results and draws them, with no host classifier execution.
+
+### Attention, and why there is now a CORDIC
+
+An 8-token, 8-feature causal attention block runs normalization, Q/K/V, masking, softmax, projection and a residual. Six int8 matrix products go through the TPU. This uses synthetic weights to check execution; it is not a pretrained language model.
+
+Software exponential was expensive enough to be annoying, so we added a hardware CORDIC and taught the compiler to lower `stablehlo.exponential` to it.
+
+| Same attention fixture | Physical board compute |
+|---|---:|
+| Software exponential | 52.57 ms |
+| CORDIC exponential | 45.92 ms |
+
+That is **14.5% less compute time**, with all 64 checked output words matching the native reference. It is a speedup for the complete attention fixture, not a claim that the whole system suddenly became fast at everything.
+
+The hardware is in [hardware/math](hardware/math). The 40,014-vector RTL test observed at most two float32 ULPs of error and 187 cycles of latency. Approximate math, tested; not a proof of perfect rounding.
+
+### Cloth, where the pain is visible
+
+The compiler generates the physics program. VexRiscv runs the floating-point physics, and the TPU transforms the resulting geometry. In the final capture, physics takes around **150 ms per tiny integration step**. The timestep is **1/7680 of a second**.
+
+So yes, it runs. No, display FPS does not mean the cloth is keeping up with real time. This GIF is deliberately **time-compressed**, with the actual simulation time and measured per-step cost printed on it.
+
+![Physical-board cloth results, with time-compressed playback](media/showcase/gifs/cloth.gif)
+
+The physical regression checked all 180 state words and 84 camera coordinate words against independently executed native generated C for the tested requests. That is a check of this implementation, not a promise of long-run equivalence to the original floating-point JAX trajectory.
+
+The source is in [sidequests/cloth](sidequests/cloth).
+
+### The language model that does not fit
+
+We also checked pretrained TinyStories-1M. Its int8 token embeddings alone would need **3.07 MiB**, roughly **49× the entire RAM in this image**. Other weights, firmware, quantization metadata and working memory are extra.
+
+This is a memory audit. There is no pretrained text generation running on this board. CORDIC does not help you store three megabytes in 64 KiB. A verified larger-memory runtime or weight-streaming path comes first.
+
+The pinned model configuration and measured reports are in [media/showcase/evidence](media/showcase/evidence).
+
+## Running the compiler and checks
+
+Use Python 3.12 or newer for the pinned StableHLO/JAX dependencies:
 
 ```bash
+python3 -m venv .venv
+.venv/bin/pip install -r tools/requirements-stablehlo.txt
+
 cmake -S . -B build -DCMAKE_C_STANDARD=11 -DCMAKE_C_EXTENSIONS=OFF \
   -DPython3_EXECUTABLE="$PWD/.venv/bin/python"
 cmake --build build -j2
 ctest --test-dir build --output-on-failure
 ```
 
-The JAX test uses the selected Python environment and compares exported matmul
-and bias models against both the C++ reference executor and the C runtime.
-JAX must be installed in that environment. This verifies host execution; it
-does not program an FPGA. The default RTL configuration is two 4×4 cores;
-the firmware's 16×16 GEMM is a tiled logical operation.
+There are native compiler/runtime checks and RTL checks. Verilator runs actual CPU/TPU transport and generated firmware; Icarus covers additional protocol checks, and Yosys covers structural synthesis. Which tests are available depends on the tools installed. The complete configured suite passed **36 checks** when the CORDIC work landed.
 
-With Verilator installed, `jax_fpga_sim` runs the exported models through the
-C runtime and portable MMIO backend against simulated AXI RTL. It requires
-actual accelerator launches and compares outputs to JAX. Icarus adds AXI bus
-protocol tests; Yosys adds structural synthesis checks. These tools are
-detected at configure time. The firmware compile checks use test-only BSP
-declarations and are not board binaries.
+Compile an exported StableHLO program into a C header:
 
-The generic firmware path links `src/runtime.c`,
-`src/firmware_runtime_adapter.c`, and `src/mmio_backend.c`, and defines
-`TINY3TPU_ENABLE_GENERIC_RUNTIME`. Board-specific deployment still needs the
-processor/BSP, memory map, clock/reset integration, constraints, bitstream,
-and physical verification. See the AXI register map.
+```bash
+.venv/bin/python -m tools.program program.mlirbc \
+  --target kc705-cordic \
+  --math-mode freestanding --allow-approximation \
+  -o program.h --report program-report.json
+```
 
-See the generic firmware adapter for the
-model upload and execution protocol and board integration requirements.
+Use `kc705` for an image without the exponential peripheral. Selecting `kc705-cordic` does not conjure hardware into an older bitstream: that image must have been built with `--cordic`.
 
-These scripts assume the FPGA is already programmed and the matching firmware is running. If the board is not alive, none of this becomes magically convenient.
+Board builds use [kc705_open_build.py](tools/kc705_open_build.py), Yosys and nextpnr. [kc705_export_bitstream.py](tools/kc705_export_bitstream.py) checks routed timing and bitstream frame roundtrip. A generated header or a passing host test is not the same thing as a programmed, verified board.
 
-Install Python dependencies with:
+The showcase firmware, export scripts and physical checks live in [sidequests/showcase](sidequests/showcase). The trained weights and demo inputs are checked in under [evidence/classifier](media/showcase/evidence/classifier).
+
+## The earlier MNIST stack is still here
+
+The original cached-model path has model upload, draw-and-infer, blocked logical `16×16` GEMM, and UART/UDP request-response transport. Those larger matrix operations are tiled; they do not mean the current RTL has a physical 16×16 array.
+
+[firmware.c](firmware.c) and [pyfiles](pyfiles) contain that path. It uses a different firmware/protocol from the current no-DDR StableHLO demos. Match the host tool to the image you programmed, or enjoy yelling binary packets into the void.
 
 ```bash
 pip install -r requirements.txt
-```
 
-The host/demo scripts currently depend on:
-
-- `pyserial`
-- `pygame`
-- `torch`
-- `torchvision`
-- `numpy`
-
-Examples:
-
-```bash
-# Raw 16x16 GEMM check over UART
+# Raw GEMM over UART or UDP, with the matching older firmware
 python3 pyfiles/uart_matrix_host.py --port /dev/ttyUSB1
-
-# Raw 16x16 GEMM check over UDP
 python3 pyfiles/uart_matrix_host.py --udp-host 192.168.1.77
 
-# Upload cached model and run MNIST inference samples
+# Cached-model samples and draw-and-infer
 python3 pyfiles/mnist_infer_uart.py --udp-host 192.168.1.77 --count 20
-
-# Interactive draw-and-infer demo
 python3 pyfiles/mnist_draw_uart.py --udp-host 192.168.1.77
-```
 
-If you want to train/export a new quantized MNIST model:
-
-```bash
+# Train/export a model for that path
 python3 pyfiles/train_mnist_hw.py --epochs 8 --export mnist_int8_4layer.json
 ```
 
-## Synapse32 AXI-Stream transport
+## What is next
 
-The optional Synapse32 mailbox and AXI-Stream register-command bridge are
-documented in docs_synapse32_stream.md. Tests include
-RV32 firmware executing on the actual Synapse32 CPU RTL and a JAX-to-TPU RTL
-transport path. This is not yet a KC705 CPU bitstream or physical-board inference.
+More generic backend math, less CPU overhead getting tiles into the TPU, and a verified memory path so larger models can stop failing the very first storage calculation.
 
-The open-source KC705 DDR bring-up adds synchronous
-boot RAM, a variable-latency CPU memory sequencer, and a LiteDRAM-based board
-target with C calibration and DDR-backed TPU self-test firmware. Hardware
-qualification is tracked separately from the passing CPU/DRAM-model simulation.
+There are also Synapse32, Rocket and DDR controller experiments in the repo. Rocket's FPU path passed RTL checks, but its physical boot attempt did not respond, so the active demos use VexRiscv. Experiment code existing in a folder does not mean that configuration works on the board.
+
+[Source](https://github.com/5iri/tiny3tpu), [tweet thread](media/showcase/thread.md), and [demo media bundle](media/showcase/tweet-media.zip). Still a pile of parts, but now a pile of parts that can compile and run a few fairly different things.
