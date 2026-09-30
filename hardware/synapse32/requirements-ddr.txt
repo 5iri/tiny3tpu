@@ -1,0 +1,7 @@
+# HDL generation only. Firmware and compiler remain C/C++.
+# Tested with Python 3.9; Migen 0.9.2 name inference fails on Python 3.14.
+litedram==2024.12
+litex==2024.12
+litex-boards==2023.12
+migen==0.9.2
+PyYAML==6.0.3

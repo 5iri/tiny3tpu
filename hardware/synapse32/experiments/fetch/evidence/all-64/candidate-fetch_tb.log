@@ -1,0 +1,3 @@
+METRICS directed cycles=231 fetches=14 steps=34 writes=6 reads=2 seed=7
+PASS fetch directed: redirects/coherence/reset/backpressure/errors/repeated-PC/MMIO
+/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/fetch/run-3glsge_c/snapshot/root/hardware/synapse32/experiments/fetch/fetch_tb.sv:176: $finish called at 3986000 (1ps)

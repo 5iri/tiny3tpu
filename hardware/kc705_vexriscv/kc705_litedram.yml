@@ -1,0 +1,22 @@
+# KC705 1 GiB x64 DDR3, 100 MHz controller / 400 MHz memory clock.
+# Full burst width avoids LiteDRAM's narrow-port accumulation/flush converter.
+{
+    "device": "xc7k325t-ffg900-2",
+    "speedgrade": -2,
+    "cpu": "None",
+    "memtype": "DDR3",
+    "sdram_module": "MT8JTF12864",
+    "sdram_module_nb": 8,
+    "sdram_rank_nb": 1,
+    "sdram_phy": "K7DDRPHY",
+    "input_clk_freq": 200e6,
+    "sys_clk_freq": 100e6,
+    "iodelay_clk_freq": 200e6,
+    "cmd_latency": 0,
+    "csr_data_width": 32,
+    "cmd_buffer_depth": 2,
+    "cmd_buffer_buffered": true,
+    "user_ports": {
+        "cpu": {"type": "wishbone", "data_width": 512, "block_until_ready": false}
+    }
+}

@@ -1,0 +1,79 @@
+Divider (synth.0vELzI)
+9.49. Executing CHECK pass (checking for obvious problems).
+Checking module riscv_cpu...
+Found and reported 0 problems.
+
+10. Executing CHECK pass (checking for obvious problems).
+Checking module riscv_cpu...
+Found and reported 0 problems.
+
+11. Printing statistics.
+
+=== riscv_cpu ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     3550 wires
+    21101 wire bits
+      357 public wires
+     7107 public wire bits
+       26 ports
+      281 port bits
+     8061 cells
+      207   CARRY4
+       12   DSP48E1
+     2266   FDCE
+       18   FDPE
+       31   FDRE
+        1   FDSE
+      109   INV
+       69   LUT1
+     1320   LUT2
+      720   LUT3
+      367   LUT4
+      696   LUT5
+     1983   LUT6
+      214   MUXF7
+       48   MUXF8
+
+12. Executing JSON backend.
+
+Divider + CSR (synth.KEGRoN)
+9.49. Executing CHECK pass (checking for obvious problems).
+Checking module riscv_cpu...
+Found and reported 0 problems.
+
+10. Executing CHECK pass (checking for obvious problems).
+Checking module riscv_cpu...
+Found and reported 0 problems.
+
+11. Printing statistics.
+
+=== riscv_cpu ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     3884 wires
+    21490 wire bits
+      358 public wires
+     7139 public wire bits
+       26 ports
+      281 port bits
+     8480 cells
+      205   CARRY4
+       12   DSP48E1
+     2266   FDCE
+       18   FDPE
+       31   FDRE
+        1   FDSE
+      110   INV
+       63   LUT1
+     1331   LUT2
+      717   LUT3
+      297   LUT4
+      643   LUT5
+     2316   LUT6
+      353   MUXF7
+      117   MUXF8
+
+12. Executing JSON backend.

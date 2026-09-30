@@ -6,6 +6,18 @@
 #include "xil_exception.h"
 #include <string.h>
 
+/*
+ * The generic T3M1 command seam is optional.  It has no Xilinx dependency;
+ * the board build links src/firmware_runtime_adapter.c, src/runtime.c,
+ * and src/mmio_backend.c and defines
+ * TINY3TPU_ENABLE_GENERIC_RUNTIME.  The existing UART MOD1/MCH1/INF1 path
+ * remains the default and is intentionally not changed by this guard.
+ */
+#if defined(TINY3TPU_ENABLE_GENERIC_RUNTIME)
+#include "tiny3tpu_firmware_runtime_adapter.h"
+#include "tiny3tpu_mmio_backend.h"
+#endif
+
 #if !defined(ENABLE_LWIP_UDP)
 #define ENABLE_LWIP_UDP 0U
 #endif
@@ -74,6 +86,7 @@
 #define BIN_REQ_MODEL_MAGIC 0x31444F4DU /* "MOD1" */
 #define BIN_REQ_MODEL_CHUNK_MAGIC 0x3148434DU /* "MCH1" */
 #define BIN_REQ_INFER_MAGIC 0x31464E49U /* "INF1" */
+#define BIN_REQ_GENERIC_RUNTIME_MAGIC 0x31523354U /* "T3R1" */
 #define BIN_RESP_ACK_MAGIC  0x314B4341U /* "ACK1" */
 #define BIN_RESP_INFER_MAGIC 0x31445250U /* "PRD1" */
 #define MODEL_PROTO_VERSION 0x00020000U
@@ -162,6 +175,28 @@ static u32 g_io_tx_cap = 0U;
 static u32 g_io_tx_len = 0U;
 static u32 g_io_rx_underflow = 0U;
 static u32 g_io_tx_overflow = 0U;
+
+#if defined(TINY3TPU_ENABLE_GENERIC_RUNTIME)
+#ifndef TINY3TPU_GENERIC_MODEL_CAPACITY
+#define TINY3TPU_GENERIC_MODEL_CAPACITY 65536U
+#endif
+#ifndef TINY3TPU_GENERIC_WORKSPACE_CAPACITY
+#define TINY3TPU_GENERIC_WORKSPACE_CAPACITY 65536U
+#endif
+#ifndef TINY3TPU_GENERIC_INPUT_CAPACITY
+#define TINY3TPU_GENERIC_INPUT_CAPACITY 4096U
+#endif
+#ifndef TINY3TPU_GENERIC_OUTPUT_CAPACITY
+#define TINY3TPU_GENERIC_OUTPUT_CAPACITY 4096U
+#endif
+static tiny3tpu_firmware_runtime_adapter g_generic_runtime;
+static u8 g_generic_model_storage[TINY3TPU_GENERIC_MODEL_CAPACITY];
+static u8 g_generic_model_staging[TINY3TPU_GENERIC_MODEL_CAPACITY];
+_Alignas(int32_t) static u8 g_generic_workspace[TINY3TPU_GENERIC_WORKSPACE_CAPACITY];
+static s8 g_generic_input_storage[TINY3TPU_GENERIC_INPUT_CAPACITY];
+static s32 g_generic_output_storage[TINY3TPU_GENERIC_OUTPUT_CAPACITY];
+static tiny3tpu_firmware_runtime_io g_generic_runtime_io;
+#endif
 
 #if ENABLE_LWIP_UDP
 static u8 g_model_upload_buf[MAX_MODEL_UPLOAD_BYTES];
@@ -474,6 +509,26 @@ static inline u8 uart_read_u8(void)
 	return (u8)inbyte();
 }
 
+#if defined(TINY3TPU_ENABLE_GENERIC_RUNTIME)
+static int generic_runtime_read_u8(void *user, uint8_t *value)
+{
+	(void)user;
+	if ((value == (uint8_t *)0) || (g_io_mode == IO_MODE_BUFFER &&
+	    (g_io_rx_buf == (const u8 *)0 || g_io_rx_pos >= g_io_rx_len))) {
+		return -1;
+	}
+	*value = uart_read_u8();
+	return g_io_rx_underflow != 0U ? -1 : 0;
+}
+
+static int generic_runtime_write_u8(void *user, uint8_t value)
+{
+	(void)user;
+	io_write_u8((u8)value);
+	return g_io_tx_overflow != 0U ? -1 : 0;
+}
+#endif
+
 static u32 uart_read_u32_le(void)
 {
 	u32 b0 = (u32)uart_read_u8();
@@ -552,7 +607,8 @@ static u32 uart_wait_for_any_req_magic(void)
 			u8 b = uart_read_u8();
 			window = (window >> 8) | ((u32)b << 24);
 			if ((window == BIN_REQ_MAGIC) || (window == BIN_REQ_MODEL_MAGIC) ||
-			    (window == BIN_REQ_MODEL_CHUNK_MAGIC) || (window == BIN_REQ_INFER_MAGIC)) {
+			    (window == BIN_REQ_MODEL_CHUNK_MAGIC) || (window == BIN_REQ_INFER_MAGIC) ||
+			    (window == BIN_REQ_GENERIC_RUNTIME_MAGIC)) {
 				return window;
 			}
 		}
@@ -563,7 +619,8 @@ static u32 uart_wait_for_any_req_magic(void)
 		u8 b = uart_read_u8();
 		window = (window >> 8) | ((u32)b << 24);
 		if ((window == BIN_REQ_MAGIC) || (window == BIN_REQ_MODEL_MAGIC) ||
-		    (window == BIN_REQ_MODEL_CHUNK_MAGIC) || (window == BIN_REQ_INFER_MAGIC)) {
+		    (window == BIN_REQ_MODEL_CHUNK_MAGIC) || (window == BIN_REQ_INFER_MAGIC) ||
+		    (window == BIN_REQ_GENERIC_RUNTIME_MAGIC)) {
 			return window;
 		}
 	}
@@ -601,7 +658,7 @@ static int accel_read_result_cell(u32 core, u32 row, u32 col, s64 *out_val)
 	lo = reg_read(REG_CRD_DATA_LO);
 	hi = reg_read(REG_CRD_DATA_HI);
 
-	*out_val = ((s64)(s32)hi << 32) | (s64)lo;
+	*out_val = (s64)(s32)hi * 4294967296LL + (s64)lo;
 	return 0;
 }
 
@@ -863,6 +920,28 @@ static int matvec_hw_1xk_kxn(
 
 	return 0;
 }
+
+#if defined(TINY3TPU_ENABLE_GENERIC_RUNTIME)
+static int generic_mmio_read(void *user, uint32_t offset, uint32_t *value)
+{
+    (void)user;
+    *value = reg_read(offset);
+    return 0;
+}
+
+static int generic_mmio_write(void *user, uint32_t offset, uint32_t value)
+{
+    (void)user;
+    return reg_write_hot(offset, value);
+}
+
+static tiny3tpu_mmio g_generic_mmio = {
+    (void *)0, generic_mmio_read, generic_mmio_write, MAX_WAIT_POLLS
+};
+static tiny3tpu_qgemm_backend g_generic_qgemm_backend = {
+    &g_generic_mmio, tiny3tpu_mmio_qgemm
+};
+#endif
 
 static s32 requant_i8(s32 acc_with_bias, s32 mult, u32 shift, u32 apply_relu)
 {
@@ -1314,6 +1393,14 @@ static void process_request_by_magic(u32 req)
 {
 	if (req == BIN_REQ_MAGIC) {
 		handle_gemm_request_binary();
+	} else if (req == BIN_REQ_GENERIC_RUNTIME_MAGIC) {
+#if defined(TINY3TPU_ENABLE_GENERIC_RUNTIME)
+		(void)tiny3tpu_firmware_runtime_handle_command(
+			&g_generic_runtime, &g_generic_runtime_io);
+#else
+		/* Keep the wire namespace harmless in legacy-only images. */
+		send_ack_response(-91);
+#endif
 	} else if (req == BIN_REQ_MODEL_MAGIC) {
 		s32 st = handle_model_load_request();
 		send_ack_response(st);
@@ -1841,6 +1928,27 @@ static s32 net_init_udp(void)
 int main(void)
 {
 	io_set_uart_mode();
+
+#if defined(TINY3TPU_ENABLE_GENERIC_RUNTIME)
+	{
+		tiny3tpu_firmware_runtime_adapter_config config;
+		memset(&config, 0, sizeof(config));
+		config.model_storage = g_generic_model_storage;
+		config.model_staging = g_generic_model_staging;
+		config.model_capacity = TINY3TPU_GENERIC_MODEL_CAPACITY;
+		config.workspace = g_generic_workspace;
+		config.workspace_capacity = TINY3TPU_GENERIC_WORKSPACE_CAPACITY;
+		config.input_storage = g_generic_input_storage;
+		config.input_capacity = TINY3TPU_GENERIC_INPUT_CAPACITY;
+		config.output_storage = g_generic_output_storage;
+		config.output_capacity_elements = TINY3TPU_GENERIC_OUTPUT_CAPACITY;
+		config.backend = &g_generic_qgemm_backend;
+		(void)tiny3tpu_firmware_runtime_adapter_init(&g_generic_runtime, &config);
+		g_generic_runtime_io.user = (void *)0;
+		g_generic_runtime_io.read_u8 = generic_runtime_read_u8;
+		g_generic_runtime_io.write_u8 = generic_runtime_write_u8;
+	}
+#endif
 	xil_printf("FW build %s\r\n", FW_BUILD_ID);
 
 #if (FW_TRANSPORT_MODE == FW_TRANSPORT_LWIP_UDP)

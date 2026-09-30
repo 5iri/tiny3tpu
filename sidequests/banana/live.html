@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KC705 · Live FPS</title>
+<style>
+body{margin:0;background:#13160e;color:#eff5de;font:17px system-ui,sans-serif;padding:32px}
+main{max-width:1050px;margin:auto}h1{font-size:26px;font-weight:500}.layout{display:flex;gap:36px;flex-wrap:wrap}
+img{width:min(512px,90vw);height:min(512px,90vw);image-rendering:pixelated;background:black}
+.fps{font-size:76px;color:#dbfa7a;font-variant-numeric:tabular-nums}.unit{font-size:20px}
+dl{display:grid;grid-template-columns:210px 130px;gap:15px}dd{margin:0;font-variant-numeric:tabular-nums}dt,p{color:#bac7a4}
+.error{color:#ff967e}#status{max-width:750px;line-height:1.5}
+</style><main><h1>KC705 / Live banana renderer</h1><div class="layout">
+<img id="frame" alt="Waiting for a verified frame from KC705"><section>
+<div><span class="fps" id="fps">—</span><span class="unit"> FPS</span></div>
+<p>Measured completed frames / rolling 16-frame window</p>
+<dl><dt>FPGA transform + CPU driver</dt><dd id="compute">—</dd>
+<dt>UART + host wait</dt><dd id="uart">—</dd><dt>Host rasterization + PNG</dt><dd id="render">—</dd>
+<dt>Verified frame</dt><dd id="seq">—</dd><dt>Camera angle</dt><dd id="angle">—</dd></dl>
+</section></div><p id="status">Connecting…</p>
+<p>Physical KC705 at 100 MHz. Resident vertices, no DDR. Camera transforms run on the TPU; JAX rasterizes on the host. Every vertex is checked before display.</p>
+</main><script>
+let previous=-1;
+async function update(){try{const s=await(await fetch('/state',{cache:'no-store'})).json();
+const active=s.connected&&s.age_seconds<5;document.getElementById('fps').textContent=active?s.fps.toFixed(2):'—';
+const status=document.getElementById('status');status.className=active?'':'error';status.textContent=s.message+(s.age_seconds>5?' · No fresh frames':'');
+if(s.sequence!==previous&&s.png){previous=s.sequence;document.getElementById('frame').src='data:image/png;base64,'+s.png;
+for(const [id,value] of [['compute',s.fpga_compute_ms],['uart',s.uart_and_host_wait_ms],['render',s.host_render_ms]])document.getElementById(id).textContent=value.toFixed(2)+' ms';
+document.getElementById('seq').textContent=s.sequence;document.getElementById('angle').textContent=s.azimuth.toFixed(0)+'°';}
+}catch(e){document.getElementById('status').textContent='Live connection lost';document.getElementById('fps').textContent='—';}setTimeout(update,100);}update();
+</script></html>

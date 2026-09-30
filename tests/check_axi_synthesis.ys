@@ -1,0 +1,6 @@
+read_verilog -sv multi-core/tiny3tpu_axi.sv multi-core/top.v multi-core/tpu_core_wrapper.sv systolic_array/rtl/NxN_systolic_array.v systolic_array/rtl/pe.v
+hierarchy -check -top tiny3tpu_axi
+proc
+opt
+check -assert
+stat

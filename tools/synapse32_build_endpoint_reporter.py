@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+"""Build an isolated endpoint report observer without changing timing calculations."""
+import argparse,difflib,hashlib,json,shlex,subprocess
+from pathlib import Path
+p=argparse.ArgumentParser(description=__doc__);p.add_argument('--out',type=Path,required=True);a=p.parse_args()
+base=Path('/tmp/tiny3tpu-nextpnr-current');build=base/'build';out=a.out.resolve();out.mkdir(parents=True,exist_ok=False)
+digest=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+source=base/'common/timing.cc';original=source.read_text()
+marker='                            auto path_budget = period - endpoint_arrival;'
+assert original.count(marker)==1
+addition='\n                            if (report_endpoints && ctx->getDelayNS(endpoint_arrival) >= 9.0 &&\n                                startdomain.first.clock != async_clock && clksig != async_clock) {\n                                log_info("ENDPOINT %.6f %.6f %s %d %s %d %s %s\\n",\n                                         ctx->getDelayNS(endpoint_arrival), ctx->getDelayNS(period),\n                                         startdomain.first.clock.c_str(ctx), int(startdomain.first.edge),\n                                         clksig.c_str(ctx), int(edge), usr.cell->name.c_str(ctx), usr.port.c_str(ctx));\n                            }\n'
+candidate=original.replace('    IdString async_clock;', '    IdString async_clock;\n    bool report_endpoints = false;')
+candidate=candidate.replace(marker,marker+addition)
+marker2='        Timing timing(ctx, true /* net_delays */, false /* update */, &crit_paths, nullptr);'
+assert candidate.count(marker2)==1
+candidate=candidate.replace(marker2,marker2+'\n        timing.report_endpoints = getenv("TINY3TPU_ENDPOINT_REPORT") != nullptr;')
+(out/'timing.cc').write_text(candidate)
+(out/'timing.patch').write_text(''.join(difflib.unified_diff(original.splitlines(True),candidate.splitlines(True),fromfile='original/timing.cc',tofile='endpoint-report/timing.cc')))
+obj='CMakeFiles/nextpnr-xilinx.dir/common/timing.cc.o'
+commands=lambda target:subprocess.check_output(['ninja','-C',str(build),'-t','commands',target],text=True).splitlines()[-1]
+compile_args=shlex.split(commands(obj));assert str(source) in compile_args
+compile_args=[str(out/'timing.cc') if x==str(source) else str(out/'timing.o') if x==obj else str(out/'timing.o.d') if x==obj+'.d' else x for x in compile_args]
+link_parts=shlex.split(commands('nextpnr-xilinx'));assert link_parts[:2]==[':','&&'] and link_parts[-2:]==['&&',':'];link_args=link_parts[2:-2]
+assert link_args.count(obj)==1
+original_inputs=[build/x for x in link_args if x.endswith('.o')]+[Path(x) for x in link_args if x.endswith('.dylib')]
+original_inputs += [source,build/'nextpnr-xilinx',Path(__file__).resolve()]
+hashes={str(p):digest(p) for p in original_inputs}
+link_args=[str(out/'timing.o') if x==obj else x for x in link_args];link_args[link_args.index('-o')+1]=str(out/'nextpnr-xilinx')
+record={'scope':'Only optional endpoint logging is added to timing.cc during report JSON generation. All timing equations, placement, routing and checks remain unchanged. All other original link objects are unchanged.','compile':compile_args,'link':link_args,'baseline_sha256':hashes,'source_sha256':digest(out/'timing.cc'),'patch_sha256':digest(out/'timing.patch'),'passed':False}
+(out/'build-manifest.json').write_text(json.dumps(record,indent=2)+'\n')
+with (out/'compile.log').open('w') as log:rc=subprocess.run(compile_args,cwd=build,stdout=log,stderr=subprocess.STDOUT).returncode
+if rc:raise SystemExit('Compile failed; inspect '+str(out/'compile.log'))
+with (out/'link.log').open('w') as log:rc=subprocess.run(link_args,cwd=build,stdout=log,stderr=subprocess.STDOUT).returncode
+if rc:raise SystemExit('Link failed; inspect '+str(out/'link.log'))
+record['baseline_unchanged']=all(digest(n)==s for n,s in hashes.items())
+record['tool_sha256']=digest(out/'nextpnr-xilinx');record['object_sha256']=digest(out/'timing.o')
+version=subprocess.run([str(out/'nextpnr-xilinx'),'--version'],text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+record['version']=version.stdout;record['passed']=record['baseline_unchanged'] and version.returncode==0
+(out/'build-manifest.json').write_text(json.dumps(record,indent=2)+'\n')
+if not record['passed']:raise SystemExit('Router build verification failed')
+print('PASS isolated endpoint reporter build; baseline objects/tool unchanged',record['tool_sha256'])

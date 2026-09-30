@@ -21,13 +21,33 @@ The two writeups about this repo are:
 
 ## What is working here
 
+The experimental [StableHLO system compiler](docs_stablehlo.md) accepts portable
+StableHLO or MLIR text and generates CPU code plus TPU calls. JAX is one frontend;
+cloth is a validation example. The linked guide records supported operations,
+explicit approximation options, and native/RTL verification results.
+
+The experimental [Rocket RV64GC backend](hardware/kc705_rocket/README.md) adds
+FP32/FP64 arithmetic alongside the int8 TPU in RTL. Its physical boot attempt
+did not respond, and work on it is stopped. The active cloth demo uses VexRiscv
+at 100 MHz; the linked record preserves the experiment's validation and failure.
+
+The next bring-up milestone for the post is [DDR3 by itself with a hardware-only
+test engine](hardware/kc705_ddr_only/README.md). That isolated target contains no
+CPU or accelerator; the remaining connections will be added one at a time after
+repeatable physical memory tests pass. Its simulation status is separate from
+the existing working accelerator setup below.
+
+An [UberDDR3 hardware-only trial](hardware/kc705_uberddr3/README.md) now evaluates
+the same 100 MHz controller target using only open-source tools. Its validation
+and timing results are recorded separately from the LiteDRAM implementation.
+
 The thing that is actually alive right now is cached MNIST inference backed by a firmware-controlled `16x16` GEMM engine.
 
-- The firmware in [firmware.c](/Users/siriboi/github/tiny3tpu/firmware.c) drives a memory-mapped systolic core through pulse-based control registers.
+- The firmware in [firmware.c](firmware.c) drives a memory-mapped systolic core through pulse-based control registers.
 - Host tools send binary packets for model upload, inference, and raw GEMM over UART or UDP.
 - Quantized MNIST MLPs can be exported from PyTorch, cached on the board, and executed layer-by-layer using the same tiled GEMM engine.
 
-The RTL under [multi-core](/Users/siriboi/github/tiny3tpu/multi-core) goes wider and gets more experimental, but the checked-in firmware is still the practical, battle-tested path for the setup above.
+The RTL under [multi-core](multi-core) goes wider and gets more experimental, but the checked-in firmware is still the practical, battle-tested path for the setup above.
 
 ## Dataflow at a glance
 
@@ -60,7 +80,43 @@ The protocol currently includes:
 - `MOD1` and `MCH1` for model upload
 - `INF1` / `PRD1` for cached-model inference
 
+The v1 compiler model container uses a zero-scratch contract for the currently
+supported host operations: `scratch_offset` and `scratch_bytes` are both zero.
+Scratch storage cannot alias the activation arena until a future runtime ABI
+defines an independent scratch region.
+
 ## Running the host tools
+
+The C++ compiler and portable C runtime can be built and tested locally:
+
+```bash
+cmake -S . -B build -DCMAKE_C_STANDARD=11 -DCMAKE_C_EXTENSIONS=OFF \
+  -DPython3_EXECUTABLE="$PWD/.venv/bin/python"
+cmake --build build -j2
+ctest --test-dir build --output-on-failure
+```
+
+The JAX test uses the selected Python environment and compares exported matmul
+and bias models against both the C++ reference executor and the C runtime.
+JAX must be installed in that environment. This verifies host execution; it
+does not program an FPGA. The default RTL configuration is two 4×4 cores;
+the firmware's 16×16 GEMM is a tiled logical operation.
+
+With Verilator installed, `jax_fpga_sim` runs the exported models through the
+C runtime and portable MMIO backend against simulated AXI RTL. It requires
+actual accelerator launches and compares outputs to JAX. Icarus adds AXI bus
+protocol tests; Yosys adds structural synthesis checks. These tools are
+detected at configure time. The firmware compile checks use test-only BSP
+declarations and are not board binaries.
+
+The generic firmware path links `src/runtime.c`,
+`src/firmware_runtime_adapter.c`, and `src/mmio_backend.c`, and defines
+`TINY3TPU_ENABLE_GENERIC_RUNTIME`. Board-specific deployment still needs the
+processor/BSP, memory map, clock/reset integration, constraints, bitstream,
+and physical verification. See [the AXI register map](docs_axi_registers.md).
+
+See [the generic firmware adapter](docs_firmware_runtime_adapter.md) for the
+model upload and execution protocol and board integration requirements.
 
 These scripts assume the FPGA is already programmed and the matching firmware is running. If the board is not alive, none of this becomes magically convenient.
 
@@ -99,3 +155,15 @@ If you want to train/export a new quantized MNIST model:
 ```bash
 python3 pyfiles/train_mnist_hw.py --epochs 8 --export mnist_int8_4layer.json
 ```
+
+## Synapse32 AXI-Stream transport
+
+The optional Synapse32 mailbox and AXI-Stream register-command bridge are
+documented in [docs_synapse32_stream.md](docs_synapse32_stream.md). Tests include
+RV32 firmware executing on the actual Synapse32 CPU RTL and a JAX-to-TPU RTL
+transport path. This is not yet a KC705 CPU bitstream or physical-board inference.
+
+The [open-source KC705 DDR bring-up](hardware/synapse32/README.md) adds synchronous
+boot RAM, a variable-latency CPU memory sequencer, and a LiteDRAM-based board
+target with C calibration and DDR-backed TPU self-test firmware. Hardware
+qualification is tracked separately from the passing CPU/DRAM-model simulation.

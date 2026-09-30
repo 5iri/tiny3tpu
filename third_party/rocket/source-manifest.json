@@ -1,0 +1,59 @@
+{
+  "repository": "https://github.com/litex-hub/pythondata-cpu-rocket",
+  "revision": "d641037640637471e82646e69a055475cd2abfab",
+  "variant": "linux_1_1",
+  "files": {
+    "LICENSE": {
+      "upstream_path": "LICENSE",
+      "sha256": "44b0a56e80b41a1b0a6bd1292515e806539fd97b30be54c2719e6c763190ab57"
+    },
+    "README.md": {
+      "upstream_path": "pythondata_cpu_rocket/verilog/README.md",
+      "sha256": "4db9fa614e22e33b6836b2d505e0b4cc79df24a39dc4e0adcf1ad2c902c6aa8b"
+    },
+    "_upstream.rev": {
+      "upstream_path": "pythondata_cpu_rocket/verilog/_upstream.rev",
+      "sha256": "e203619b121439ee9c0308fbabe4bdcb98fd5da7cdaa410dcfd88d3ad53e5f8f"
+    },
+    "freechips.rocketchip.system.LitexConfig_linux_1_1.v": {
+      "upstream_path": "pythondata_cpu_rocket/verilog/generated-src/freechips.rocketchip.system.LitexConfig_linux_1_1.v",
+      "sha256": "b0488211a0a4c058c8517e7866eae9ae06b62d746525bc66745b2203733303b1"
+    },
+    "freechips.rocketchip.system.LitexConfig_linux_1_1.behav_srams.v": {
+      "upstream_path": "pythondata_cpu_rocket/verilog/generated-src/freechips.rocketchip.system.LitexConfig_linux_1_1.behav_srams.v",
+      "sha256": "6276f1989890a99a27941aaef5aa07d33ce52447dba1dae7f91aa80bb8cfcfb2"
+    },
+    "freechips.rocketchip.system.LitexConfig_linux_1_1.dts": {
+      "upstream_path": "pythondata_cpu_rocket/verilog/generated-src/freechips.rocketchip.system.LitexConfig_linux_1_1.dts",
+      "sha256": "3fc1392dee7804cb23b04dd0e5fbdbfbad345d9c43f29b42a18a5dfbc1af7595"
+    },
+    "freechips.rocketchip.system.LitexConfig_linux_1_1.memmap.json": {
+      "upstream_path": "pythondata_cpu_rocket/verilog/generated-src/freechips.rocketchip.system.LitexConfig_linux_1_1.memmap.json",
+      "sha256": "6896b736fafc5a203fb6e92a639aacb07dc11714c5ad6fe19ee96c4eedac438b"
+    },
+    "freechips.rocketchip.system.LitexConfig_linux_1_1.json": {
+      "upstream_path": "pythondata_cpu_rocket/verilog/generated-src/freechips.rocketchip.system.LitexConfig_linux_1_1.json",
+      "sha256": "17f532277c05af906ddc46ceaf4f0d3f1cc19305b89bb9920dda0518a068a6ab"
+    },
+    "plusarg_reader.v": {
+      "upstream_path": "pythondata_cpu_rocket/verilog/vsrc/plusarg_reader.v",
+      "sha256": "482a63c1f24a7ac920909620bd0df108e6954eabf9520de6e72334a2b5450efb"
+    },
+    "AsyncResetReg.v": {
+      "upstream_path": "pythondata_cpu_rocket/verilog/vsrc/AsyncResetReg.v",
+      "sha256": "96700ec42cd45d2933942aa138d76a4e2352c853b7045cb5b7625043aa58652e"
+    },
+    "EICG_wrapper.v": {
+      "upstream_path": "pythondata_cpu_rocket/verilog/vsrc/EICG_wrapper.v",
+      "sha256": "8532a50a212f146f10208717be24168a2de73a9754786da272d0dbfcd556c307"
+    },
+    "LICENSE.Berkeley": {
+      "upstream_url": "https://raw.githubusercontent.com/chipsalliance/rocket-chip/4f197707e/LICENSE.Berkeley",
+      "sha256": "54349a017a8a0876fcc5ef281fc37aedbf5a008158395eaad0f589ade7f019cc"
+    },
+    "LICENSE.SiFive": {
+      "upstream_url": "https://raw.githubusercontent.com/chipsalliance/rocket-chip/4f197707e/LICENSE.SiFive",
+      "sha256": "63b453c2c3f5e5d31007f55eaacc2b72e8b7a40e6ab33eae6972ba010fa7acc4"
+    }
+  }
+}

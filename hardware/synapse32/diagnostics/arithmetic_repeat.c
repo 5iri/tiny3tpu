@@ -1,0 +1,16 @@
+#include <stdint.h>
+static volatile uint32_t *const uart=(volatile uint32_t *)0x20000000;
+static void ch(unsigned c){while(!(uart[5]&32)){} uart[0]=c;}
+static void hex(uint32_t x){for(int i=28;i>=0;i-=4)ch("0123456789abcdef"[(x>>i)&15]);ch(' ');}
+int main(void){
+ uart[3]=0x83;uart[0]=868&255;uart[1]=868>>8;uart[3]=3;uart[2]=7;
+ ch('B');ch('E');ch('G');ch('I');ch('N');ch('\n');
+ for(unsigned a=0;a<4;a++) for(unsigned rep=0;rep<6;rep++) {
+  uint32_t mul,high; uint32_t ten=10, recip=0xcccccccd;
+  ch('R');ch(' ');hex(a);hex(rep);
+  __asm__ volatile("mul %0,%1,%2":"=r"(mul):"r"(a),"r"(ten));
+  __asm__ volatile("mulhu %0,%1,%2":"=r"(high):"r"(a),"r"(recip));
+  hex(mul);hex(high);ch('\n');
+ }
+ return 0;
+}

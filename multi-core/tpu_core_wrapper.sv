@@ -46,8 +46,12 @@ module tpu_core_wrapper #(
     reg signed [DW-1:0] b_spm [0:N-1][0:N-1];
     reg signed [CW-1:0] c_spm [0:N-1][0:N-1];
 
-    integer t_count;
-    integer flush_count;
+    // These counters never exceed their terminal cycle. Keeping them as signed
+    // 32-bit integers created a wide compare/increment path in the DDR design.
+    localparam TCW = (FEED_CYCLES > 1) ? $clog2(FEED_CYCLES) : 1;
+    localparam FCW = (FLUSH_CYCLES > 1) ? $clog2(FLUSH_CYCLES) : 1;
+    reg [TCW-1:0] t_count;
+    reg [FCW-1:0] flush_count;
     integer i;
     integer j;
     integer k;

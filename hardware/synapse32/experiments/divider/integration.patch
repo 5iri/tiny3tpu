@@ -1,0 +1,139 @@
+--- a/rtl/riscv_cpu.v
++++ b/rtl/riscv_cpu.v
+@@ -38,6 +38,27 @@
+     wire [31:0] pc_inst0_jump;
+     wire hazard_stall; // For load-use hazards
+     wire pipeline_stall;
++    // EX owns one divide until done. Older MEM/WB entries drain normally.
++    wire div_instruction = id_ex_inst0_instr_valid_out &&
++        ((id_ex_inst0_instr_id_out == INSTR_DIV) ||
++         (id_ex_inst0_instr_id_out == INSTR_DIVU) ||
++         (id_ex_inst0_instr_id_out == INSTR_REM) ||
++         (id_ex_inst0_instr_id_out == INSTR_REMU));
++    wire div_busy, div_done;
++    wire [31:0] div_result;
++    wire div_wait = div_instruction && !div_done;
++    wire div_start = div_instruction && !div_busy && !div_done &&
++                     !pipeline_flush && !wfi_stall &&
++                     !store_buf_busy_stall && !fence_drain_stall;
++    divider divider_inst (
++        .clk(clk), .rst(rst), .cancel(pipeline_flush), .start(div_start),
++        .signed_mode((id_ex_inst0_instr_id_out == INSTR_DIV) ||
++                     (id_ex_inst0_instr_id_out == INSTR_REM)),
++        .remainder_mode((id_ex_inst0_instr_id_out == INSTR_REM) ||
++                        (id_ex_inst0_instr_id_out == INSTR_REMU)),
++        .dividend(ex_inst0_rs1_value_out), .divisor(ex_inst0_rs2_value_out),
++        .busy(div_busy), .done(div_done), .result(div_result)
++    );
+     wire mem_stage_page_fault_taken;
+     wire mem_stage_load_page_fault;
+     wire mem_stage_store_page_fault;
+@@ -273,7 +294,7 @@
+                                          instruction_address_misaligned_exception ||
+                                          load_address_misaligned_exception ||
+                                          store_address_misaligned_exception;
+-    assign instret_increment = id_ex_inst0_instr_valid_out &&
++    assign instret_increment = id_ex_inst0_instr_valid_out && !div_wait &&
+                                (id_ex_inst0_instr_id_out != INSTR_INVALID) &&
+                                !interrupt_taken &&
+                                !synchronous_exception_taken &&
+@@ -343,7 +364,7 @@
+     // FENCE must wait for any queued store to drain.
+     wire store_buf_busy_stall = 1'b0;
+     wire fence_drain_stall = (id_ex_inst0_instr_id_out == INSTR_FENCE) && store_buf_valid;
+-    wire pipeline_hold = wfi_stall || store_buf_busy_stall || fence_drain_stall;
++    wire pipeline_hold = div_wait || wfi_stall || store_buf_busy_stall || fence_drain_stall;
+     assign pipeline_stall = hazard_stall || pipeline_hold;
+ 
+     always @(posedge clk or posedge rst) begin
+@@ -439,6 +460,7 @@
+     wire [31:0] ex_mem_forward_result = is_sc_w ? sc_result : ex_mem_inst0_exec_output_out;
+ 
+     execution_unit ex_unit_inst0 (
++        .div_result(div_result),
+         .rs1(id_ex_inst0_rs1_value_out),
+         .rs2(id_ex_inst0_rs2_value_out),
+         .imm(id_ex_inst0_imm_out),
+@@ -519,7 +541,7 @@
+     EX_MEM ex_mem_inst0 (
+         .clk(clk),
+         .rst(rst),
+-        .flush(mem_stage_page_fault_taken ||
++        .flush(div_wait || mem_stage_page_fault_taken ||
+                instr_stage_page_fault_taken ||
+                synchronous_exception_taken ||
+                interrupt_taken_qualified),
+--- a/rtl/core_modules/alu.v
++++ b/rtl/core_modules/alu.v
+@@ -1,6 +1,7 @@
+ `default_nettype none
+ `include "instr_defines.vh"
+ module alu (
++    input wire [31:0] div_result,
+     input wire [31:0] rs1,
+     input wire [31:0] rs2,
+     input wire [31:0] imm,
+@@ -64,24 +65,8 @@
+             INSTR_MULH:  ALUoutput = mul_signed[63:32];
+             INSTR_MULHSU: ALUoutput = mul_mixed[63:32];
+             INSTR_MULHU: ALUoutput = mul_unsigned[63:32];
+-            INSTR_DIV: begin
+-                if (div_by_zero)       ALUoutput = 32'hFFFFFFFF;
+-                else if (div_overflow) ALUoutput = 32'h80000000;
+-                else                   ALUoutput = rs1_signed / rs2_signed;
+-            end
+-            INSTR_DIVU: begin
+-                if (div_by_zero) ALUoutput = 32'hFFFFFFFF;
+-                else             ALUoutput = rs1 / rs2;
+-            end
+-            INSTR_REM: begin
+-                if (div_by_zero)       ALUoutput = rs1;
+-                else if (div_overflow) ALUoutput = 32'h00000000;
+-                else                   ALUoutput = rs1_signed % rs2_signed;
+-            end
+-            INSTR_REMU: begin
+-                if (div_by_zero) ALUoutput = rs1;
+-                else             ALUoutput = rs1 % rs2;
+-            end
++            INSTR_DIV, INSTR_DIVU, INSTR_REM, INSTR_REMU:
++                ALUoutput = div_result; // CPU admits this result only on done.
+             default:     ALUoutput = 0;
+         endcase
+     end
+--- a/rtl/execution_unit.v
++++ b/rtl/execution_unit.v
+@@ -1,6 +1,7 @@
+ `default_nettype none
+ `include "instr_defines.vh"
+ module execution_unit(
++    input wire [31:0] div_result,
+     input wire [31:0] rs1,
+     input wire [31:0] rs2,
+     input wire [31:0] imm,
+@@ -196,6 +197,7 @@
+ end
+ 
+ alu alu_inst(
++    .div_result(div_result),
+     .rs1(rs1_value),
+     .rs2(rs2_value),
+     .imm(imm),
+--- a/rtl/core_modules/divider.v
++++ b/rtl/core_modules/divider.v
+@@ -9,6 +9,7 @@
+     input wire clk,
+     input wire rst,
+     input wire start,
++    input wire cancel,
+     input wire signed_mode,
+     input wire remainder_mode,
+     input wire [31:0] dividend,
+@@ -54,6 +55,9 @@
+             busy <= 1'b0;
+             done <= 1'b0;
+             result <= 32'h0;
++        end else if (cancel) begin
++            busy <= 1'b0;
++            done <= 1'b0;
+         end else if (start && !busy && !done) begin
+             done <= 1'b0;

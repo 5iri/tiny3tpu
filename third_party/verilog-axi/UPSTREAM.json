@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/alexforencich/verilog-axi",
+  "revision": "516bd5dadc3365b7f9e225d2af8fe0b8d804fe53",
+  "license": "MIT",
+  "sha256": {
+    "COPYING": "ba81481b2d63a33e0dce336d9e736130709549feeaf6cd424b34beba712baa50",
+    "rtl/axi_dma.v": "6063279cc0ae29d663108dd7e1aab17fa1b8143ca7f98dfb802efd2c76b0d6b6",
+    "rtl/axi_dma_rd.v": "853ff3aedc44ec0c12ef3ae8b84d7559800d372f76832c7c133ed5eecac61dd8",
+    "rtl/axi_dma_wr.v": "91b24115e3a5940a6057d06554fb5c61594a22fc71391e871e5c14f1e21ea0b2"
+  }
+}

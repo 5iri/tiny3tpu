@@ -1,8 +1,10 @@
 `timescale 1ns/1ps
 
 module top #(
-    parameter  NUM_CORES       = 4,
-    parameter  N               = 8,
+    // Default board contract: two 4x4 cores sharing the host-visible UBUF.
+    // Larger heterogeneous arrays remain available through parameter overrides.
+    parameter  NUM_CORES       = 2,
+    parameter  N               = 4,
     parameter  DW              = 8,
     parameter  CW              = 32,
     parameter  NUM_BIG_CORES   = 2,

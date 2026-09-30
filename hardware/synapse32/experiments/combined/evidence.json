@@ -1,0 +1,313 @@
+{
+  "out": "/tmp/tiny3tpu-combined-lhxjpxns",
+  "commands": [
+    {
+      "name": "yosys-version",
+      "argv": [
+        "/Users/siriboi/.apio/packages/oss-cad-suite/bin/yosys",
+        "-V"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "nextpnr-version",
+      "argv": [
+        "/tmp/tiny3tpu-nextpnr-current/build/nextpnr-xilinx",
+        "--version"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "csr_equiv",
+      "argv": [
+        "/Users/siriboi/.apio/packages/oss-cad-suite/bin/yosys",
+        "-Q",
+        "-T",
+        "-s",
+        "/tmp/tiny3tpu-combined-lhxjpxns/csr_equiv.ys"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "boot_equiv_16384",
+      "argv": [
+        "/opt/homebrew/bin/yosys",
+        "-Q",
+        "-T",
+        "-s",
+        "/tmp/tiny3tpu-combined-lhxjpxns/boot_equiv_16384.ys"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "boot_equiv_3",
+      "argv": [
+        "/opt/homebrew/bin/yosys",
+        "-Q",
+        "-T",
+        "-s",
+        "/tmp/tiny3tpu-combined-lhxjpxns/boot_equiv_3.ys"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "boot_equiv_32768",
+      "argv": [
+        "/opt/homebrew/bin/yosys",
+        "-Q",
+        "-T",
+        "-s",
+        "/tmp/tiny3tpu-combined-lhxjpxns/boot_equiv_32768.ys"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "boot_equiv_1",
+      "argv": [
+        "/opt/homebrew/bin/yosys",
+        "-Q",
+        "-T",
+        "-s",
+        "/tmp/tiny3tpu-combined-lhxjpxns/boot_equiv_1.ys"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "boot_equiv_2",
+      "argv": [
+        "/opt/homebrew/bin/yosys",
+        "-Q",
+        "-T",
+        "-s",
+        "/tmp/tiny3tpu-combined-lhxjpxns/boot_equiv_2.ys"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "boot_equiv_536870912",
+      "argv": [
+        "/opt/homebrew/bin/yosys",
+        "-Q",
+        "-T",
+        "-s",
+        "/tmp/tiny3tpu-combined-lhxjpxns/boot_equiv_536870912.ys"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "boot_equiv_536870913",
+      "argv": [
+        "/opt/homebrew/bin/yosys",
+        "-Q",
+        "-T",
+        "-s",
+        "/tmp/tiny3tpu-combined-lhxjpxns/boot_equiv_536870913.ys"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "boot_equiv_1073741824",
+      "argv": [
+        "/opt/homebrew/bin/yosys",
+        "-Q",
+        "-T",
+        "-s",
+        "/tmp/tiny3tpu-combined-lhxjpxns/boot_equiv_1073741824.ys"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "synthesis",
+      "argv": [
+        "/Users/siriboi/.apio/packages/oss-cad-suite/bin/yosys",
+        "-Q",
+        "-T",
+        "-m",
+        "slang",
+        "-s",
+        "/tmp/tiny3tpu-combined-lhxjpxns/synth.ys"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "preservation",
+      "argv": [
+        "python3",
+        "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/interconnect/compare_full.py",
+        "/Users/siriboi/github/tiny3tpu/build-ddr/soc.json",
+        "/tmp/tiny3tpu-combined-lhxjpxns/soc.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "route",
+      "argv": [
+        "/tmp/tiny3tpu-nextpnr-current/build/nextpnr-xilinx",
+        "--chipdb",
+        "/tmp/tiny3tpu-nextpnr-current/kc705.bin",
+        "--json",
+        "/tmp/tiny3tpu-combined-lhxjpxns/soc.json",
+        "--xdc",
+        "/Users/siriboi/github/tiny3tpu/build-ddr/kc705.xdc",
+        "--freq",
+        "100",
+        "--seed",
+        "4",
+        "--placer",
+        "heap",
+        "--write",
+        "/tmp/tiny3tpu-combined-lhxjpxns/soc_routed.json",
+        "--report",
+        "/tmp/tiny3tpu-combined-lhxjpxns/timing.json",
+        "--log",
+        "/tmp/tiny3tpu-combined-lhxjpxns/nextpnr.log"
+      ],
+      "returncode": 0
+    }
+  ],
+  "route_count": 1,
+  "synthesis_jobs_max": 1,
+  "thread_environment": {
+    "OMP_NUM_THREADS": "2",
+    "OPENBLAS_NUM_THREADS": "2",
+    "VECLIB_MAXIMUM_THREADS": "2"
+  },
+  "diagnostic_only": true,
+  "physical_ready": false,
+  "input_sha256": {
+    "/Users/siriboi/.apio/packages/oss-cad-suite/bin/yosys": "d814ee056e365e9dd72639658d2b49ed2b6640d083079b1ad8901ea48fe43877",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/alu.v": "c547fb3ba283ecea39ce2ccbfba966f7d6af6b1c253e2694126e0a53b4bc07b0",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/atomic_lsu.v": "bd1a848130eb380526feddc88008b3c6c1b2e1e58675b5961ba7cd62581ef13b",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/csr_exec.v": "b3fb3c3210200928cbcbf7e9700a68f35039b795fe7ffdf544e2abc78a070c8b",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/csr_file.v": "7708863f72052ceee98ce5e193242013ee4fb9e853e2c11b0c11012ac5885c14",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/decoder.v": "a3cc835029710ed96edb1b4c6b22f89318990611c5cdd4f9c21d3f8ae93a36a3",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/divider.v": "2a714c59fb62259c69b1a1976a331e8a56ba9299b404bd4d289e2ed4e01434d6",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/interrupt_controller.v": "a499bfc969e45ff0cafba63892ebdacedb1d25e10fe3494db50b95bab4bd048d",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/multiplier.v": "156892734c4694e7c7d74e03221f7842a88170cf458af763645ad9f35a0ce25a",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/pc.v": "cc6960788b8819280b0ea4571374ac188cea4043103dacf7d000ba9e42e97885",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/plic.v": "6a2ab46ef2f99dd8657eec5ab4a0e8b0210b4ddd83223802cf095a21dbf2a861",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/registerfile.v": "ed76f869be32e4d27e71522583cf6a90ad7c3d3da13b7bc31cbef11f7fdc0b94",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/timer.v": "f8ba198dcdbaee3c24ebcc4b3480329bee5babaebe50ff37cc15d5b04f22f71a",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/uart.v": "1fcff923cce212e9ba99924edeedf2fafd47896c312431398fbc717e56b03828",
+    "/Users/siriboi/github/synapse32/rtl/execution_unit.v": "2f6e3388b2be1d38889e9c990dea1d95c1f3b7ed081fc78ce5e7ac8efab9f53b",
+    "/Users/siriboi/github/synapse32/rtl/include/instr_defines.vh": "8a3c7cf00fcb454fcaa7963896b29ae2a05d251f6a0bf2685aff5339270856ae",
+    "/Users/siriboi/github/synapse32/rtl/include/memory_map.vh": "7d79f7bdf25f2b02f1a2e736c71002e510e7abd5e02af449dee2f4dc251cf0cf",
+    "/Users/siriboi/github/synapse32/rtl/memory_unit.v": "ceeb74519d13b7e5e6739e98181d3f5a38a903f2457ef534aa604da58a3bba3e",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/EX_MEM.v": "5f7c0f1271eeddbbc95bbce0f98916bc6760c10a792960efccc975361c056876",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/ID_EX.v": "21c4c2df13f6b464044bcc63e11d2d68ba7365ff296826b6f0eeee1a108a6d52",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/IF_ID.v": "19b123fdb0afa629366ef1acf6b742ab11e2401ce8bc4e56f570cd6d1fb016c8",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/MEM_WB.v": "85f3792bda16ed8ae1b8d8b7034949f95854b9b7da0a273cfbe3c0ddf438492f",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/forwarding_unit.v": "694179272194872d67334939cca69cbf334d4fdccb97c2ecdaf8cd729643e914",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/load_use_detector.v": "4702dfb0f7b67d09043504d7dead4673a0c8bd4719275d5a5a92db78528407ba",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/store_load_detector.v": "d94b590da965aa3fc2d0b1e3db1c02a09f658bf9e8ba30d43a5d8ef78dd1884a",
+    "/Users/siriboi/github/synapse32/rtl/riscv_cpu.v": "42e2b8c56c8db20b813c22b9665a4d620e5ac145e92e57c12b4597306eaa2d61",
+    "/Users/siriboi/github/synapse32/rtl/writeback.v": "6c7e1a1f45ddeefac39328ad80619019b4f947aa82073bf496acd4da794a4c8a",
+    "/Users/siriboi/github/tiny3tpu/build-ddr/boot_path.vh": "d1965ca8440b1547ed894eed599add21f8d4cae3312bacce6b6865779fcccf5b",
+    "/Users/siriboi/github/tiny3tpu/build-ddr/firmware.hex": "db50c0c0a71843430ff993d01a95f63b9e2763e85807a40acc58028303fbc64e",
+    "/Users/siriboi/github/tiny3tpu/build-ddr/kc705.xdc": "e1c892563932bfae60eddf7253e123a06239bce6c2c1ac3928186ba00921f10c",
+    "/Users/siriboi/github/tiny3tpu/build-ddr/litedram/gateware/kc705_dram.v": "710f0e78724bff8c86e29c46759d5c17a436cbcc66306a50ced849a061c0b4ab",
+    "/Users/siriboi/github/tiny3tpu/build-ddr/soc.json": "b88d70650670d63728c9121025309f5b1fd2c11e44fb8166e401e161d4426489",
+    "/Users/siriboi/github/tiny3tpu/build-ddr/synapse-current-baseline.log": "cdd53f9f812920ede453948d8bc35a194c66d8eda6118bd69a451c56fbdaaf6b",
+    "/Users/siriboi/github/tiny3tpu/build-ddr/synth.ys": "9ada9a39593036fbb59d45b7571fe0ce88700a87ce003b377f1da71dccc5bfac",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/cpu/csr_exec.v": "1b2cd34cdc3f648a54198105f498eeea7296c969e5272734dcb6c85a11afa76c",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/interconnect/check.py": "bbbcd9953bbf8cc1665b7cf9df21f3b5eac652dd0d79a05ba13e7f2245615cec",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/interconnect/compare_full.py": "eed0c249deba92857ed329672c1c5cc403eadc26f42ea95893b7678a76aece93",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/interconnect/synapse32_dram_soc.sv": "bb4c897a22647dcac9f3254e34cc32e2ea57094b3b2d57a72df5c6fa29a07a52",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/kc705_synapse32_top.sv": "0bdfcf5a4aa33241598e8a22c20aa0ea571887ca06bdc672ea15ac160ec8b8cd",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/litedram_wishbone_bridge.sv": "a2cd4c3771d093fb5b59f572ce13b3e60c8fc0d77e5af30a979cfb4c1e769a99",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/synapse32_clock_enable.sv": "363ee75a95614eb538800b83ebc995ba562f75a4aca555bfb965c26ded3a3565",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/synapse32_dram_soc.sv": "48d7a8f4e55e86328be8b07deee03ecf4b69232955d39bb6995dfe62f9ef0ee8",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/synapse32_memory_sequencer.sv": "a1217d8b3871cafec02facaa97d463e6039d29ca36ff91e2898a3934b05ee046",
+    "/Users/siriboi/github/tiny3tpu/multi-core/synapse32_axis_mailbox.sv": "21f7b27b0da09dcff9146066fc30e92828dfcab6dd262ae015e80d3049ce4b6b",
+    "/Users/siriboi/github/tiny3tpu/multi-core/synapse32_tpu_peripheral.sv": "e8b3ebbef65fc57e0216060133d56d7a7047e3f43689c828e172e3c7fed227f8",
+    "/Users/siriboi/github/tiny3tpu/multi-core/tiny3tpu_axi.sv": "d083ed4aa6863563acee1de84e67cede21c8f13fd02875ba4523660c392dd44b",
+    "/Users/siriboi/github/tiny3tpu/multi-core/tiny3tpu_axis.sv": "7068dfcaddf4da84d4654d7a6d9574a0cb11922dd1833235539a730fa5164b1f",
+    "/Users/siriboi/github/tiny3tpu/multi-core/tiny3tpu_axis_bridge.sv": "9ba6a1d30cf22358c7a8f75b2460b081917f73239834b30af76e989cff6934cb",
+    "/Users/siriboi/github/tiny3tpu/multi-core/top.v": "e018aed243923596454d74d66f8ff9307ec0deb029f07368058c38ab33d01c1e",
+    "/Users/siriboi/github/tiny3tpu/multi-core/tpu_core_wrapper.sv": "4cb7cb86781eaba70e2be5a3a68b03add9d3fbdc256078fa5413e0d3aa83cd9c",
+    "/Users/siriboi/github/tiny3tpu/systolic_array/rtl/NxN_systolic_array.v": "3d34466234240425d431a77e85ceb3551e537f885176d45d0d96e4e9599bd0c6",
+    "/Users/siriboi/github/tiny3tpu/systolic_array/rtl/pe.v": "74f756faef9d9f65b67443ed305ae476f2bb16f9adb92889653dd805f1e8fd77",
+    "/opt/homebrew/bin/yosys": "11b91086104c474194593d6af145b0c19ac2f67e223931c2b6175fa3f0305ed6",
+    "/tmp/tiny3tpu-nextpnr-current/build/nextpnr-xilinx": "8b80c5f49fbb8d9433305d904ef707bd0f2cf4b18afb77f41fe9f5d511687cc9",
+    "/tmp/tiny3tpu-nextpnr-current/kc705.bin": "d3d90cb680525dcf42b19dde35df9660ca7a9a48b5865bd33404129a2595b284"
+  },
+  "substitutions": {
+    "/Users/siriboi/github/synapse32/rtl/core_modules/csr_exec.v": "/tmp/tiny3tpu-combined-lhxjpxns/csr_exec.v",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/synapse32_dram_soc.sv": "/tmp/tiny3tpu-combined-lhxjpxns/synapse32_dram_soc.sv"
+  },
+  "overlay_sha256": {
+    "/tmp/tiny3tpu-combined-lhxjpxns/csr_exec.v": "1b2cd34cdc3f648a54198105f498eeea7296c969e5272734dcb6c85a11afa76c",
+    "/tmp/tiny3tpu-combined-lhxjpxns/synapse32_dram_soc.sv": "bb4c897a22647dcac9f3254e34cc32e2ea57094b3b2d57a72df5c6fa29a07a52"
+  },
+  "equivalence": {
+    "csr": "PASS, two-state combinational",
+    "boot_controller": "PASS, compositional induction",
+    "boot_words": [
+      16384,
+      3,
+      32768,
+      1,
+      2,
+      536870912,
+      536870913,
+      1073741824
+    ],
+    "limitation": "Not a full CPU/DDR or four-state proof; RAM contents abstracted."
+  },
+  "soc_sha256": "df7446dbdc7e737e7b0c0ed689b6ecb43f7ac4b12d793521188b3e4d5838a09c",
+  "final_fmax": {
+    "clk": {
+      "achieved": 50.87,
+      "constraint": 100.0
+    },
+    "clk200": {
+      "achieved": 1353.18,
+      "constraint": 200.0
+    },
+    "memory.iodelay_clk": {
+      "achieved": 382.85,
+      "constraint": 200.0
+    },
+    "soc.cpu_clk": {
+      "achieved": 5.0,
+      "constraint": 100.0
+    }
+  },
+  "inputs_unchanged": true,
+  "overlays_unchanged": true,
+  "output_sha256": {
+    "soc.json": "df7446dbdc7e737e7b0c0ed689b6ecb43f7ac4b12d793521188b3e4d5838a09c",
+    "boot_equiv_2.ys": "40da40cab66a3fc8970bacf98b260636344f956852bd3a3439a2e2024b3e1c71",
+    "nextpnr-version.log": "52ee340badc532bd902f73d1dedb2ab4320c9e9a24468fd5c44c093df4c22712",
+    "boot_equiv_3.ys": "ad748b69072f838007a19681cf4259e650df8439c37f3d4ff6802d76122295e6",
+    "timing.json": "180cf9ce4bbce7b168e59facec89d948e731c00c09a6d3216e7a6e2fabbf7703",
+    "boot_equiv_1.log": "e6613b2a654f61b9e9e45230284d552eca9a9663405fb72405d02d39953bd3b5",
+    "boot_equiv_2.log": "4ed5ae854285e519d42804c20f7287b7ad424e74a02c95bf0fddc015e8e61f14",
+    "boot_equiv_3.log": "0767e3752f9726e396533031b73e2011fbfceefba9ce1f3bc79514bd2155170e",
+    "nextpnr.log": "048edfacc0d6d0de3da265c01df42286acb58cc48d34a5c2b8981f672fcdf2b2",
+    "synapse32_dram_soc.sv": "bb4c897a22647dcac9f3254e34cc32e2ea57094b3b2d57a72df5c6fa29a07a52",
+    "boot_equiv_1073741824.log": "ac7155508147a2369716c531240e4d3ee7fc940678d84e0a0de486aabd40a5ce",
+    "boot_equiv_536870912.ys": "c60d9c8d0cfedc656780539ce666e8464f1ae2f82871bfbeeeebcab546a685df",
+    "route.log": "048edfacc0d6d0de3da265c01df42286acb58cc48d34a5c2b8981f672fcdf2b2",
+    "boot_equiv_536870913.ys": "26fa932f66bdcf5a27f334b6fd45cf4c50337a6fb932d7609dd46e49ebc28c7a",
+    "boot_equiv_16384.ys": "a28f0da1c59be389f6698d9a36cce2c84ac4742ed0f5da8e703baf05263a0cb0",
+    "yosys-version.log": "90fcc3c1d174f4ed711b9730a40fceef716f12d86f6c2acbd37d2be90991115f",
+    "boot_equiv_1073741824.ys": "e70d56fcab5d278b67c064d569dbbd55868ffcb33e28359c9b53fb364d74dec0",
+    "synthesis.log": "5e814c159b63fafb9d6ea6a4b90f084bf289f5a3c8c85253603e9e07d8799236",
+    "soc_routed.json": "3591a98f8ebdfdb8eb503270d26012e994b5448a37f3965189eb1968647ee9fc",
+    "boot_equiv_32768.ys": "1d48b0a91a035fca52c872d5cebde79d7ed2bfe200c3c29f60f670d184230bd2",
+    "csr_equiv.log": "689916490f84fba6f241d246a335ed3203579055ff2608f78778255967f4c9e8",
+    "preservation.log": "871e2038dd8618670c9b6d5fa3eac71e9f74a219c3f1d53031a7957419ce03e3",
+    "synth.ys": "3b01908306c34ce41b1cede8d7069668ca1e9e0c2bf0a9321f98ba554fbf1077",
+    "gold.sv": "aae5c753c378441b7525c866ef6c7fb9b8ec3a07d224283a79349c70ff78f7d6",
+    "gate.sv": "cc9457b4696210410eb2a52b1b217430c1fc7e66b9869d4352c651d7e8582fe7",
+    "csr_exec.v": "1b2cd34cdc3f648a54198105f498eeea7296c969e5272734dcb6c85a11afa76c",
+    "csr_equiv.ys": "30374c00aea1617a22950ab58d329a451b36fb6ee47fa07aeee5efbfdc4028c3",
+    "boot_equiv_536870913.log": "dd0105127085d3cbdeb5de527297602cabf913acdf15e8290d564e7e3d55851f",
+    "boot_equiv_16384.log": "8a8ca6308a123b8f6909c224dbc514726f6675b33d3e33c9b63bc34e97af2ebf",
+    "boot_equiv_536870912.log": "15ac59e67103cc0c506c92d776860233488637e368a9a308a2828be3355d20fc",
+    "boot_equiv_32768.log": "2da0872510057fed6f00c0410edf435bb637148434b5b5e1f10940a12a6d6bf2",
+    "combined-audit.log": "5a20b527df51ebbfb2650433dad8b870de6204d6a09e634289af601e11ad30bf",
+    "boot_equiv_1.ys": "6157f350823edb8f975fbe3c6f8c4d0e5c78e5fb67b0298c361c31c4483b2266"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "baseline": "../divider",
+  "replacements": {
+    "../divider/execution_unit.v": "execution_unit.v"
+  },
+  "unchanged_divider_overlays": [
+    "../divider/riscv_cpu.v",
+    "../divider/alu.v",
+    "../divider/divider.v"
+  ],
+  "csr_exec": "original sibling rtl/core_modules/csr_exec.v",
+  "define_FORMAL": false,
+  "pipeline_latency_change": 0
+}

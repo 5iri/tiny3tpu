@@ -1,0 +1,156 @@
+{
+  "date": "2026-09-26",
+  "target": "kc705_uberddr3",
+  "open_source_tools_only": true,
+  "selected_build": "build-uberddr3-split",
+  "controller_mhz": 83.3333333333,
+  "ddr_clock_mhz": 333.3333333333,
+  "timing_pass": true,
+  "best_routed_controller_mhz": 97.56,
+  "bitstream_exported": true,
+  "board_programmed": true,
+  "hardware_memory_pass": null,
+  "controller_phy_simulation": false,
+  "upstream_commit": "79d8fd3e30ebba6acd84eecac2fa57b7f95f4544",
+  "bist_scenarios_per_configuration": 20,
+  "bist_configurations_tested": [
+    "original_comparison",
+    "pipelined_comparison"
+  ],
+  "sat_proofs": [
+    "masked_write_equivalence",
+    "partial_read_comparison_equivalence"
+  ],
+  "routes": [
+    {
+      "seed": 0,
+      "build_dir": "build-uberddr3-seed0",
+      "achieved_mhz": 84.62,
+      "target_mhz": 100.0,
+      "passed": false,
+      "route_log_sha256": "d41218ccb54cbad4a0847e0472fe42a85122e52d767941c4c1a139eef7be3723"
+    },
+    {
+      "seed": 1,
+      "build_dir": "build-uberddr3-seed1",
+      "achieved_mhz": 79.37,
+      "target_mhz": 100.0,
+      "passed": false,
+      "route_log_sha256": "86c384909f6fdb591d40abbd28c60bb455a0403b332b1d419a41b9984dcfafc0"
+    },
+    {
+      "seed": 2,
+      "build_dir": "build-uberddr3-seed2",
+      "achieved_mhz": 97.56,
+      "target_mhz": 100.0,
+      "passed": false,
+      "route_log_sha256": "8cee6b781416983739649019438f7dd8dee5bc0f58aed2b87fb12bb221a2673a"
+    },
+    {
+      "seed": 3,
+      "build_dir": "build-uberddr3-seed3",
+      "achieved_mhz": 93.85,
+      "target_mhz": 100.0,
+      "passed": false,
+      "route_log_sha256": "f78a5a9f68b5e590579e5474ee54a7ee3f3ecf8e170b415f1f518c85b6f6f908"
+    },
+    {
+      "seed": 4,
+      "build_dir": "build-uberddr3-byte-check",
+      "achieved_mhz": 91.62,
+      "target_mhz": 100.0,
+      "passed": false,
+      "route_log_sha256": "e913126cf5546e106a33b337295169a0ba296e7ce06cb49fb78d04f51e2e83f0"
+    },
+    {
+      "seed": 7,
+      "build_dir": "build-uberddr3-seed7",
+      "achieved_mhz": 96.39,
+      "target_mhz": 100.0,
+      "passed": false,
+      "route_log_sha256": "1a8c6af36a83f5762ada5e78d7b9900c3bb1f04ab4951e8dcbefc44cb09dc1bd"
+    }
+  ],
+  "sources_sha256": {
+    "hardware/kc705_uberddr3/kc705_uberddr3_top.sv": "7d0413dd48e7b5cab147d4f38a0a108f0be1dee0fa23e0f371d82abe924f7acd",
+    "hardware/kc705_uberddr3/kc705_uberddr3_status.sv": "6316517f32223fd631d204d19d850da02394098ae1e05a375a39bf7748d8aa8d",
+    "third_party/uberddr3/rtl/ddr3_top.v": "eb56493ec8710f1e4e25db8895ade588038064d710d14e52f22a26f5d962dcd8",
+    "build-uberddr3-seed2/ddr3_controller.v": "c3dc9e339301d8e99f00c54ff3ee34259a0c75cb580a84f7838926a02cf5a36b",
+    "third_party/uberddr3/rtl/ddr3_phy.v": "f5f2d0b37fba0aead59a5f4bc3af78bab09906baf43034a59e19439d632dc989",
+    "tools/kc705_uberddr3_build.py": "995bb3ef66d7c800766c209f3fe8640758900ca4d872a09b52d8ffd9d1f43eef",
+    "third_party/uberddr3/UPSTREAM.json": "8c26b1475694b14ae54abb4ac00874daf358f58126893bce53ccde88a60041cb",
+    "hardware/kc705_uberddr3/bist_receiver.vh": "f67af4f39cb23065a0518412be21b633966a03325f3dece38455086d8725eac0"
+  },
+  "evidence_sha256": {
+    "build-uberddr3-seed2/hardware-manifest.json": "a81f42a7a8a1e0120e8271dfbf82572399b6d5e159e2d9a36bf6d53ea46cc17e",
+    "build-uberddr3-seed2/soc.json": "b6f77bea8258f3c5b799be5058efdcfd2d156c8e8e5aa927cf82ed3dfbc14f54",
+    "build-uberddr3-seed2/soc_routed.json": "e9804b923455370f7a36110e0e7b93f1b8093d86502126dfd984b64b4d173088",
+    "build-uberddr3-seed2/soc.fasm": "808c9f654543fb929eede0a3cc121bac12c641c58b35cb1dc0a9f7478a681126",
+    "build-uberddr3-seed2/kc705.xdc": "d8de5b84d9d95b2020b34aec0a6c1434e43ff192487a697a5c3dc6655349fb6d",
+    "build-uberddr3-seed2/clocks.py": "d9001bb4ab7f3023f289cf932ebacc692c47e150475f3ec25089715ee8c0e0ba",
+    "build-uberddr3-seed2/synth.ys": "21a2bd64281c342acb612190bcf18fc3e32bf3ffa26b7b80d7e1aa49b31ae037",
+    "build-uberddr3-seed2/synth.log": "6ce6e2cd4a3af9562e3cc1d1d18fcdb9effed62699a613ebe542c5c3f4164278",
+    "build-uberddr3-seed2/route.log": "8cee6b781416983739649019438f7dd8dee5bc0f58aed2b87fb12bb221a2673a",
+    "build-ddr-only-checks/uberddr3/test-result.json": "1905295d9aae60ca50fb7d1cd1936974e569cbdfb7f70428b40d11e10171bc4f",
+    "build-ddr-only-checks/uberddr3-pipeline/test-result.json": "bbd7346826f6829c6a24be90fbd0bd3b6e45afedb1779268987a6962b4dac161"
+  },
+  "split_clock_profile": {
+    "build_dir": "build-uberddr3-split",
+    "placement_seed": 2,
+    "controller_mhz": 83.3333333333,
+    "ddr_clock_mhz": 333.3333333333,
+    "system_mhz": 100.0,
+    "controller_fmax_mhz": 88.63,
+    "system_fmax_mhz": 520.83,
+    "timing_pass": true,
+    "bitstream_exported": true,
+    "board_programmed": true,
+    "hardware_memory_pass": null,
+    "route_log_sha256": "956a38e3f7c112b58d18619f8020885993328d63b756f6cc0ae862462fffc77a",
+    "timing_report_sha256": "1584c5fa223f7453f93941f7d448638198b9a697d9672291a896bc2b778dc53f",
+    "bitstream_sha256": "93d1e2e83d55e4d05f75c9d915282dfa03462f3ef60eae6247b508ca2725bda2",
+    "bitstream_manifest_sha256": "616b8b2afaf80bfb17039e55f14b15ea43d3e1600c6ec33ddb2ead42403e0ff0",
+    "programming_record": "build-uberddr3-split/programming-result.json",
+    "frame_database_commit": "openXC7/prjxray-db 517d66a383676cb971177ea92b0ff3b6ea6e8690",
+    "hardware_status": "loaded to volatile SRAM; configuration DONE; BIST LED result unobserved"
+  },
+  "hardware_memory_status": "awaiting result from ODT sequencing diagnostic image",
+  "diagnostic_image": {
+    "build_dir": "build-uberddr3-wl-tap",
+    "write_level_feedback_and_tap_diagnostic": true,
+    "controller_fmax_mhz": 87.97,
+    "system_fmax_mhz": 497.51,
+    "bitstream_exported": true,
+    "board_programmed": true,
+    "configuration_done": true,
+    "bitstream_sha256": "6e15e25e8d04c7d845bf3691e9cc6cc5fe187efd5cb4b274547652f72fbdc537",
+    "programming_record": "build-uberddr3-wl-tap/programming-result.json",
+    "route_log_sha256": "50bffabc33fd63cddbdc033248501389a068232b39ea3e90f2ff21bb684a1971",
+    "timing_report_sha256": "e6dce4ac0ba7df65d500f13d7d2357044c813668338b35320cea0c30fe1263bd",
+    "led_readout_pending": true
+  },
+  "latest_diagnostic_attempt": {
+    "build_dir": "build-uberddr3-odtfix",
+    "change": "assert write-level ODT near end of tWLMRD before DQS toggle",
+    "controller_fmax_mhz": 96.95,
+    "system_fmax_mhz": 500.0,
+    "timing_pass": true,
+    "bitstream_exported": true,
+    "board_programmed": true,
+    "configuration_done": true,
+    "bitstream_sha256": "1d06ba96de84d2e897e1d696ecd55d3c5d424cd8dd393481fda005f91cf21640",
+    "programming_record": "build-uberddr3-odtfix/programming-result.json",
+    "route_log_sha256": "ecae11a0bee8084eb25f2413e98e189761d880893448eceb4826779dbfe2fadb",
+    "timing_report_sha256": "3def9f19f7f669acb7a7ece62e737bf5c3cff546b3ced8b3dea3a75148a20acd",
+    "memory_status": "awaiting physical LED result"
+  },
+  "previous_diagnostic_observation": {
+    "led0_pll_lock": true,
+    "led2_watchdog": true,
+    "led7_system_heartbeat": true,
+    "timeout_odelay_tap": 31,
+    "lane": 0,
+    "feedback_transition_detected": false,
+    "bist_reached": false
+  }
+}

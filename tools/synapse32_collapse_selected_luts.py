@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""Collapse an explicitly selected six-input LUT cone into one LUT6."""
+import argparse,copy,hashlib,json
+from pathlib import Path
+def digest(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+p=argparse.ArgumentParser();p.add_argument('--cells',type=int,nargs='+',required=True);p.add_argument('--parent',type=Path,required=True);p.add_argument('--out',type=Path,required=True);a=p.parse_args();parent=a.parent.resolve();out=a.out.resolve();assert not out.exists();source=parent/'board/soc.json';gold=json.loads(source.read_text());m=gold['modules']['kc705_synapse32_top'];cells=m['cells']
+prefix='$abc$216920$auto$blifparse.cc:557:parse_blif$';names=[prefix+str(n) for n in a.cells];target=names[-1];cone={n:cells[n] for n in names};drivers={c['connections']['O'][0]:n for n,c in cone.items()};leaves=sorted({b for c in cone.values() for p,bs in c['connections'].items() if p!='O' for b in bs if b not in drivers});assert len(leaves)==6 and all(isinstance(b,int) for b in leaves)
+def evaluate(bit,values):
+ if bit in values:return values[bit]
+ c=cone[drivers[bit]];width=int(c['type'][3:]);index=sum(evaluate(c['connections'][f'I{i}'][0],values)<<i for i in range(width));return (int(c['parameters']['INIT'],2)>>index)&1
+root=cells[target]['connections']['O'][0];truth=[evaluate(root,{b:(word>>i)&1 for i,b in enumerate(leaves)}) for word in range(64)];mask=sum(v<<i for i,v in enumerate(truth));new=copy.deepcopy(cells[target]);new['type']='LUT6';new['parameters']={'INIT':format(mask,'064b')};new['connections']={**{f'I{i}':[b] for i,b in enumerate(leaves)},'O':[root]};new['port_directions']={p:('output' if p=='O' else 'input') for p in new['connections']}
+for word in range(64):assert ((int(new['parameters']['INIT'],2)>>word)&1)==truth[word]
+actual=copy.deepcopy(gold);actual['modules']['kc705_synapse32_top']['cells'][target]=new;restored=copy.deepcopy(actual);restored['modules']['kc705_synapse32_top']['cells'][target]=cells[target];assert restored==gold
+out.mkdir();proof=out/'predicate-proof';proof.mkdir();record=dict(passed=True,claim='Exhaustive truth table over all six independent cut inputs of the actual selected LUT cone. One LUT6 replacement preserves the original output net; all other cells unchanged. No state or latency change.',cone=cone,leaves=leaves,truth_table=truth,replacement=new,added_latency_cycles=0,sha256={str(q):digest(q) for q in [source,Path(__file__).resolve()]});(proof/'results.json').write_text(json.dumps(record,indent=2)+'\n')
+board=out/'board';board.mkdir();(board/'soc.json').write_text(json.dumps(actual,separators=(',',':'))+'\n')
+for n in ['kc705.xdc','firmware.hex','synth.ys']:(board/n).write_bytes((parent/'board'/n).read_bytes())
+record=dict(passed=True,kind='collapsed_wb_command_lut',parent=str(parent),source=str(source),proof=str(proof/'results.json'),target=target,original_cell=cells[target],candidate_cell=new,added_latency_cycles=0,all_other_netlist_content_exact=True,new_rtl_synthesis_run=False,new_workload_simulation_run=False,full_soc_timing_accepted=False,checked_manifests=[dict(path=str(q),sha256=digest(q)) for q in [parent/'iteration-integrity.json',parent/'mapping.json',proof/'results.json']],sha256={str(q):digest(q) for q in [source,Path(__file__).resolve()]},output_sha256={str(q):digest(q) for q in board.iterdir()});(out/'mapping.json').write_text(json.dumps(record,indent=2)+'\n');print('PASS exact six-input truth table; selected serial LUTs replaced by one LUT6 at the measured endpoint')

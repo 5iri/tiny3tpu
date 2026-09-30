@@ -1,0 +1,3 @@
+-- PASS Synapse32 variable-latency DRAM -> TPU: 9294 reads, 8400 writes, 35 signed results, 4954206 system cycles
+METRICS {"schema":1,"workload":"dram-selftest-gemm-5x11x7-v1","memory_model":"cycle-xorshift-193075ab-delay1to19-v1","system_cycles":4954206,"external_reads":9294,"external_writes":8400,"external_read_bytes":37176,"external_write_bytes":33176,"completed_transactions":17694,"request_stall_cycles":5940,"response_latency_cycles":177370,"checked_results":35}
+

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Banana · tiny3tpu simulation</title>
+<style>
+body { margin:0; padding:32px; background:#141610; color:#e9ecd9; font:16px system-ui,sans-serif; }
+main { max-width:1000px; margin:auto; }
+h1 { font-size:28px; font-weight:600; }
+p { color:#bcc3a7; line-height:1.5; max-width:760px; }
+.renders { display:flex; flex-wrap:wrap; gap:24px; }
+figure { margin:0; flex:1; min-width:240px; }
+img { display:block; width:100%; image-rendering:pixelated; background:black; }
+figcaption { margin:12px 0; }
+video { width:min(100%,512px); display:block; margin:24px 0; }
+a { color:#dcf07c; }
+</style>
+<main>
+<h1>Banana / TPU simulation</h1>
+<p>64×64 pixels · 12 camera angles · 204 vertices · 407 triangles</p>
+<div class="renders">
+<figure><img src="jax-reference.gif" alt="Floating point JAX banana animation"><figcaption>Floating point JAX reference</figcaption></figure>
+<figure><img src="rtl-transform.gif" alt="Banana animation with camera transforms from TPU RTL"><figcaption>Camera transforms from tiny3tpu RTL</figcaption></figure>
+</div>
+<p>All 84 transform batches match JAX integer arithmetic exactly. Lighting, perspective division and soft rasterization run on the host. Playback is four frames per second; this is an animation export, not a measured FPGA frame rate.</p>
+<video controls autoplay muted loop playsinline src="banana-sim.mp4"></video>
+<p><a href="banana-sim.mp4">MP4 video</a> · <a href="report.json">Verification report</a></p>
+</main>
+</html>

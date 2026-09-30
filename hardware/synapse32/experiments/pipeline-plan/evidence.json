@@ -1,0 +1,269 @@
+{
+  "scope": "source and existing route inspection; no synthesis or route launched",
+  "route_path_lines": [
+    1788,
+    1848
+  ],
+  "route_cpu_path": [
+    "Info: Critical path report for clock 'soc.cpu_clk' (posedge -> posedge):",
+    "Info: curr total",
+    "Info:  0.1  0.1  Source $auto$ff.cc:337:slice$65967.Q",
+    "Info:  2.1  2.2    Net soc.cpu.id_ex_inst0_rs1_valid_out budget 0.000000 ns (153,334) -> (153,292)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$198147.A1",
+    "Info:  0.2  2.4  Source $abc$198106$auto$blifparse.cc:557:parse_blif$198147.O6",
+    "Info:  2.5  4.9    Net $abc$198106$auto$blifparse.cc:557:parse_blif$198151.A[5] budget 0.000000 ns (153,292) -> (144,335)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$198145.A1",
+    "Info:  0.2  5.1  Source $abc$198106$auto$blifparse.cc:557:parse_blif$198145.O6",
+    "Info:  2.8  7.9    Net $techmap227683$abc$198106$auto$blifparse.cc:557:parse_blif$198141.A[2] budget 0.000000 ns (144,335) -> (144,269)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$198226.A2",
+    "Info:  0.2  8.1  Source $abc$198106$auto$blifparse.cc:557:parse_blif$198226.O6",
+    "Info:  2.0 10.0    Net $abc$198106$auto$blifparse.cc:557:parse_blif$198582.A[0] budget 0.000000 ns (144,269) -> (154,293)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$198582.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.A2",
+    "Info:  0.2 10.2  Source $abc$198106$auto$blifparse.cc:557:parse_blif$198582.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.O6",
+    "Info:  0.0 10.2    Net $abc$198106$auto$blifparse.cc:557:parse_blif$198582.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.f1 budget -0.868000 ns (154,293) -> (154,293)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$198582.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux7.1",
+    "Info:  0.1 10.3  Source $abc$198106$auto$blifparse.cc:557:parse_blif$198582.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux7.OUT",
+    "Info:  0.0 10.3    Net $abc$198106$auto$blifparse.cc:557:parse_blif$198582.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.f1 budget -0.868000 ns (154,293) -> (154,293)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$198582.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux8.1",
+    "Info:  0.1 10.4  Source $abc$198106$auto$blifparse.cc:557:parse_blif$198582.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux8.OUT",
+    "Info:  1.4 11.9    Net $abc$198106$auto$blifparse.cc:557:parse_blif$198526.A[3] budget 0.000000 ns (154,293) -> (164,299)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$198526.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.A5",
+    "Info:  0.2 12.1  Source $abc$198106$auto$blifparse.cc:557:parse_blif$198526.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.O6",
+    "Info:  0.0 12.1    Net $abc$198106$auto$blifparse.cc:557:parse_blif$198526.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.f1 budget -0.868000 ns (164,299) -> (164,299)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$198526.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux7.1",
+    "Info:  0.1 12.2  Source $abc$198106$auto$blifparse.cc:557:parse_blif$198526.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux7.OUT",
+    "Info:  0.9 13.0    Net $abc$198106$auto$blifparse.cc:557:parse_blif$198525.A[1] budget 0.000000 ns (164,299) -> (167,302)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$198525.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut0.A5",
+    "Info:  0.2 13.2  Source $abc$198106$auto$blifparse.cc:557:parse_blif$198525.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut0.O6",
+    "Info:  0.0 13.2    Net $abc$198106$auto$blifparse.cc:557:parse_blif$198525.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.f0 budget -0.656000 ns (167,302) -> (167,302)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$198525.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux7.0",
+    "Info:  0.1 13.3  Source $abc$198106$auto$blifparse.cc:557:parse_blif$198525.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux7.OUT",
+    "Info:  0.0 13.3    Net $abc$198106$auto$blifparse.cc:557:parse_blif$198525.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.f1 budget -0.806000 ns (167,302) -> (167,302)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$198525.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux8.1",
+    "Info:  0.1 13.4  Source $abc$198106$auto$blifparse.cc:557:parse_blif$198525.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux8.OUT",
+    "Info:  2.1 15.6    Net $abc$198106$auto$blifparse.cc:557:parse_blif$203460.A[2] budget 0.000000 ns (167,302) -> (154,326)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$198524.A2",
+    "Info:  0.2 15.8  Source $abc$198106$auto$blifparse.cc:557:parse_blif$198524.O6",
+    "Info:  1.4 17.2    Net $abc$198106$auto$blifparse.cc:557:parse_blif$203481.A[2] budget 0.000000 ns (154,326) -> (153,307)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$203467.A2",
+    "Info:  0.2 17.4  Source $abc$198106$auto$blifparse.cc:557:parse_blif$203467.O6",
+    "Info:  1.6 19.0    Net $abc$198106$auto$blifparse.cc:557:parse_blif$203708.A[6] budget 0.000000 ns (153,307) -> (147,325)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$203995.A4",
+    "Info:  0.2 19.2  Source $abc$198106$auto$blifparse.cc:557:parse_blif$203995.O6",
+    "Info:  2.1 21.3    Net $abc$198106$auto$blifparse.cc:557:parse_blif$203994.A[0] budget 0.000000 ns (147,325) -> (167,309)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$203994.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut0.A2",
+    "Info:  0.2 21.5  Source $abc$198106$auto$blifparse.cc:557:parse_blif$203994.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut0.O6",
+    "Info:  0.0 21.5    Net $abc$198106$auto$blifparse.cc:557:parse_blif$203994.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.f0 budget -0.410000 ns (167,309) -> (167,309)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$203994.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux7.0",
+    "Info:  0.1 21.6  Source $abc$198106$auto$blifparse.cc:557:parse_blif$203994.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux7.OUT",
+    "Info:  0.0 21.6    Net $abc$198106$auto$blifparse.cc:557:parse_blif$203994.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.f1 budget -0.560000 ns (167,309) -> (167,309)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$203994.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux8.1",
+    "Info:  0.1 21.7  Source $abc$198106$auto$blifparse.cc:557:parse_blif$203994.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux8.OUT",
+    "Info:  1.9 23.6    Net $techmap233338$abc$198106$auto$blifparse.cc:557:parse_blif$203993.A[4] budget 0.000000 ns (167,309) -> (153,323)",
+    "Info:                Sink $abc$198106$auto$blifparse.cc:557:parse_blif$203993.A4",
+    "Info:  0.2 23.8  Source $abc$198106$auto$blifparse.cc:557:parse_blif$203993.O6",
+    "Info:  0.0 23.8    Net $abc$198106$flatten\\soc.\\cpu.$ex_mem_inst0.exec_output_out$1752[8] budget -0.560000 ns (153,323) -> (153,323)",
+    "Info:                Sink $auto$ff.cc:337:slice$99031.D",
+    "Info:  0.1 23.9  Setup $auto$ff.cc:337:slice$99031.D",
+    "Info: 3.1 ns logic, 20.8 ns routing"
+  ],
+  "route_final_frequencies": [
+    "Info: Max frequency for clock             'clk200': 1355.01 MHz (PASS at 200.00 MHz)",
+    "Info: Max frequency for clock        'soc.cpu_clk': 41.81 MHz (FAIL at 100.00 MHz)",
+    "Info: Max frequency for clock                'clk': 61.02 MHz (FAIL at 100.00 MHz)",
+    "Info: Max frequency for clock 'memory.iodelay_clk': 504.80 MHz (PASS at 200.00 MHz)"
+  ],
+  "mapped_forwarding_path_cells": {
+    "$abc$198106$auto$blifparse.cc:557:parse_blif$198147": {
+      "type": "LUT5",
+      "ports": {
+        "I0": {
+          "bits": [
+            169
+          ],
+          "cpu_aliases": [
+            "soc.cpu.forwarding_unit_inst0.rd_addr_wb[1]",
+            "soc.cpu.mem_wb_inst0.rd_addr_out[1]",
+            "soc.cpu.mem_wb_inst0_rd_addr_out[1]",
+            "soc.cpu.rf_inst0.rd[1]",
+            "soc.cpu.rf_inst0_rd_in[1]",
+            "soc.cpu.wb_inst0.rd_addr_in[1]",
+            "soc.cpu.wb_inst0.rd_addr_out[1]",
+            "soc.cpu.wb_inst0_rd_addr_out[1]"
+          ]
+        },
+        "I1": {
+          "bits": [
+            263
+          ],
+          "cpu_aliases": [
+            "soc.cpu.ex_mem_inst0.rs1_addr_in[1]",
+            "soc.cpu.ex_unit_inst0.csr_exec_inst.rs1_addr[1]",
+            "soc.cpu.ex_unit_inst0.csr_exec_inst.uimm[1]",
+            "soc.cpu.ex_unit_inst0.rs1_addr[1]",
+            "soc.cpu.forwarding_unit_inst0.rs1_addr_ex[1]",
+            "soc.cpu.id_ex_inst0.rs1_addr_out[1]",
+            "soc.cpu.id_ex_inst0_rs1_addr_out[1]"
+          ]
+        },
+        "I2": {
+          "bits": [
+            261
+          ],
+          "cpu_aliases": [
+            "soc.cpu.ex_mem_inst0.rs1_addr_in[3]",
+            "soc.cpu.ex_unit_inst0.csr_exec_inst.rs1_addr[3]",
+            "soc.cpu.ex_unit_inst0.csr_exec_inst.uimm[3]",
+            "soc.cpu.ex_unit_inst0.rs1_addr[3]",
+            "soc.cpu.forwarding_unit_inst0.rs1_addr_ex[3]",
+            "soc.cpu.id_ex_inst0.rs1_addr_out[3]",
+            "soc.cpu.id_ex_inst0_rs1_addr_out[3]"
+          ]
+        },
+        "I3": {
+          "bits": [
+            170
+          ],
+          "cpu_aliases": [
+            "soc.cpu.forwarding_unit_inst0.rd_addr_wb[3]",
+            "soc.cpu.mem_wb_inst0.rd_addr_out[3]",
+            "soc.cpu.mem_wb_inst0_rd_addr_out[3]",
+            "soc.cpu.rf_inst0.rd[3]",
+            "soc.cpu.rf_inst0_rd_in[3]",
+            "soc.cpu.wb_inst0.rd_addr_in[3]",
+            "soc.cpu.wb_inst0.rd_addr_out[3]",
+            "soc.cpu.wb_inst0_rd_addr_out[3]"
+          ]
+        },
+        "I4": {
+          "bits": [
+            274
+          ],
+          "cpu_aliases": [
+            "soc.cpu.ex_unit_inst0.rs1_valid[0]",
+            "soc.cpu.forwarding_unit_inst0.rs1_valid_ex[0]",
+            "soc.cpu.id_ex_inst0.rs1_valid_out[0]",
+            "soc.cpu.id_ex_inst0_rs1_valid_out[0]"
+          ]
+        },
+        "O": {
+          "bits": [
+            276
+          ],
+          "cpu_aliases": []
+        }
+      }
+    },
+    "$abc$198106$auto$blifparse.cc:557:parse_blif$198145": {
+      "type": "LUT3",
+      "ports": {
+        "I0": {
+          "bits": [
+            165
+          ],
+          "cpu_aliases": []
+        },
+        "I1": {
+          "bits": [
+            275
+          ],
+          "cpu_aliases": []
+        },
+        "I2": {
+          "bits": [
+            276
+          ],
+          "cpu_aliases": []
+        },
+        "O": {
+          "bits": [
+            257
+          ],
+          "cpu_aliases": []
+        }
+      }
+    },
+    "$abc$198106$auto$blifparse.cc:557:parse_blif$198226": {
+      "type": "LUT5",
+      "ports": {
+        "I0": {
+          "bits": [
+            557
+          ],
+          "cpu_aliases": [
+            "soc.cpu.ex_unit_inst0.mem_wb_result[19]",
+            "soc.cpu.rf_inst0.rd_value[19]",
+            "soc.cpu.rf_inst0_rd_value_in[19]",
+            "soc.cpu.wb_inst0.rd_value_out[19]",
+            "soc.cpu.wb_inst0_rd_value_out[19]"
+          ]
+        },
+        "I1": {
+          "bits": [
+            194
+          ],
+          "cpu_aliases": [
+            "soc.cpu.ex_mem_exec_output_to_mem_wb[19]",
+            "soc.cpu.ex_mem_forward_result[19]",
+            "soc.cpu.ex_unit_inst0.ex_mem_result[19]",
+            "soc.cpu.mem_wb_inst0.exec_output_in[19]"
+          ]
+        },
+        "I2": {
+          "bits": [
+            257
+          ],
+          "cpu_aliases": []
+        },
+        "I3": {
+          "bits": [
+            558
+          ],
+          "cpu_aliases": [
+            "soc.cpu.ex_unit_inst0.rs1[19]",
+            "soc.cpu.id_ex_inst0.rs1_value_out[19]",
+            "soc.cpu.id_ex_inst0_rs1_value_out[19]"
+          ]
+        },
+        "I4": {
+          "bits": [
+            259
+          ],
+          "cpu_aliases": []
+        },
+        "O": {
+          "bits": [
+            555
+          ],
+          "cpu_aliases": []
+        }
+      }
+    }
+  },
+  "prototype_result": "PASS checks=30775 held-selector-changes=14 MEM-hit-edges=158 WB-hit-edges=21",
+  "sha256": {
+    "/Users/siriboi/github/tiny3tpu/build-ddr-divider/route.log": "de07ef12fdfdcfd7c0252c32bf635043ebb9430058ba78008830f7439618a4db",
+    "/Users/siriboi/github/tiny3tpu/build-ddr-divider/soc.json": "54702d0bf99c39d028b084df685abf6fb932741d90e503b1ff71653b8a7403b8",
+    "/Users/siriboi/github/tiny3tpu/build-ddr-divider/synth.ys": "7b80e01d13aa5b5084aa3207c375e4b0a28652602388eee4bc68f2fdc89d8140",
+    "/Users/siriboi/github/tiny3tpu/build-ddr-forwarding/route.log": "0f75b29efb9819767ac33b723ca8272031b8af833ac81ed5580f16faf17bbed7",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/forwarding/BOARD_RESULTS.md": "10e780c6f5e0829e1b99b60dca2819d733a21dead94874ab1e341b1c81bb5e69",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/divider/riscv_cpu.v": "d20f3099d91e6245311bb6e4f78079333c9b7fe904ed17c7d7082f5d10300fc1",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/divider/execution_unit.v": "b527acb9c2f70fef600e2436f2f29ad0c0457b26df710c49287d03a8cab372d3",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/divider/alu.v": "0d10b838fe327d2e386b861e15f9703c2e9c908d7b13867a41c8620e13599c78",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/divider/divider.v": "b22ff5f51484c6c926257aa85b07d77f153aecc9ef530b9fb7e91d4723a5cb14",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/ID_EX.v": "21c4c2df13f6b464044bcc63e11d2d68ba7365ff296826b6f0eeee1a108a6d52",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/IF_ID.v": "19b123fdb0afa629366ef1acf6b742ab11e2401ce8bc4e56f570cd6d1fb016c8",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/EX_MEM.v": "5f7c0f1271eeddbbc95bbce0f98916bc6760c10a792960efccc975361c056876",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/MEM_WB.v": "85f3792bda16ed8ae1b8d8b7034949f95854b9b7da0a273cfbe3c0ddf438492f",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/forwarding_unit.v": "694179272194872d67334939cca69cbf334d4fdccb97c2ecdaf8cd729643e914",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/load_use_detector.v": "4702dfb0f7b67d09043504d7dead4673a0c8bd4719275d5a5a92db78528407ba",
+    "/Users/siriboi/github/synapse32/rtl/writeback.v": "6c7e1a1f45ddeefac39328ad80619019b4f947aa82073bf496acd4da794a4c8a",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/registerfile.v": "ed76f869be32e4d27e71522583cf6a90ad7c3d3da13b7bc31cbef11f7fdc0b94",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/csr_file.v": "7708863f72052ceee98ce5e193242013ee4fb9e853e2c11b0c11012ac5885c14",
+    "/Users/siriboi/github/synapse32/rtl/include/instr_defines.vh": "8a3c7cf00fcb454fcaa7963896b29ae2a05d251f6a0bf2685aff5339270856ae",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/pipeline-plan/forward_lookahead.sv": "8e4f0100f28b12c6ea4d5822b791d3eafa214ca6c9c2fa15b91da6d92f363767",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/pipeline-plan/forward_lookahead_tb.sv": "a4dfc7dc02fab35e0ba5e4fdcff76a8390402d983d05455cece4189b4141b18e",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/pipeline-plan/verify.sh": "12ed8ff0313d9a1fa4c3264caff30b6636727c12fae312be14d53ce759c43461",
+    "/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/pipeline-plan/README.md": "3708ecd5d005b9752204f6ba03be051ef6f4990f947658bbed3b86af3b10c9f8"
+  }
+}

@@ -1,0 +1,4 @@
+# Tested Python >=3.12. Compiler parsing uses jaxlib; JAX is the optional frontend.
+jaxlib==0.11.2
+numpy==2.5.3
+jax==0.11.2

@@ -1,0 +1,3 @@
+INFO: late ready loss after BUFGCE CE sample permits one armed CPU edge; no no-retire proof
+PASS: synapse32_memory_sequencer comprehensive behavioral test
+/Users/siriboi/github/tiny3tpu/hardware/synapse32/experiments/fetch/run-ec8fnu74/snapshot/root/tests/tb_synapse32_memory_sequencer.sv:452: $finish called at 2066000 (1ps)

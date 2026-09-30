@@ -1,0 +1,32 @@
+// Test-only master drivers; never use with real CPU RTL.
+module VexRiscv (
+  input  wire [31:0]   externalResetVector,
+  input  wire          timerInterrupt,
+  input  wire          softwareInterrupt,
+  input  wire [31:0]   externalInterruptArray,
+  output reg           iBusWishbone_CYC,
+  output reg           iBusWishbone_STB,
+  input  wire          iBusWishbone_ACK,
+  output reg          iBusWishbone_WE,
+  output reg [29:0]   iBusWishbone_ADR,
+  input  wire [31:0]   iBusWishbone_DAT_MISO,
+  output reg [31:0]   iBusWishbone_DAT_MOSI,
+  output reg [3:0]    iBusWishbone_SEL,
+  input  wire          iBusWishbone_ERR,
+  output reg [2:0]    iBusWishbone_CTI,
+  output reg [1:0]    iBusWishbone_BTE,
+  output reg          dBusWishbone_CYC,
+  output reg          dBusWishbone_STB,
+  input  wire          dBusWishbone_ACK,
+  output reg          dBusWishbone_WE,
+  output reg [29:0]   dBusWishbone_ADR,
+  input  wire [31:0]   dBusWishbone_DAT_MISO,
+  output reg [31:0]   dBusWishbone_DAT_MOSI,
+  output reg  [3:0]    dBusWishbone_SEL,
+  input  wire          dBusWishbone_ERR,
+  output reg [2:0]    dBusWishbone_CTI,
+  output reg [1:0]    dBusWishbone_BTE,
+  input  wire          clk,
+  input  wire          reset
+);
+endmodule

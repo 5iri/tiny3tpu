@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/AngeloJacobo/UberDDR3",
+  "commit": "79d8fd3e30ebba6acd84eecac2fa57b7f95f4544",
+  "license": "GPL-3.0-or-later",
+  "sha256": {
+    "LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "rtl/ddr3_top.v": "eb56493ec8710f1e4e25db8895ade588038064d710d14e52f22a26f5d962dcd8",
+    "rtl/ddr3_controller.v": "f138c7cb00a479a645a7a86b43f9860702c71e1ba2a50d141e3c752c6864f246",
+    "rtl/ddr3_phy.v": "f5f2d0b37fba0aead59a5f4bc3af78bab09906baf43034a59e19439d632dc989"
+  }
+}

@@ -1,0 +1,16 @@
+"""Add the actual BUFGCE CE setup endpoint; hold/skew remain unvalidated."""
+import json,re,urllib.request
+from pathlib import Path
+from synapse32_apply_bram_timing import digest
+from synapse32_registered_dsp_model import GraphIndex
+from synapse32_analyze_timing_endpoints import analyze
+root=Path(__file__).resolve().parents[1];r=root/'build-grade2-incremental-readvalid-arrival-swap';t=Path(str(r)+'-timing');out=root/'build-grade2-bufgce-setup-probe';assert not out.exists();out.mkdir();url='https://docs.amd.com/api/khub/documents/1kFbRqzm2fhwGy~cLQG2yA/content';pdf=out/'ug472.pdf';urllib.request.urlretrieve(url,pdf);assert pdf.read_bytes().startswith(b'%PDF')
+graph=t/'graph-pcout-0-carry-0.1.tsv';m=json.loads((t/'manifest.json').read_text());v=next(v for v in m['variants'] if v['symbolic_carry_arc_ns']==.1);assert digest(graph)==v['graph_sha256'];rows=[v.rstrip('\n').split('\t') for v in graph.open()];cells=json.loads((r/'routed.json').read_text())['modules']['top']['cells'];ix=GraphIndex(rows,cells);name='soc.clock_enable.cpu_global_clock';c=cells[name];assert c['type']=='BUFGCTRL' and c['attributes']['X_ORIG_TYPE']=='BUFGCE';assert ix.ports[name,'I0'][-1]=='clk' and ix.ports[name,'O'][-1]=='soc.cpu_clk'
+for p,value in [('S0',1),('S1',0),('CE1',0),('IGNORE0',1),('IGNORE1',0)]:assert ix.constant(name,p)==value,(p,ix.constant(name,p))
+assert ix.constant(name,'CE0') is None and (name,'CE0') in ix.incoming and (name,'I1') not in ix.incoming
+text=root/'build-dsp-preg-timing/ds182.txt';section=text.read_text().split('Table 36: Global Clock Switching Characteristics (Including BUFGCTRL)',1)[1].split('Table 37:',1)[0];line=next(v for v in section.splitlines() if v.startswith('CE pins Setup/Hold'));pairs=re.findall(r'(\d+\.\d+)/(\d+\.\d+)',line);assert len(pairs)==6;setup,hold=map(float,pairs[1]);assert (setup,hold)==(.14,.38)
+assert not any(v[0]=='CLOCK' and v[1:3]==[name,'CE0'] for v in rows)
+changed=0
+for v in rows:
+ if v[0]=='PORT' and (v[1],v[3])==(name,'CE0'):assert v[5:7]==['8','0'];v[5:7]=['2','1'];changed+=1
+assert changed==1;rows.append(['CLOCK',name,'CE0','0','I0','0',str(setup),str(hold),'0']);new=out/'timing-graph.tsv';new.write_text(''.join('\t'.join(v)+'\n' for v in rows));a=analyze(new,tracked_cells={name},track_each_endpoint=True);assert not a['unresolved_nodes'];paths=[v for v in a['tracked_maxima'] if v['group']=='tracked_input'];assert paths and all(v['port']=='CE0' and v['sink_clock']=='clk' and v['sink_edge']==0 for v in paths);(out/'analysis.json').write_text(json.dumps(a,indent=2)+'\n');record=dict(passed=True,clock_enable_setup_ns=setup,clock_enable_hold_requirement_ns=hold,clock_enable_paths=paths,source_url=url,source_pages='UG472 v1.14 p42 and p45; DS182 Table36, 1.0V -2/-2LE',scope='Additional setup probe only. Hold requirement recorded but no minimum-delay or clock-skew proof; other symbolic models and DDR IO gaps remain.',hold_validated=False,clock_skew_validated=False,full_soc_timing_accepted=False,sha256={str(p):digest(p) for p in [graph,t/'manifest.json',r/'routed.json',text,pdf,new,Path(__file__).resolve()]});(out/'manifest.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps({'setup_ns':setup,'hold_requirement_ns':hold,'paths':[{k:v for k,v in p.items() if k!='path'} for p in paths],'full_soc_timing_accepted':False}))

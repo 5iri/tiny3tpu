@@ -1,0 +1,15 @@
+"""Bind the routed candidate to both proved combinational transformations."""
+import json
+from pathlib import Path
+from synapse32_apply_bram_timing import digest
+from synapse32_pinmap_control_audit import functional_cells
+root=Path(__file__).resolve().parents[1];route=root/'build-grade2-incremental-cq-reset-cone';mp=route/'manifest.json';m=json.loads(mp.read_text());assert m['passed'];source=Path(m['source']);d=json.loads(source.read_text());cs=d['modules']['top']['cells'];files=[mp,source,route/'routed.json',Path(__file__).resolve()]
+for path in [root/'build-grade2-readvalid-arrival-swap-proof/proof.json',root/'build-grade2-reset-control-cone-proof/proof.json',root/'build-grade2-reset-control-primitive-proof/proof.json']:
+ proof=json.loads(path.read_text());assert proof['passed']
+ for p,h in proof['sha256'].items():assert digest(p)==h
+ files.append(path)
+ if 'old' in proof:
+  for n,c in proof['old'].items():assert cs[n]==c
+  for n,c in proof.get('new',proof.get('new_root',{})).items():cs[n]=c
+assert functional_cells(d)[0]==functional_cells(json.loads((route/'routed.json').read_text()))[0]
+r=dict(passed=True,comparison_reference='Source checkpoint plus proved two-cell OR cut swap and proved reset-control root LUT5 replacement; every other logical cell identical.',proofs_composed=2,added_cycles=0,added_cells=0,removed_cells=0,metadata_note='The route driver inherited an incomplete textual scope describing only the OR swap. This audit supplies the complete scope; its candidate comparison already included both transformations.',full_soc_timing_accepted=False,sha256={str(p):digest(p) for p in files});out=route/'composition-audit.json';assert not out.exists();out.write_text(json.dumps(r,indent=2)+'\n');print('PASS exact routed logic equals composition of both proved transformations')

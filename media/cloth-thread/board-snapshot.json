@@ -1,0 +1,19 @@
+{
+  "connected": true,
+  "sequence": 6056,
+  "timestamp": 1790775999.1380448,
+  "fps": 5.44643938943806,
+  "fpga_compute_ms": 5.26644,
+  "physics_ms": 162.05331,
+  "uart_and_host_wait_ms": 4.608415946155787,
+  "host_render_ms": 6.402040948159993,
+  "clock_hz": 100000000,
+  "sim_time": 0.788671875,
+  "dt": 0.00013020833333333333,
+  "vertices": 28,
+  "verified": true,
+  "simulation_steps": 6057,
+  "physics_backend_calls": 0,
+  "execution_backend": "stablehlo_cpu_tpu",
+  "message": "StableHLO physics on KC705 CPU / physical TPU transforms / host pixels only"
+}
