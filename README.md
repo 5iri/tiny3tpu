@@ -68,7 +68,7 @@ The implementation is in [tools/program](tools/program), with the optional JAX e
 
 The CPU updates its angle. The TPU transforms the mesh into camera coordinates. The host turns those coordinates into pixels. About **29.6 ms of board compute per frame** for the reduced 204-vertex mesh.
 
-This is adapted from the banana rendering example in [SRA-VJTI/jaxsim](https://github.com/SRA-VJTI/jaxsim/blob/c0a097bba1c6db10cac7b359fbac11cfedc48c6b/examples/softras_simple_render.py). We are not claiming that the whole upstream renderer runs on the FPGA.
+This is adapted from the banana rendering example in [SRA-VJTI/jaxsim](https://github.com/SRA-VJTI/jaxsim/blob/c0a097bba1c6db10cac7b359fbac11cfedc48c6b/examples/softras_simple_render.py). 
 
 ![Rotating banana, using actual board-returned geometry](media/showcase/gifs/banana.gif)
 
@@ -174,7 +174,3 @@ python3 pyfiles/train_mnist_hw.py --epochs 8 --export mnist_int8_4layer.json
 ## What is next
 
 More generic backend math, less CPU overhead getting tiles into the TPU, and a verified memory path so larger models can stop failing the very first storage calculation.
-
-There are also Synapse32, Rocket and DDR controller experiments in the repo. Rocket's FPU path passed RTL checks, but its physical boot attempt did not respond, so the active demos use VexRiscv. Experiment code existing in a folder does not mean that configuration works on the board.
-
-[Source](https://github.com/5iri/tiny3tpu), [tweet thread](media/showcase/thread.md), and [demo media bundle](media/showcase/tweet-media.zip). Still a pile of parts, but now a pile of parts that can compile and run a few fairly different things.
