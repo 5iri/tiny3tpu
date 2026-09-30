@@ -1,0 +1,15 @@
+{
+  "dataset": "MNIST",
+  "dataset_sha256": "731c5ac602752760c8e48fbffcf8c3b850d9dc2a2aedcf2cc48468fc17b673d1",
+  "seed": 705,
+  "architecture": "784 -> 10 linear logits",
+  "train_examples": 60000,
+  "test_examples": 10000,
+  "epochs": 10,
+  "float32_test_accuracy": 0.9285,
+  "int8_test_accuracy": 0.9278,
+  "test_split_used_for_training": false,
+  "quantization": "global symmetric int8 weights, nonnegative int8 pixels, int32 bias/accumulation",
+  "demo_samples": "first 20 test examples, no cherry-picking",
+  "weights_sha256": "0d4c761d3250c521b1a71897cfe308061b7d8a96c5efec64c492e708c7ccae67"
+}

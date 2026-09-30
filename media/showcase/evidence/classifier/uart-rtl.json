@@ -1,0 +1,5 @@
+{
+  "passed": true,
+  "requests": 6,
+  "scope": "Trained classifier firmware, UART, VexRiscv and TPU RTL; first six MNIST test examples; not physical timing"
+}

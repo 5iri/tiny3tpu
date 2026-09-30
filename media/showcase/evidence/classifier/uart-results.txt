@@ -1,0 +1,6 @@
+PASS frame=0 mode=0 words=11 cycles=10383357
+PASS frame=1 mode=1 words=11 cycles=10411795
+PASS frame=2 mode=2 words=11 cycles=10335211
+PASS frame=3 mode=3 words=11 cycles=10469129
+PASS frame=4 mode=4 words=11 cycles=10397499
+PASS frame=5 mode=5 words=11 cycles=10359158
