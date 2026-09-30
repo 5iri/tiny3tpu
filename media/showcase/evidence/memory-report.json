@@ -1,0 +1,34 @@
+{
+  "model": "roneneldan/TinyStories-1M",
+  "architecture": "GPTNeoForCausalLM",
+  "board_ram_bytes": 65536,
+  "available_ddr_bytes": 0,
+  "embedding_parameters": 3216448,
+  "embedding_int8_lower_bound_bytes": 3216448,
+  "embedding_int4_lower_bound_bytes": 1608224,
+  "embedding_int8_ram_multiple": 49.0791015625,
+  "full_float32_logits_bytes": 201028,
+  "context_tokens": 128,
+  "kv_cache_float32_bytes": 524288,
+  "embedding_int8_fits": false,
+  "full_float32_logits_fit": false,
+  "kv_cache_float32_fits": false,
+  "admitted": false,
+  "reasons": [
+    "Even int8 embedding weights alone exceed the entire physical RAM.",
+    "Quantization scales, all other weights, firmware, activations and stack are additional.",
+    "Materialized full-vocabulary float32 logits and an uncompressed KV cache exceed RAM too."
+  ],
+  "possible_future_routes": [
+    "Board DDR with verified memory runtime",
+    "On-board flash/DDR weight streaming and tiled vocabulary projection",
+    "Smaller pretrained model or explicit vocabulary/model changes"
+  ],
+  "not_claimed": [
+    "Full model compilation",
+    "Pretrained text generation on KC705",
+    "Inference FPS or tokens/sec",
+    "Actual int8 or int4 quantized model accuracy"
+  ],
+  "config_sha256": "ff74c30d5ebb5ab1da0f2ea479adf7197c504b42b5522a858c334ab91ed4958c"
+}

@@ -1,0 +1,125 @@
+{
+  "passed": true,
+  "timestamp": 1790780311.4929569,
+  "checks": [
+    {
+      "sequence": 0,
+      "mode": 0,
+      "status": 0,
+      "cycles": 752098,
+      "compute_ms": 7.52098,
+      "backend_calls": 2,
+      "words": 20,
+      "all_words_bit_exact": true,
+      "repeats": 1,
+      "per_run_ms": 7.52098
+    },
+    {
+      "sequence": 1,
+      "mode": 1,
+      "status": 0,
+      "cycles": 5256989,
+      "compute_ms": 52.56989,
+      "backend_calls": 6,
+      "words": 64,
+      "all_words_bit_exact": true,
+      "repeats": 1,
+      "per_run_ms": 52.56989
+    },
+    {
+      "sequence": 2,
+      "mode": 2,
+      "status": 0,
+      "cycles": 4592085,
+      "compute_ms": 45.92085,
+      "backend_calls": 6,
+      "words": 64,
+      "all_words_bit_exact": true,
+      "repeats": 1,
+      "per_run_ms": 45.92085
+    },
+    {
+      "sequence": 3,
+      "mode": 3,
+      "status": 0,
+      "cycles": 2957449,
+      "compute_ms": 29.57449,
+      "backend_calls": 1,
+      "words": 613,
+      "all_words_bit_exact": true,
+      "repeats": 1,
+      "per_run_ms": 29.57449
+    },
+    {
+      "sequence": 4,
+      "mode": 0,
+      "status": 0,
+      "cycles": 2254987,
+      "compute_ms": 22.54987,
+      "backend_calls": 6,
+      "words": 20,
+      "all_words_bit_exact": true,
+      "repeats": 3,
+      "per_run_ms": 7.5166233333333325
+    },
+    {
+      "sequence": 5,
+      "mode": 1,
+      "status": 0,
+      "cycles": 15769153,
+      "compute_ms": 157.69153,
+      "backend_calls": 18,
+      "words": 64,
+      "all_words_bit_exact": true,
+      "repeats": 3,
+      "per_run_ms": 52.56384333333333
+    },
+    {
+      "sequence": 6,
+      "mode": 2,
+      "status": 0,
+      "cycles": 13775569,
+      "compute_ms": 137.75569,
+      "backend_calls": 18,
+      "words": 64,
+      "all_words_bit_exact": true,
+      "repeats": 3,
+      "per_run_ms": 45.91856333333333
+    },
+    {
+      "sequence": 7,
+      "mode": 3,
+      "status": 0,
+      "cycles": 5916033,
+      "compute_ms": 59.16033,
+      "backend_calls": 2,
+      "words": 613,
+      "all_words_bit_exact": true,
+      "repeats": 2,
+      "per_run_ms": 29.580165
+    },
+    {
+      "sequence": 8,
+      "mode": 99,
+      "status": -1,
+      "cycles": 37,
+      "compute_ms": 0.00037,
+      "backend_calls": 0,
+      "words": 0,
+      "rejected_invalid_request": true
+    },
+    {
+      "sequence": 9,
+      "mode": 0,
+      "status": -1,
+      "cycles": 39,
+      "compute_ms": 0.00039,
+      "backend_calls": 0,
+      "words": 0,
+      "rejected_invalid_request": true
+    }
+  ],
+  "clock_hz": 100000000,
+  "bitstream_sha256": "91ba9fd680bdfbf456f58f18fb7351ee641476024e559f105bd82408d1aa32b6",
+  "scope": "Physical KC705 outputs vs independent native generated C; synthetic inference fixtures and resident banana state. Not full language-model inference."
+}

@@ -3,14 +3,14 @@ import argparse
 from dataclasses import replace
 import json
 from pathlib import Path
-from . import ProgramError, CPU, KC705, KC705_ROCKET, CompileOptions, compile_stablehlo
+from . import ProgramError, CPU, KC705, KC705_ROCKET, KC705_CORDIC, CompileOptions, compile_stablehlo
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('input', type=Path)
     parser.add_argument('-o', '--output', type=Path, required=True)
-    parser.add_argument('--target', choices=('cpu', 'kc705', 'kc705-rocket'), default='cpu')
+    parser.add_argument('--target', choices=('cpu', 'kc705', 'kc705-rocket','kc705-cordic'), default='cpu')
     parser.add_argument('--symbol', default='t3p')
     parser.add_argument('--entry', default='main')
     parser.add_argument('--math-mode', choices=('libm', 'freestanding'), default='libm')
@@ -24,7 +24,7 @@ def main():
     parser.add_argument('--workspace-limit', type=int)
     parser.add_argument('--report', type=Path)
     args = parser.parse_args()
-    target = {'cpu':CPU,'kc705':KC705,'kc705-rocket':KC705_ROCKET}[args.target]
+    target = {'cpu':CPU,'kc705':KC705,'kc705-rocket':KC705_ROCKET,'kc705-cordic':KC705_CORDIC}[args.target]
     if args.workspace_limit is not None:
         target = replace(target, workspace_limit_bytes=args.workspace_limit)
     try:

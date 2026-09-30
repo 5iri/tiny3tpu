@@ -131,6 +131,15 @@ if(TINY3TPU_DDR_PYTHON)
   set_tests_properties(kc705_ddr_only PROPERTIES TIMEOUT 180)
 endif()
 if(TINY3TPU_VERILATOR)
+  foreach(mode exp mmio)
+    add_test(NAME cordic_${mode}
+      COMMAND ${CMAKE_COMMAND} -DVERILATOR=${TINY3TPU_VERILATOR}
+        -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+        -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/cordic-${mode}
+        -DMMIO=$<STREQUAL:${mode},mmio>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_cordic_test.cmake)
+    set_tests_properties(cordic_${mode} PROPERTIES TIMEOUT 120)
+  endforeach()
   add_test(NAME rocket_axi_bridge
     COMMAND ${CMAKE_COMMAND} -DVERILATOR=${TINY3TPU_VERILATOR}
       -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}

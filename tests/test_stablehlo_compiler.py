@@ -20,7 +20,7 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from tools.jax_stablehlo import export_function
-from tools.program import compile_stablehlo, CompileOptions, CPU, KC705, KC705_ROCKET, Target, ProgramError, AffineCostModel
+from tools.program import compile_stablehlo, CompileOptions, CPU, KC705, KC705_ROCKET, KC705_CORDIC, Target, ProgramError, AffineCostModel
 
 
 HARNESS = r'''
@@ -51,11 +51,11 @@ unsigned workspace_size(void){return sizeof(workspace);}
 
 
 class Compiled:
-    def __init__(self, source, options=None):
+    def __init__(self, source, options=None, harness=HARNESS):
         self.temp = tempfile.TemporaryDirectory(prefix='tiny3tpu-stablehlo-')
         self.path = Path(self.temp.name)
         self.report = compile_stablehlo(source, self.path/'program.h', options)
-        (self.path/'check.c').write_text(HARNESS)
+        (self.path/'check.c').write_text(harness)
         subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror','-pedantic',
                         '-O2','-ffp-contract=off','-shared','-fPIC', '-I'+str(ROOT/'include'),
                         str(self.path/'check.c'),'-lm','-o',str(self.path/'check.so')], check=True, capture_output=True)
@@ -276,6 +276,57 @@ assert 'jax' not in sys.modules
                 np.testing.assert_allclose(got,fn(x.astype(np.float64)).astype(np.float32),atol=1.5e-7,rtol=1e-7)
         self.assertTrue(np.signbit(out[0][-7]))
 
+    def test_cordic_math_target_and_failures(self):
+        mock=r"""
+#include <math.h>
+#include <stdint.h>
+static uint32_t mock_read(unsigned);
+static void mock_write(unsigned,uint32_t);
+#define TINY3TPU_CORDIC_READ32 mock_read
+#define TINY3TPU_CORDIC_WRITE32 mock_write
+"""+HARNESS+r"""
+static int math_mode;
+static uint32_t input,result,status;
+void set_math_mode(int m){math_mode=m;status=0;}
+static uint32_t mock_read(unsigned offset){
+ if(offset==12)return math_mode==1?0:0x45585031U;
+ if(offset==0)return math_mode==2?1:math_mode==3?0:math_mode==4?4:status;
+ return result;
+}
+static void mock_write(unsigned offset,uint32_t value){
+ if(offset==4)input=value;
+ if(offset==0&&value==2)status=0;
+ if(offset==0&&value==1){union{uint32_t u;float f;} v={input};v.f=expf(v.f);result=v.u;status=2;}
+}
+"""
+        x=np.array([-2.,0.,2.],np.float32)
+        opts=CompileOptions(target=KC705_CORDIC,math_mode='freestanding',allow_approximation=True)
+        c=Compiled(export_function(jnp.exp,x),opts,harness=mock);self.addCleanup(c.close)
+        self.assertIn('cordic',[v['device'] for v in c.report['placement']])
+        for mode in range(5):
+            c.library.set_math_mode(mode)
+            status,out=c.run(x)
+            if mode==0:
+                self.assertEqual(status,0);np.testing.assert_allclose(out[0],np.exp(x),rtol=2e-7)
+            else:
+                self.assertEqual(status,-6);np.testing.assert_array_equal(out[0],np.full(x.shape,17,np.float32))
+
+    def test_exponential_and_softmax(self):
+        x=np.concatenate([np.linspace(-104,89,4096,dtype=np.float32),
+                          np.array([0.,-0.,np.inf,-np.inf,np.nan],np.float32)])
+        opts=CompileOptions(target=KC705,math_mode='freestanding',allow_approximation=True)
+        c=self.compile(export_function(jnp.exp,x),opts)
+        status,out=c.run(x);self.assertEqual(status,0)
+        with np.errstate(over='ignore',invalid='ignore',under='ignore'):
+            expected=np.exp(x.astype(np.float64)).astype(np.float32)
+        np.testing.assert_allclose(out[0],expected,rtol=3e-7,atol=np.finfo(np.float32).smallest_subnormal)
+        matrix=np.array([[1000,1001,999,-1000],[-1000,-1001,-999,1000]],np.float32)
+        self.check(lambda x:jax.nn.softmax(x,axis=-1),[matrix],opts,atol=2e-7,rtol=3e-7)
+        self.check(jnp.exp,[np.array([-2.,0.,2.],np.float32)])
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaisesRegex(ProgramError,'allow_approximation'):
+                compile_stablehlo(export_function(jnp.exp,x),Path(d)/'bad.h',CompileOptions(target=KC705,math_mode='freestanding'))
+
     def test_gather_clamping_and_scatter_duplicates(self):
         x=np.arange(15,dtype=np.float32).reshape(5,3)
         idx=jnp.array([0,1,1,4,9],jnp.int32)
@@ -403,7 +454,7 @@ assert 'jax' not in sys.modules
 
     def test_failures_are_diagnostic_and_write_no_artifact(self):
         x=np.ones(4,np.float32)
-        cases=[(lambda x:jnp.exp(x),(x,),'stablehlo.exponential'),
+        cases=[(lambda x:jnp.log(x),(x,),'stablehlo.log'),
                (lambda x:jax.lax.cond(jnp.sum(x)>0,lambda y:y+1,lambda y:y-1,x),(x,),'stablehlo.case')]
         with tempfile.TemporaryDirectory() as d:
             output=Path(d)/'rejected.h'

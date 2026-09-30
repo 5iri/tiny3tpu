@@ -61,6 +61,7 @@ def main():
     parser.add_argument("--chipdb", type=Path, default=Path("/tmp/openxc7-blinky-full/xc7k325tffg900-2-apio.bin"))
     parser.add_argument("--seed", type=int, default=None,
                         help="nextpnr placer/router seed; omit for the router default")
+    parser.add_argument("--cordic", action="store_true", help="Enable the generic exponential CORDIC in the VexRiscv no-DDR image")
     parser.add_argument("--lut6", action="store_true",
                         help="Limit synthesis to LUT6; avoid long chains through dedicated LUT7/8 muxes")
     parser.add_argument("--ddr-stress", action="store_true",
@@ -94,6 +95,8 @@ def main():
                         help="Experimental board-RTL overlay (named file replacement, "
                              "upstream stays unchanged); default build uses production sources")
     args = parser.parse_args()
+    if args.cordic and (args.cpu != "vexriscv-lite" or not args.no_ddr):
+        parser.error("--cordic currently requires --cpu vexriscv-lite --no-ddr")
     if (args.firmware_source or args.firmware_include) and not args.no_ddr:
         parser.error("custom firmware requires --no-ddr")
     vex = args.cpu == "vexriscv-lite"
@@ -308,6 +311,8 @@ def main():
                    ROOT / "third_party/vexriscv/VexRiscv_Lite.v",
                    ROOT / "hardware/kc705_vexriscv/vexriscv_tpu_soc.sv",
                    ROOT / "hardware/kc705_vexriscv" / (top + ".sv")]
+        if args.cordic:
+            sources += [ROOT / "hardware/math/tiny3tpu_cordic_exp.sv", ROOT / "hardware/math/tiny3tpu_cordic_mmio.sv"]
         if not args.no_ddr:
             sources += [firmware / "litedram_wishbone_bridge.sv",
                         ROOT / "hardware/kc705_vexriscv/litedram_wishbone32_to512.sv"]
@@ -348,6 +353,7 @@ def main():
               "read_verilog -sv -I{} {} {}".format(
                   cpu / "rtl/include", boot_header, " ".join(map(str, sources))),
               "read_verilog -lib +/xilinx/cells_sim.v +/xilinx/cells_xtra.v",
+              *(["chparam -set ENABLE_CORDIC 1 {}".format(top)] if args.cordic else []),
               "hierarchy -check -top {}".format(top),
               "synth_xilinx -family xc7 -flatten {} -top {} -json {}".format(
                   "-nowidelut" if args.lut6 else "", top, quote(build / "soc.json")),

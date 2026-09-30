@@ -6,7 +6,7 @@ from .cost import AffineCostModel
 
 
 CPU_OPS = frozenset(('add', 'add_any', 'sub', 'mul', 'div', 'neg', 'abs', 'sqrt',
-    'acos', 'atan2', 'sin', 'cos', 'min', 'max', 'lt', 'le', 'gt', 'ge', 'eq', 'ne', 'select_n', 'sign',
+    'acos', 'atan2', 'sin', 'cos', 'exp', 'min', 'max', 'lt', 'le', 'gt', 'ge', 'eq', 'ne', 'select_n', 'sign',
     'convert_element_type', 'integer_pow', 'index', 'reduce_sum', 'scatter-add',
     'concatenate', 'stack', 'matmul', 'while', 'gather', 'scatter', 'reduce', 'and', 'or', 'xor', 'not'))
 
@@ -16,6 +16,7 @@ class Target:
     name: str
     cpu_ops: frozenset = CPU_OPS
     qgemm: bool = False
+    cordic_exp: bool = False
     # Worst-case signed int8 dot product must fit the backend's int32 output.
     qgemm_max_k: int = 131071
     libm: bool = True
@@ -34,6 +35,7 @@ KC705 = Target('kc705-cpu-tpu', qgemm=True, libm=False, affine_cost_model=Affine
 # Approximate affine placement stays on the CPU until its transport is measured;
 # exact int8 GEMM still uses the existing hardware backend.
 KC705_ROCKET = Target('kc705-rocket-tpu', qgemm=True, libm=False)
+KC705_CORDIC = Target('kc705-cordic-tpu', qgemm=True, cordic_exp=True, libm=False, affine_cost_model=AffineCostModel())
 
 
 def legalize(program, target, *, math_mode='libm', allow_approximation=False):
@@ -82,6 +84,9 @@ def legalize(program, target, *, math_mode='libm', allow_approximation=False):
             require(sorted(rows) == list(range(out.shape[0])), 'affine row groups must cover each row exactly once')
             device = 'tpu'
         else:
+            if n.op == 'exp' and target.cordic_exp:
+                device = 'cordic'
+                require(math_mode == 'freestanding', 'CORDIC requires explicit freestanding math policy')
             if n.op == 'matmul':
                 require(len(args)==2 and len(args[0].shape) in (2,3) and len(args[1].shape)==len(args[0].shape),
                         'requires two rank-2 or rank-3 operands')
@@ -94,7 +99,7 @@ def legalize(program, target, *, math_mode='libm', allow_approximation=False):
                     require(args[0].shape[-1] <= target.qgemm_max_k, 'K can overflow int32 accumulation')
                     if target.qgemm:
                         device = 'tpu'
-            require(device == 'tpu' or n.op in target.cpu_ops,
+            require(device in ('tpu','cordic') or n.op in target.cpu_ops,
                     'no backend implementation or registered legalization')
             if n.op in ('gather','scatter'):
                 require(len(args)==(2 if n.op=='gather' else 3), 'invalid indexing operands')
@@ -111,13 +116,13 @@ def legalize(program, target, *, math_mode='libm', allow_approximation=False):
                 reducer=n.params['reducer']
                 require(reducer in ('add','mul','min','max','and','or','xor','set','keep'),'unsupported reducer')
                 if reducer in ('and','or','xor'):require(out.dtype!='float32','bitwise reducer requires integer or boolean type')
-            if n.op in ('sqrt', 'acos', 'atan2', 'sin', 'cos'):
+            if n.op in ('sqrt', 'acos', 'atan2', 'sin', 'cos', 'exp'):
                 require(len(args) == (2 if n.op == 'atan2' else 1) and all(a.dtype == out.dtype == 'float32' for a in args), 'requires float32')
                 require(math_mode != 'libm' or target.libm, 'target has no libm; explicitly select freestanding math')
                 require(math_mode != 'freestanding' or allow_approximation,
                         'freestanding math requires allow_approximation')
             binary = ('add', 'add_any', 'sub', 'mul', 'div', 'atan2', 'min', 'max', 'lt', 'le', 'gt', 'ge', 'eq', 'ne','and','or','xor')
-            unary = ('neg', 'abs', 'sqrt', 'acos', 'sin', 'cos', 'sign', 'convert_element_type', 'integer_pow','not')
+            unary = ('neg', 'abs', 'sqrt', 'acos', 'sin', 'cos', 'exp', 'sign', 'convert_element_type', 'integer_pow','not')
             if n.op in binary + unary + ('select_n',):
                 require(len(args) == (2 if n.op in binary else 3 if n.op == 'select_n' else 1), 'wrong operand count')
                 require(np.broadcast_shapes(*(a.shape for a in args)) == out.shape, 'invalid elementwise broadcast')

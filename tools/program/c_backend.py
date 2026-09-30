@@ -151,7 +151,7 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
         elif n.op=='sqrt':expr=f'{"sqrtf" if math_mode=="libm" else "t3p_sqrt"}({a[0]})'
         elif n.op=='acos':expr=f'{"acosf" if math_mode=="libm" else "t3p_acos"}({a[0]})'
         elif n.op=='atan2':expr=f'{"atan2f" if math_mode=="libm" else "t3p_atan2"}({a[0]},{a[1]})'
-        elif n.op in ('sin','cos'):expr=f'{n.op+"f" if math_mode=="libm" else "t3p_"+n.op}({a[0]})'
+        elif n.op in ('sin','cos','exp'):expr=f'{n.op+"f" if math_mode=="libm" else "t3p_"+n.op}({a[0]})'
         elif n.op in ('and','or','xor'):expr=combine(a[0],a[1],out.dtype,n.op)
         elif n.op=='not':expr=f'(!{a[0]})' if out.dtype=='bool' else wrap(f'~(uint32_t)({a[0]})',out.dtype)
         elif n.op in ('min','max'):
@@ -317,6 +317,8 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
                 for target_index,source in enumerate(mapping):
                     if start<=source<start+size:targets[source-start]=target_index
                 loop(size,f'{ref(out.id,map_expr(targets))}={ref(vid)};');start+=size
+        elif n.op=='exp' and devices[out.id]=='cordic':
+            loop(out.size,f'float value;if(t3p_cordic_exp({a[0]},&value))return -6;{dest}=value;')
         else:
             loop(out.size,f'{dest}={element_expr(n,a)};')
     for index,vid in enumerate(p.outputs):
@@ -326,6 +328,7 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
     guard=symbol.upper()+'_GENERATED_PROGRAM_H'
     header=[f'#ifndef {guard}',f'#define {guard}','#include <stdint.h>','#include "tiny3tpu_program_math.h"','#include "tiny3tpu_runtime.h"']
     if math_mode=='libm':header.append('#include <math.h>')
+    if target.cordic_exp:header.append('#include "tiny3tpu_cordic.h"')
     header += nested_headers
     header += [f'#define {symbol.upper()}_INPUT_COUNT {len(p.inputs)}',f'#define {symbol.upper()}_OUTPUT_COUNT {len(p.outputs)}',f'#define {symbol.upper()}_WORKSPACE_WORDS {high}',
                f'typedef union {{float f;int32_t i;uint32_t u;}} {symbol}_word;',

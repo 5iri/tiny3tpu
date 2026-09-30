@@ -14,7 +14,7 @@ import numpy as np
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from test_stablehlo_compiler import Compiled
-from tools.program import CompileOptions,KC705,KC705_ROCKET
+from tools.program import CompileOptions,KC705,KC705_ROCKET,KC705_CORDIC,compile_stablehlo
 from tools.jax_stablehlo import export_function
 
 
@@ -26,11 +26,13 @@ def main():
     parser.add_argument('--no-affine',action='store_true')
     parser.add_argument('--force-affine',action='store_true')
     parser.add_argument('--no-fusion',action='store_true')
+    parser.add_argument('--cordic',action='store_true',help='Enable the hardware exponential target and real CORDIC peripheral')
     parser.add_argument('--profile',action='store_true',help='Measure CPU/TPU callback cycles on the same RTL')
     parser.add_argument('--cpu',choices=('vexriscv','rocket'),default='vexriscv')
     parser.add_argument('--steps',type=int,default=1,help='Repeat a shape-preserving state update on board')
     parser.add_argument('--synapse32-dir',type=Path,default=ROOT.parent/'synapse32')
     args=parser.parse_args()
+    if args.cordic and args.cpu!='vexriscv':parser.error('--cordic currently requires VexRiscv')
     if args.steps<1:parser.error('--steps must be positive')
     out=args.out.resolve();out.mkdir(parents=True,exist_ok=True)
     if args.artifact:
@@ -70,6 +72,10 @@ def main():
         (out/'program.h').write_text((native.path/'program.h').read_text())
         (out/'compile-report.json').write_text(json.dumps(native.report,indent=2)+'\n')
     finally:native.close()
+    if args.cordic:
+        from dataclasses import replace
+        report=compile_stablehlo(source,out/'program.h',replace(options,target=KC705_CORDIC))
+        (out/'compile-report.json').write_text(json.dumps(report,indent=2)+'\n')
     initial=','.join(float(v).hex()+'f' for v in data.ravel())
     expected=','.join(str(int(v))+'U' for v in outputs[0].ravel().view(np.uint32))
     (out/'fixture.h').write_text('static float state[]={'+initial+'};\nstatic const uint32_t expected[]={'+expected+'};\n')
@@ -175,11 +181,12 @@ int main(int argc,char **argv){
             'freechips.rocketchip.system.LitexConfig_linux_1_1.behav_srams.v',
             'plusarg_reader.v','AsyncResetReg.v','EICG_wrapper.v')]
         rtl += [uart/'rtl/core_modules/uart.v']
+    if args.cordic:rtl += [ROOT/'hardware/math'/n for n in ('tiny3tpu_cordic_exp.sv','tiny3tpu_cordic_mmio.sv')]
     rtl += [ROOT/'multi-core'/n for n in ('synapse32_tpu_peripheral.sv','synapse32_axis_mailbox.sv','tiny3tpu_axis.sv',
             'tiny3tpu_axis_bridge.sv','tiny3tpu_axi.sv','top.v','tpu_core_wrapper.sv')]
     rtl += [ROOT/'systolic_array/rtl'/n for n in ('NxN_systolic_array.v','pe.v')]
     run(['verilator','--cc','--exe','--build','-j','2','-Wno-fatal','-DPRINTF_COND=0','--top-module',top,
-         '--Mdir',out/'obj',f'-GBOOT_HEX="{out}/firmware.hex"','-I'+str(uart/'rtl/include'),*rtl,out/'check.cpp'],'build')
+         '--Mdir',out/'obj',*(['-GENABLE_CORDIC=1'] if args.cordic else []),f'-GBOOT_HEX="{out}/firmware.hex"','-I'+str(uart/'rtl/include'),*rtl,out/'check.cpp'],'build')
     run([out/('obj/V'+top)],'run')
     if args.profile:
         values=[int(line.split('=')[1]) for line in (out/'run.log').read_text().splitlines() if line.startswith('measurement=')]

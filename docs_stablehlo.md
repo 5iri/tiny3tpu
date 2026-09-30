@@ -98,7 +98,7 @@ a reference backend.
 |---|---|
 | Signatures | Multiple inputs/outputs, positive static shapes, scalar tensors; f32/i32/u32/i8/u8/bool |
 | Arithmetic | Add, subtract, multiply, float divide, negate, abs, min/max, comparisons, select, sign, conversions; integer/boolean bitwise operations |
-| Math | f32 sqrt, atan2, sine/cosine; composite acos through its StableHLO decomposition |
+| Math | f32 sqrt, exponential, atan2, sine/cosine; composite acos through its StableHLO decomposition |
 | Data movement | Reshape, slice, transpose, broadcast, concatenate; constant/runtime gather indices, windows and batching; static iota folding |
 | Reduction/update | Single add/multiply/min/max/and/or/xor reductions with scalar initializers; constant/runtime scatter indices, windows and batching, including repeated indices and dropped out-of-range updates; also scatter replacement |
 | Matrix work | General static `dot_general` axis layouts lowered to batches of matrix products; default-precision f32×f32→f32 on CPU or i8×i8→i32 on TPU, including dynamic weights and tile tails |
@@ -106,7 +106,7 @@ a reference backend.
 
 Dynamic tensor shapes, conditional `case` regions, arbitrary multi-result
 reducers/update functions, convolution in this new frontend, remaining types/math
-(for example exponential), custom calls, and distributed operations require
+(for example logarithm), custom calls, and distributed operations require
 additional lowerings. Runtime indices do not require dynamic tensor shapes: a
 fixed-size tensor can be indexed by values that arrive at runtime. The
 existing v1 `.t3m` compiler still supports its existing quantized convolution and
@@ -315,3 +315,30 @@ the numerical transformation without conflating it with device transport.
 Contracts: [StableHLO specification](https://openxla.org/stablehlo/spec),
 [portable artifact API](https://openxla.org/stablehlo/compatibility),
 [JAX export](https://docs.jax.dev/en/latest/export/export.html).
+
+## Experimental CORDIC exponential target
+
+The explicit `kc705-cordic` target maps `stablehlo.exponential` to the generic
+MMIO hyperbolic CORDIC peripheral at `0x20003000`. Select freestanding math and
+allow approximation. Other supported math retains its existing CPU lowering;
+exact int8 matrix products still execute on the TPU. Existing KC705 images do
+not contain this peripheral: build the no-DDR VexRiscv target with `--cordic`.
+A missing peripheral, a busy/rejected command, or a polling timeout returns
+`-6` without publishing output buffers. There is no implicit software fallback.
+
+The Q3.29 shift/add core accepts binary32 input/output, reduces by ln(2), and
+uses hyperbolic iterations 1–30 with repetitions at 4 and 13. The 40,014-vector
+RTL check observed at most 2 float32 ULPs error and 187-cycle maximum latency.
+It includes random binary32 patterns, overflow/underflow, infinities, NaNs,
+backpressure and reset. This is sampled evidence, not a correct-rounding proof.
+Circular sine/cosine, sqrt, and general division remain CPU operations; this
+initial peripheral accelerates exponential only.
+
+Physical KC705 verification of the shared showcase firmware measured an
+8-token causal attention block at 52.57 ms with software exponential and
+45.92 ms with CORDIC (14.5% lower compute time). All 64 output words matched
+native generated C exactly for the checked fixtures. The routed image passed
+100 MHz timing with a final estimate of 111.36 MHz. These are physical compute
+times, excluding UART and pixels; numerical agreement is fixture-specific.
+See [the workload showcase](sidequests/showcase/README.md) for measured MLP,
+resident banana state, pretrained-model memory limits and reproduction steps.

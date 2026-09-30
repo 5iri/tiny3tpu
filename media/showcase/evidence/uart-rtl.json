@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "requests": 6,
+  "scope": "Actual firmware, UART, VexRiscv, TPU and CORDIC RTL; not physical board timing",
+  "firmware_sha256": "bd061729b7456067712adab7d4730f1d11327495785a9a9b2db86621c371279f",
+  "results": [
+    "PASS frame=0 mode=0 words=20 cycles=752098",
+    "PASS frame=1 mode=1 words=64 cycles=5256989",
+    "PASS frame=2 mode=2 words=64 cycles=4592085",
+    "PASS frame=3 mode=0 words=20 cycles=751911",
+    "PASS frame=4 mode=1 words=64 cycles=5256989",
+    "PASS frame=5 mode=2 words=64 cycles=4592085"
+  ]
+}

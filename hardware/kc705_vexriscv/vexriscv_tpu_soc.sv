@@ -6,7 +6,8 @@
 module vexriscv_tpu_soc #(
     parameter BOOT_HEX = "",
     parameter BOOT_WORDS = 16384,
-    parameter PIPELINED_DECODE = 0
+    parameter PIPELINED_DECODE = 0,
+    parameter ENABLE_CORDIC = 0
 ) (
     input wire clk, input wire rst, input wire ready_to_run,
     input wire uart_rx, output wire uart_tx,
@@ -89,7 +90,14 @@ module vexriscv_tpu_soc #(
         if (rst) system_cycles <= 0;
         else system_cycles <= system_cycles + 1'b1;
     end
-    wire local_error = !(boot_address || tpu_address || timer_address ||
+    wire cordic_address = ENABLE_CORDIC && addr[31:4] == (32'h20003000 >> 4);
+    wire [31:0] cordic_data;
+    generate if(ENABLE_CORDIC)begin: math_peripheral
+      tiny3tpu_cordic_mmio cordic(.clk(clk),.rst(peripheral_reset),
+        .wr(local_access && cordic_address && full_write),.addr(addr[3:0]),
+        .wdata(wdata),.wstrb(wstrb),.rdata(cordic_data));
+    end else begin assign cordic_data=0;end endgenerate
+    wire local_error = !(boot_address || tpu_address || timer_address || (cordic_address && (!write || full_write)) ||
                          (uart_address && (!write || full_write)) || report_write || exit_write);
     function [3:0] terminate_beat;
         input data_owner, error;
@@ -177,6 +185,7 @@ module vexriscv_tpu_soc #(
                         if (boot_address) begin end
                         else if (timer_address) response_data <= system_cycles;
                         else if (tpu_address) response_data <= tpu_data;
+                        else if (cordic_address) response_data <= cordic_data;
                         else if (uart_address) begin
                             response_data <= uart_data;
                         end else if (report_write) begin

@@ -2,6 +2,7 @@
 `default_nettype none
 // KC705 VexRiscv + TPU boot-RAM self-test at 100 MHz.
 module kc705_vexriscv_noddr_top #(
+    parameter ENABLE_CORDIC = 0,
 `ifdef VEXRISCV_BOOT_HEX
     parameter BOOT_HEX=`VEXRISCV_BOOT_HEX
 `else
@@ -52,7 +53,7 @@ module kc705_vexriscv_noddr_top #(
     end
     wire fault, exit_valid;
     wire [31:0] exit_code;
-    vexriscv_tpu_soc #(.BOOT_HEX(BOOT_HEX)) soc (
+    vexriscv_tpu_soc #(.BOOT_HEX(BOOT_HEX), .ENABLE_CORDIC(ENABLE_CORDIC)) soc (
         .clk(clk_sys), .rst(rst), .ready_to_run(locked && !rst),
         .uart_rx(uart_rx), .uart_tx(uart_tx), .fault(fault), .pc_debug(),
         .ext_req_valid(req_valid), .ext_req_ready(1'b1),

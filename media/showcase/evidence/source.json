@@ -1,0 +1,7 @@
+{
+  "model": "roneneldan/TinyStories-1M",
+  "revision": "77f1b168e219585646439073245fe87e56b3023e",
+  "config_url": "https://huggingface.co/roneneldan/TinyStories-1M/resolve/77f1b168e219585646439073245fe87e56b3023e/config.json",
+  "sha256": "ff74c30d5ebb5ab1da0f2ea479adf7197c504b42b5522a858c334ab91ed4958c",
+  "weights_downloaded": false
+}

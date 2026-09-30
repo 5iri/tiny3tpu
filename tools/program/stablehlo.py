@@ -238,7 +238,7 @@ class Lowering:
         simple = {'add': 'add', 'subtract': 'sub', 'multiply': 'mul', 'divide': 'div',
                   'negate': 'neg', 'abs': 'abs', 'sqrt': 'sqrt', 'atan2': 'atan2',
                   'minimum': 'min', 'maximum': 'max', 'sign': 'sign', 'convert': 'convert_element_type',
-                  'sine':'sin','cosine':'cos','and':'and','or':'or','xor':'xor','not':'not'}
+                  'sine':'sin','cosine':'cos','exponential':'exp','and':'and','or':'or','xor':'xor','not':'not'}
         if op.name.startswith('stablehlo.') and name in simple:
             return simple[name], ins, {}
         if name=='iota':

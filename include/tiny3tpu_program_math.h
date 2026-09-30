@@ -12,6 +12,22 @@ static inline float t3p_sqrt(float x) {
  union {float f;uint32_t u;} v={x};v.u=(v.u>>1)+0x1fc00000U;
  float r=v.f;for(unsigned i=0;i<5;i++)r=.5f*(r+x/r);return subnormal?r*0x1p-12f:r;
 }
+/* Explicit freestanding exponential approximation. Reduce to +/- ln(2)/2,
+ * evaluate a degree-7 Taylor polynomial, then scale by a power of two.
+ * Split ln(2) reduces cancellation; subnormal scaling avoids bit tricks on
+ * negative exponents. NaN/infinities and overflow/underflow are handled first. */
+static inline float t3p_exp(float x) {
+ if(x!=x)return x+x;
+ if(x>0x1.62e42ep6f)return t3p_f32(0x7f800000U);
+ if(x< -0x1.9fe368p6f)return 0.f;
+ float scaled=x*0x1.715476p0f;
+ int n=(int)(scaled+(scaled<0?-.5f:.5f));
+ float r=(x-(float)n*0x1.62e400p-1f)-(float)n*0x1.7f7d1cp-20f;
+ float y=1.f+r*(1.f+r*(.5f+r*(1.f/6.f+r*(1.f/24.f+r*(1.f/120.f+r*(1.f/720.f+r/5040.f))))));
+ if(n>127)return (y*2.f)*0x1p127f;
+ if(n< -126)return (y*t3p_f32((uint32_t)(n+24+127)<<23))*0x1p-24f;
+ return y*t3p_f32((uint32_t)(n+127)<<23);
+}
 static inline float t3p_atan(float x) {
  int inv=x>1.f;if(inv)x=1.f/x;
  int rotate=x>.414213562373095f;if(rotate)x=(x-1.f)/(x+1.f);
