@@ -158,3 +158,12 @@
 /sidequests/physics/README.md
 /sidequests/showcase/CLASSIFIER.md
 /sidequests/showcase/README.md
+
+# Published demo guides and build entry points.
+!hardware/kc705_hdmi/build.py
+!hardware/kc705_hdmi/cpu/build_support.py
+!sidequests/showcase/README.md
+!sidequests/cloth/README.md
+!sidequests/banana/README.md
+!media/showcase/gifs/README.md
+/tmp/

@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 module counter_case #(parameter N=4)(input wire clk,output reg finished=0);
-    reg rst=1,start=0,load_en=0,load_sel=0,c_rd_en=0;
+    reg rst=1,start=0,continue_accum=0,load_en=0,load_sel=0,c_rd_en=0;
     reg [$clog2(N)-1:0] load_row=0,load_col=0,c_rd_row=0,c_rd_col=0;
     reg signed [7:0] load_data=0;
     wire busy,done,old_busy,old_done;

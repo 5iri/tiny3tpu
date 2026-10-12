@@ -4,13 +4,45 @@
 static inline float t3p_f32(uint32_t x) {union {uint32_t u;float f;} v={x};return v.f;}
 /* Freestanding float32 CPU fallback; no host runtime or allocation. */
 static inline int t3p_finite(float x) { union {float f; uint32_t u;} v={x};return (v.u&0x7f800000U)!=0x7f800000U; }
+/* Default sqrt is correctly rounded binary32 (nearest, ties to even).
+ * Define TINY3TPU_LEGACY_SQRT=1 when reproducing old firmware trajectories:
+ * its five rounded Newton steps can differ from the correct result by 1 ULP.
+ * That difference can grow in long-running, sensitive physical simulations. */
+#ifndef TINY3TPU_LEGACY_SQRT
+#define TINY3TPU_LEGACY_SQRT 0
+#endif
 static inline float t3p_sqrt(float x) {
+#if TINY3TPU_LEGACY_SQRT
  if(x==0)return x;
  if(!t3p_finite(x))return x>0?x:x-x;
- if(x<0){union {uint32_t u;float f;} v={0x7fc00000U};return v.f;}
+ if(x<0)return t3p_f32(0x7fc00000U);
  int subnormal=x<0x1p-126f;if(subnormal)x*=0x1p24f;
  union {float f;uint32_t u;} v={x};v.u=(v.u>>1)+0x1fc00000U;
  float r=v.f;for(unsigned i=0;i<5;i++)r=.5f*(r+x/r);return subnormal?r*0x1p-12f:r;
+#else
+ union {float f;uint32_t u;} v={x};uint32_t ax=v.u&0x7fffffffU;
+ if(!ax)return x;
+ if(ax>=0x7f800000U)return x>0?x:x-x;
+ if(v.u>>31)return t3p_f32(0x7fc00000U);
+ int exponent=(int)(ax>>23)-127;uint32_t mantissa=ax&0x7fffffU;
+ if(ax>>23)mantissa|=0x800000U;
+ else {exponent=-126;while(mantissa<0x800000U){mantissa<<=1;exponent--;}}
+ if(exponent%2){mantissa<<=1;exponent--;}
+ /* Restore sqrt(mantissa * 2^23), consuming two radicand bits per step.
+  * Its low 23 bits are zero, so a 32-bit shift register holds all of the
+  * nonzero input bits. Remainder and trial stay below 2^26. This avoids
+  * software float division and works for subnormal inputs without scaling.
+  * For integer remainder R and floor root Q, rounding up requires R > Q:
+  * (Q + 1/2)^2 = Q^2 + Q + 1/4, so a midpoint tie cannot occur. */
+ uint32_t bits=mantissa<<7,root=0,remainder=0;
+ for(unsigned i=0;i<24;i++){
+  remainder=(remainder<<2)|(bits>>30);bits<<=2;
+  uint32_t trial=(root<<2)|1U;root<<=1;
+  if(remainder>=trial){remainder-=trial;root|=1U;}
+ }
+ root+=remainder>root;
+ return t3p_f32(((uint32_t)(exponent/2+126)<<23)+root);
+#endif
 }
 /* Explicit freestanding exponential approximation. Reduce to +/- ln(2)/2,
  * evaluate a degree-7 Taylor polynomial, then scale by a power of two.
@@ -31,8 +63,10 @@ static inline float t3p_exp(float x) {
 static inline float t3p_atan(float x) {
  int inv=x>1.f;if(inv)x=1.f/x;
  int rotate=x>.414213562373095f;if(rotate)x=(x-1.f)/(x+1.f);
+ static const float coefficients[]={1.f/17.f,1.f/15.f,1.f/13.f,1.f/11.f,
+                                    1.f/9.f,1.f/7.f,1.f/5.f,1.f/3.f,1.f};
  float xx=x*x,sum=1.f/19.f;
- for(int k=17;k>=1;k-=2)sum=1.f/(float)k-xx*sum;
+ for(unsigned i=0;i<9;i++)sum=coefficients[i]-xx*sum;
  float r=x*sum;if(rotate)r+=.7853981633974483f;
  return inv?1.5707963267948966f-r:r;
 }
@@ -77,17 +111,18 @@ static inline float t3p_sincos(float x,int cosine) {
   for(unsigned i=0;i<8;i++){uint64_t part=(uint64_t)two_over_pi[i]*mantissa+carry;product[i]=(uint32_t)part;carry=part>>32;}
   product[8]=(uint32_t)carry;
   quadrant=t3p_bit(product,shift)|(t3p_bit(product,shift+1)<<1);
-  uint64_t fraction=0;
-  for(unsigned i=0;i<64;i++)fraction=(fraction<<1)|t3p_bit(product,shift-1-i);
+  unsigned word=(shift-64)/32,offset=(shift-64)%32;
+  uint64_t fraction=((uint64_t)product[word+1]<<32)|product[word];
+  if(offset)fraction=(fraction>>offset)|((uint64_t)product[word+2]<<(64-offset));
   double f=(double)(uint32_t)(fraction>>32)*0x1p-32+(double)(uint32_t)fraction*0x1p-64;
   if(fraction>>63){quadrant=(quadrant+1)&3U;f-=1.;}
   r=(float)(f*0x1.921fb54442d18p+0);
  }
- float z=r*r;
- float s=r+r*z*(-1.f/6.f+z*(1.f/120.f+z*(-1.f/5040.f+z*(1.f/362880.f+z*(-1.f/39916800.f+z/6227020800.f)))));
- float c=1.f+z*(-.5f+z*(1.f/24.f+z*(-1.f/720.f+z*(1.f/40320.f+z*(-1.f/3628800.f+z/479001600.f)))));
  if(cosine)quadrant=(quadrant+1)&3U;
- float result=quadrant==0?s:quadrant==1?c:quadrant==2?-s:-c;
+ float z=r*r,result;
+ if(quadrant&1U)result=1.f+z*(-.5f+z*(1.f/24.f+z*(-1.f/720.f+z*(1.f/40320.f+z*(-1.f/3628800.f+z/479001600.f)))));
+ else result=r+r*z*(-1.f/6.f+z*(1.f/120.f+z*(-1.f/5040.f+z*(1.f/362880.f+z*(-1.f/39916800.f+z/6227020800.f)))));
+ if(quadrant&2U)result=-result;
  return !cosine&&sign?-result:result;
 }
 static inline float t3p_sin(float x){return t3p_sincos(x,0);}

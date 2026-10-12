@@ -30,7 +30,7 @@ def main():
  def classifier(a):
   z=jax.lax.dot_general(a,jnp.array(qw),(((1,),(0,)),((),())),preferred_element_type=jnp.int32)+jnp.array(qb)
   return z.astype(jnp.float32)/jnp.float32(127*scale)
- artifact=export_function(classifier,qx[:1],output=out/'classifier.mlirbc');opts=CompileOptions(target=KC705,symbol='classifier',math_mode='freestanding',allow_approximation=True)
+ artifact=export_function(classifier,qx[:1],output=out/'classifier.mlirbc');opts=CompileOptions(gemm_policy='tpu', target=KC705,symbol='classifier',math_mode='freestanding',allow_approximation=True)
  report=compile_stablehlo(artifact,out/'classifier.h',opts);(out/'compile-report.json').write_text(json.dumps(report,indent=2))
  native=Compiled(artifact,replace(opts,symbol="t3p"));expected=[]
  for i in range(20):

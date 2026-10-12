@@ -1,0 +1,19 @@
+{
+  "started_utc": "2026-10-11T12:08:26.055318+00:00",
+  "operation": "volatile_sram_load",
+  "part_detected": "xc7k325t",
+  "idcode": "0x03651093",
+  "bitstream": "build-kc705-hdmi/color-fix/soc.bit",
+  "bitstream_sha256": "35ce40efb3b34fbcada87b435fb5cd88e4cf1b211784646cc4f852893c7050b8",
+  "flash_written": false,
+  "hdmi_observed": true,
+  "color_validation_passed": true,
+  "change": "Correct KC705 board bus to Y low byte, Cb/Cr high byte",
+  "completed_utc": "2026-10-11T12:08:42.288154+00:00",
+  "returncode": 0,
+  "programmer_success": true,
+  "user_observation": "Bars correct and banana yellow",
+  "observation_source": "User visual confirmation after corrected SRAM load",
+  "observation_recorded_utc": "2026-10-11T12:10:03.572613+00:00",
+  "scope": "Physical monitor image and colors confirmed by user; no quantitative external setup/hold or latency measurement"
+}

@@ -20,13 +20,16 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from tools.jax_stablehlo import export_function
-from tools.program import compile_stablehlo, CompileOptions, CPU, KC705, KC705_ROCKET, KC705_CORDIC, Target, ProgramError, AffineCostModel
+from tools.program import compile_stablehlo, CompileOptions, CPU, KC705, KC705_ROCKET, KC705_CORDIC, KC705_DIRECT, Target, ProgramError, AffineCostModel, GemmCostModel
+from tools.program._schedule import ExecutionPlan
+from tools.program.c_backend import emit_c
 
 
 HARNESS = r'''
 #include "program.h"
 static t3p_workspace workspace;
 static unsigned calls;
+static unsigned packed_calls;
 static int gemm(void *user,const int8_t *a,const int8_t *b,int32_t *out,
                 uint32_t m,uint32_t k,uint32_t n) {
     calls++;
@@ -41,20 +44,47 @@ static int gemm(void *user,const int8_t *a,const int8_t *b,int32_t *out,
     }
     return 0;
 }
+static int gemm_packed(void *user,const int8_t *a,const int8_t *b,
+                       const uint32_t *pa,const uint32_t *pb,int32_t *out,
+                       uint32_t m,uint32_t k,uint32_t n) {
+    packed_calls++;
+    if(user||(!pa&&!a)||(!pb&&!b))return -1;
+    uint32_t kt=(k+3)/4;
+    for(uint32_t i=0;i<m;i++)for(uint32_t j=0;j<n;j++) {
+        int64_t sum=0;
+        for(uint32_t t=0;t<k;t++) {
+            int8_t av=a?a[i*k+t]:(int8_t)((pa[((i/4)*kt+t/4)*4+i%4]>>(8*(t%4)))&255U);
+            int8_t bv=b?b[t*n+j]:(int8_t)((pb[((j/4)*kt+t/4)*4+t%4]>>(8*(j%4)))&255U);
+            sum+=(int32_t)av*bv;
+        }
+        if(sum<INT32_MIN||sum>INT32_MAX)return -1;
+        out[i*n+j]=(int32_t)sum;
+    }
+    return 0;
+}
 int run(const void *const *inputs,void *const *outputs,int mode) {
-    tiny3tpu_qgemm_backend backend={mode==2?&calls:0,gemm};
+    tiny3tpu_qgemm_backend backend={(mode==2||mode==4)?&calls:0,gemm,mode>=3?gemm_packed:0};
     return t3p_run(inputs,outputs,&workspace,mode==1?0:&backend);
 }
 unsigned backend_calls(void){return calls;}
+unsigned packed_backend_calls(void){return packed_calls;}
 unsigned workspace_size(void){return sizeof(workspace);}
 '''
 
 
 class Compiled:
-    def __init__(self, source, options=None, harness=HARNESS):
+    def __init__(self, source, options=None, harness=HARNESS, plan=None):
         self.temp = tempfile.TemporaryDirectory(prefix='tiny3tpu-stablehlo-')
         self.path = Path(self.temp.name)
-        self.report = compile_stablehlo(source, self.path/'program.h', options)
+        if plan is None:
+            self.report = compile_stablehlo(source, self.path/'program.h', options)
+        else:
+            options=options or CompileOptions(target=KC705)
+            generated,self.report=emit_c(plan,None,target=options.target,symbol=options.symbol,
+                                         math_mode=options.math_mode,allow_approximation=options.allow_approximation,
+                                         fusion=options.fusion,prepack_constants=options.prepack_constants,
+                                         gemm_policy=options.gemm_policy)
+            (self.path/'program.h').write_text(generated)
         (self.path/'check.c').write_text(harness)
         subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror','-pedantic',
                         '-O2','-ffp-contract=off','-shared','-fPIC', '-I'+str(ROOT/'include'),
@@ -132,7 +162,7 @@ assert 'jax' not in sys.modules
         def f(a,b):
             return jax.lax.dot_general(a,b,(((1,),(0,)),((),())),preferred_element_type=jnp.int32)
         for target in (KC705,KC705_ROCKET):
-            c=self.check(f,[a,b],CompileOptions(target=target))
+            c=self.check(f,[a,b],CompileOptions(target=target,gemm_policy='tpu'))
             self.assertGreater(c.library.backend_calls(),0)
             self.assertEqual([p['device'] for p in c.report['placement'] if p['op']=='matmul'],['tpu'])
             for mode in (1,2):
@@ -142,10 +172,149 @@ assert 'jax' not in sys.modules
         cpu=self.check(f,[a,b])
         self.assertEqual(cpu.library.backend_calls(),0)
 
+    def test_tpu_constant_operand_packing_and_legacy_fallback(self):
+        rng=np.random.default_rng(29)
+        a=rng.integers(-128,128,(5,7),dtype=np.int8)
+        b=rng.integers(-128,128,(7,6),dtype=np.int8)
+        def dot(x,y):
+            return jax.lax.dot_general(x,y,(((1,),(0,)),((),())),preferred_element_type=jnp.int32)
+        cases=(
+            (lambda x:dot(x,jnp.asarray(b)),(a,),a.astype(np.int64)@b.astype(np.int64)),
+            (lambda x:dot(jnp.asarray(a),x),(b,),a.astype(np.int64)@b.astype(np.int64)),
+        )
+        for function,inputs,expected in cases:
+            compiled=self.compile(export_function(function,*inputs),CompileOptions(target=KC705,gemm_policy='tpu'))
+            self.assertEqual(compiled.report['packed_matmuls'],1)
+            self.assertGreater(compiled.report['packed_constant_bytes'],0)
+            status,legacy=compiled.run(*inputs)
+            self.assertEqual(status,0)
+            np.testing.assert_array_equal(legacy[0],expected)
+            status,packed=compiled.run(*inputs,mode=3)
+            self.assertEqual(status,0)
+            np.testing.assert_array_equal(packed[0],expected)
+            self.assertGreater(compiled.library.packed_backend_calls(),0)
+        status,_=compiled.run(b,mode=4)
+        self.assertEqual(status,-5)
+
+        # Distinct per-batch constants and tail tiles exercise batch offsets and
+        # zero-padded 4x4 packing on both the row and output-column dimensions.
+        aa=rng.integers(-128,128,(2,5,7),dtype=np.int8)
+        bb=rng.integers(-128,128,(2,7,6),dtype=np.int8)
+        batched=lambda x:jax.lax.dot_general(x,jnp.asarray(bb),(((2,),(1,)),((0,),(0,))),preferred_element_type=jnp.int32)
+        compiled=self.compile(export_function(batched,aa),CompileOptions(target=KC705,gemm_policy='tpu'))
+        estimate=next(p['estimate'] for p in compiled.report['placement'] if p['op']=='matmul')
+        single_batch=KC705.gemm_cost_model.estimate(5,7,6)
+        self.assertEqual(estimate['batch_count'],2)
+        for field in ('cpu_cycles','tpu_cycles','launches'):
+            self.assertEqual(estimate[field],2*single_batch[field])
+        self.assertEqual(estimate['profitable'],single_batch['profitable'])
+        expected=np.matmul(aa.astype(np.int64),bb.astype(np.int64))
+        status,packed=compiled.run(aa,mode=3)
+        self.assertEqual(status,0)
+        np.testing.assert_array_equal(packed[0],expected)
+        self.assertEqual(compiled.report['packed_matmuls'],1)
+        self.assertGreater(compiled.report['packed_constant_bytes'],0)
+
+        # A hand-built schedule keeps a constant-by-constant matmul explicit;
+        # the StableHLO frontend legitimately folds that operation earlier.
+        plan=ExecutionPlan();ca=plan.const(a);cb=plan.const(b)
+        output=plan.operation('matmul',[ca,cb],(5,6),'int32');plan.outputs=[output]
+        compiled=Compiled(None,CompileOptions(target=KC705,gemm_policy='tpu'),plan=plan);self.addCleanup(compiled.close)
+        status,packed=compiled.run(mode=3)
+        self.assertEqual(status,0)
+        np.testing.assert_array_equal(packed[0],a.astype(np.int64)@b.astype(np.int64))
+        self.assertEqual(compiled.report['packed_matmuls'],1)
+
+        disabled=self.compile(export_function(lambda x:dot(x,jnp.asarray(b)),a),
+                              CompileOptions(target=KC705,prepack_constants=False,gemm_policy='tpu'))
+        self.assertEqual(disabled.report['packed_matmuls'],0)
+        self.assertEqual(disabled.report['packed_constant_bytes'],0)
+        status,legacy=disabled.run(a)
+        self.assertEqual(status,0)
+        np.testing.assert_array_equal(legacy[0],a.astype(np.int64)@b.astype(np.int64))
+
+    def test_packed_constants_preserve_aliased_reshape_and_batch_boundaries(self):
+        rng=np.random.default_rng(92)
+        for batches in (None,2):
+            shape_a=(3,5) if batches is None else (batches,3,5)
+            shape_b=(5,7) if batches is None else (batches,5,7)
+            a=rng.integers(-128,128,shape_a,dtype=np.int8)
+            b=rng.integers(-128,128,shape_b,dtype=np.int8)
+            expected=np.matmul(a.astype(np.int64),b.astype(np.int64))
+            for constant_side in (0,1):
+                with self.subTest(batches=batches,constant_side=constant_side):
+                    plan=ExecutionPlan();operands=[];inputs=[]
+                    for side,array in enumerate((a,b)):
+                        if side==constant_side:
+                            storage=plan.const(array.ravel())
+                            # Two aliases change rank before arriving at the
+                            # matrix shape; neither may change packed ordering.
+                            alias=plan.operation('index',[storage],(array.size,1),'int8',map=list(range(array.size)))
+                            operand=plan.operation('index',[alias],array.shape,'int8',map=list(range(array.size)))
+                        else:
+                            operand=plan.value(array.shape,'int8');plan.inputs.append(operand);inputs.append(array)
+                        operands.append(operand)
+                    plan.outputs=[plan.operation('matmul',operands,expected.shape,'int32')]
+                    compiled=Compiled(None,CompileOptions(target=KC705,gemm_policy='tpu'),plan=plan)
+                    self.addCleanup(compiled.close)
+                    self.assertEqual(compiled.report['packed_matmuls'],1)
+                    for mode in (0,3):
+                        status,outputs=compiled.run(*inputs,mode=mode)
+                        self.assertEqual(status,0)
+                        np.testing.assert_array_equal(outputs[0],expected)
+
     def test_float_matmul_stays_float(self):
         a=np.arange(15,dtype=np.float32).reshape(3,5)/10
         b=np.arange(20,dtype=np.float32).reshape(5,4)/7
         c=self.check(lambda x,y:x@y,[a,b],CompileOptions(target=KC705))
+        self.assertEqual(c.library.backend_calls(),0)
+
+    def test_exact_gemm_placement_policy_and_cost_model(self):
+        rng=np.random.default_rng(705)
+        a=rng.integers(-128,128,(3,9),dtype=np.int8)
+        b=rng.integers(-128,128,(9,7),dtype=np.int8)
+        def dot(x,y):return jax.lax.dot_general(x,y,(((1,),(0,)),((),())),preferred_element_type=jnp.int32)
+        source=export_function(dot,a,b)
+        expected=a.astype(np.int64)@b.astype(np.int64)
+        for policy in ('auto','cpu','tpu'):
+            c=self.compile(source,CompileOptions(target=KC705,gemm_policy=policy))
+            status,outputs=c.run(a,b,mode=1 if policy!='tpu' else 0)
+            self.assertEqual(status,0)
+            np.testing.assert_array_equal(outputs[0],expected)
+            decision=next(p for p in c.report['placement'] if p['op']=='matmul')
+            self.assertEqual(decision['device'],'tpu' if policy=='tpu' else 'cpu')
+            self.assertEqual(decision['policy'],policy)
+            self.assertEqual(c.library.backend_calls(),int(policy=='tpu'))
+        fast=replace(KC705,gemm_cost_model=GemmCostModel(register_cycles=1,tile_packing_cycles=1))
+        c=self.check(dot,[a,b],CompileOptions(target=fast))
+        self.assertEqual(c.library.backend_calls(),1)
+        # Auto placement can only compare backends that the target implements.
+        tpu_only=replace(KC705,cpu_ops=KC705.cpu_ops-{'matmul'})
+        c=self.check(dot,[a,b],CompileOptions(target=tpu_only))
+        self.assertEqual(c.library.backend_calls(),1)
+        decision=next(p for p in c.report['placement'] if p['op']=='matmul')
+        self.assertEqual(decision['reason'],'target has no CPU matmul')
+        self.assertFalse(decision['estimate']['profitable'])
+        with self.assertRaises(ProgramError):
+            self.compile(source,CompileOptions(target=tpu_only,gemm_policy='cpu'))
+        # The direct hardware ABI changes complete-operation costs, while
+        # keeping narrow demos on the CPU. Full tiles can amortize the bus.
+        wide_a=rng.integers(-128,128,(16,256),dtype=np.int8)
+        wide_b=rng.integers(-128,128,(256,16),dtype=np.int8)
+        for target,calls in ((KC705,0),(KC705_DIRECT,1)):
+            c=self.check(dot,[wide_a,wide_b],CompileOptions(target=target))
+            self.assertEqual(c.library.backend_calls(),calls)
+        self.assertFalse(KC705_DIRECT.gemm_cost_model.estimate(1,784,10)['profitable'])
+        self.assertEqual(KC705_DIRECT.gemm_cost_model.estimate(4,4,8)['schedule'],'columns')
+        for policy in ('unknown','tpu'):
+            with self.assertRaises(ProgramError):
+                self.compile(source,CompileOptions(target=CPU,gemm_policy=policy))
+        with self.assertRaises(ValueError):GemmCostModel(register_cycles=-1)
+        # Policy propagates through outlined runtime loops, including constants.
+        def loop(x,count):
+            w=jnp.eye(9,dtype=jnp.int8)
+            return jax.lax.fori_loop(0,count,lambda _,v:dot(v,w).astype(jnp.int8),x)
+        c=self.check(loop,[a,np.int32(2)],CompileOptions(target=KC705,gemm_policy='cpu'))
         self.assertEqual(c.library.backend_calls(),0)
 
     def test_wrapping_integer_math(self):
@@ -208,7 +377,7 @@ assert 'jax' not in sys.modules
                 y=jax.lax.dot_general(v.astype(jnp.int8),w,(((1,),(0,)),((),())),preferred_element_type=jnp.int32)
                 return y.astype(jnp.float32)+1
             return jax.lax.fori_loop(0,n,body,x)
-        c=self.compile(export_function(f,x,np.int32(3)),CompileOptions(target=KC705))
+        c=self.compile(export_function(f,x,np.int32(3)),CompileOptions(target=KC705,gemm_policy='tpu'))
         for n in (0,1,3):
             status,out=c.run(x,np.int32(n));self.assertEqual(status,0)
             np.testing.assert_array_equal(out[0],x+n)
@@ -257,7 +426,7 @@ assert 'jax' not in sys.modules
         a=rng.integers(-9,10,(2,3,4),dtype=np.int8)
         b=rng.integers(-9,10,(2,4,5),dtype=np.int8)
         def f(a,b):return jax.lax.dot_general(a,b,(((2,),(1,)),((0,),(0,))),preferred_element_type=jnp.int32)
-        c=self.check(f,[a,b],CompileOptions(target=KC705))
+        c=self.check(f,[a,b],CompileOptions(target=KC705,gemm_policy='tpu'))
         self.assertEqual(c.library.backend_calls(),2)
         a=rng.normal(size=(3,2,4)).astype(np.float32);b=rng.normal(size=(4,5,2)).astype(np.float32)
         self.check(lambda a,b:jax.lax.dot_general(a,b,(((1,2),(2,0)),((),()))),[a,b])

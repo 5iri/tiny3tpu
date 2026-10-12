@@ -7,13 +7,13 @@ from .optimize import elementwise_groups
 import re
 from collections import defaultdict
 
-def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=False, symbol='t3p', fusion=True):
+def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=False, symbol='t3p', fusion=True, prepack_constants=True, gemm_policy='auto'):
     if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*', symbol):
         raise ProgramError('symbol must be a C identifier beginning with a letter')
     if math_mode not in ('libm', 'freestanding'):
         raise ProgramError('math_mode must be libm or freestanding')
     p=program;p.validate();live=p.dce();nodes=p.nodes
-    placement=legalize(p,target,math_mode=math_mode,allow_approximation=allow_approximation)
+    placement=legalize(p,target,math_mode=math_mode,allow_approximation=allow_approximation,gemm_policy=gemm_policy)
     devices={item['value']:item['device'] for item in placement}
     groups,inlined=elementwise_groups(p,devices) if fusion else ({},set())
     ctypes={'float32':'float','int32':'int32_t','uint32':'uint32_t','bool':'uint8_t','int8':'int8_t','uint8':'uint8_t'}
@@ -35,6 +35,20 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
         i=root(i)
         while i in views:i=root(views[i].inputs[0])
         return i
+    def static_value(i, seen=None):
+        """Return a materialized constant, including a static index view."""
+        seen=set() if seen is None else seen
+        if i in seen:return None
+        seen.add(i)
+        # Identity index aliases may reshape the same storage. Packing follows
+        # the logical operand shape, including its per-batch matrix boundaries.
+        shape=p.values[i].shape
+        i=root(i);v=p.values[i]
+        if v.data is not None:return np.asarray(v.data).reshape(shape)
+        if i in views:
+            parent=static_value(views[i].inputs[0],seen)
+            if parent is not None:return np.asarray(parent).ravel()[np.asarray(views[i].params['map'],dtype=np.int64)].reshape(shape)
+        return None
     last={i:-1 for i in live}
     for index,n in enumerate(nodes):
         if n.output in inlined or n.output in views:continue
@@ -68,6 +82,7 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
     for index,n in enumerate(nodes):
         for output in n.outputs:allocate(output,index)
     declarations=[];constants={};map_cache={};const_names={};bit_constants=set();max_packed=1;max_accum=1
+    packed_constants={};packed_constant_bytes=0;packed_matmuls=0
     for v in p.values:
         if v.id not in live or v.data is None:continue
         key=(v.dtype,v.data.tobytes())
@@ -241,7 +256,8 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
             for role,region in zip(('cond','body'),n.params['regions']):
                 name=f'{symbol}_{label}_{role}';region_names.append(name)
                 code,report=emit_c(region,None,target=target,math_mode=math_mode,
-                                   allow_approximation=allow_approximation,symbol=name,fusion=fusion)
+                                   allow_approximation=allow_approximation,symbol=name,fusion=fusion,
+                                   prepack_constants=prepack_constants,gemm_policy=gemm_policy)
                 nested_headers.append(code);nested_reports.append(report);sizes.append(report['workspace_bytes'])
             fields=[];size=0
             for index,vid in enumerate(n.inputs):
@@ -271,11 +287,64 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
             batches=lhs.shape[0] if len(lhs.shape)==3 else 1
             body.append(f'for(uint32_t batch=0;batch<{batches};batch++){{')
             if devices[out.id]=='tpu':
-                body.append('if(!backend||!backend->run)return -5;')
                 max_packed=max(max_packed,m*k+k*cols);max_accum=max(max_accum,m*cols)
-                loop(m*k,f'workspace->packed[i]=(int8_t){ref(lhs.id,f"batch*{m*k}+i")};')
-                loop(k*cols,f'workspace->packed[{m*k}+i]=(int8_t){ref(rhs.id,f"batch*{k*cols}+i")};')
-                body.append(f'if(backend->run(backend->user,workspace->packed,workspace->packed+{m*k},workspace->accum,{m},{k},{cols}))return -5;')
+                lhs_static=static_value(lhs.id) if prepack_constants and target.qgemm else None
+                rhs_static=static_value(rhs.id) if prepack_constants and target.qgemm else None
+                def packed_operand(value, is_a):
+                    nonlocal packed_constant_bytes
+                    if value is None:return None
+                    matrices=value.reshape((-1,)+value.shape[-2:]) if value.ndim==3 else value.reshape((1,)+value.shape)
+                    rows,inner=((matrices.shape[-2],matrices.shape[-1]) if is_a
+                                else (matrices.shape[-1],matrices.shape[-2]))
+                    kt=(inner+3)//4;rt=(rows+3)//4;words_per_batch=rt*kt*4
+                    words=[]
+                    for matrix in matrices:
+                        for tile_row in range(rt):
+                            for tile_k in range(kt):
+                                for lane in range(4):
+                                    word=0
+                                    if is_a:
+                                        for k_lane in range(4):
+                                            row=tile_row*4+lane;kpos=tile_k*4+k_lane
+                                            byte=int(matrix[row,kpos])&255 if row<rows and kpos<inner else 0
+                                            word|=byte<<(8*k_lane)
+                                    else:
+                                        kpos=tile_k*4+lane
+                                        for col_lane in range(4):
+                                            col=tile_row*4+col_lane
+                                            byte=int(matrix[kpos,col])&255 if kpos<inner and col<rows else 0
+                                            word|=byte<<(8*col_lane)
+                                    words.append(word)
+                    raw=np.asarray(words,dtype=np.uint32).tobytes()
+                    key=(is_a,tuple(value.shape),raw)
+                    if key not in packed_constants:
+                        name=f'packed{len(packed_constants)}';packed_constants[key]=name
+                        items=np.frombuffer(raw,dtype=np.uint32)
+                        declarations.append(f'static const uint32_t {name}[{len(items)}]={{'+','.join(f'{int(x)}U' for x in items)+'};')
+                        packed_constant_bytes+=len(raw)
+                    return packed_constants[key],words_per_batch
+                packed_a=packed_operand(lhs_static,True)
+                packed_b=packed_operand(rhs_static,False)
+                if packed_a or packed_b:packed_matmuls+=1
+                if packed_a or packed_b:
+                    pa=f'{packed_a[0]}+batch*{packed_a[1]}' if packed_a else '0'
+                    pb=f'{packed_b[0]}+batch*{packed_b[1]}' if packed_b else '0'
+                    body.append('if(!backend)return -5;')
+                    body.append('if(backend->run_packed){')
+                    if not packed_a:loop(m*k,f'workspace->packed[i]=(int8_t){ref(lhs.id,f"batch*{m*k}+i")};')
+                    if not packed_b:loop(k*cols,f'workspace->packed[{m*k}+i]=(int8_t){ref(rhs.id,f"batch*{k*cols}+i")};')
+                    raw_a='0' if packed_a else 'workspace->packed'
+                    raw_b='0' if packed_b else f'workspace->packed+{m*k}'
+                    body.append(f'if(backend->run_packed(backend->user,{raw_a},{raw_b},{pa},{pb},workspace->accum,{m},{k},{cols}))return -5;')
+                    body.append('}else{if(!backend->run)return -5;')
+                    loop(m*k,f'workspace->packed[i]=(int8_t){ref(lhs.id,f"batch*{m*k}+i")};')
+                    loop(k*cols,f'workspace->packed[{m*k}+i]=(int8_t){ref(rhs.id,f"batch*{k*cols}+i")};')
+                    body.append(f'if(backend->run(backend->user,workspace->packed,workspace->packed+{m*k},workspace->accum,{m},{k},{cols}))return -5;}}')
+                else:
+                    body.append('if(!backend||!backend->run)return -5;')
+                    loop(m*k,f'workspace->packed[i]=(int8_t){ref(lhs.id,f"batch*{m*k}+i")};')
+                    loop(k*cols,f'workspace->packed[{m*k}+i]=(int8_t){ref(rhs.id,f"batch*{k*cols}+i")};')
+                    body.append(f'if(backend->run(backend->user,workspace->packed,workspace->packed+{m*k},workspace->accum,{m},{k},{cols}))return -5;')
                 loop(m*cols,f'{ref(out.id,f"batch*{m*cols}+i")}=workspace->accum[i];')
             else:
                 typ='float' if out.dtype=='float32' else 'int32_t'
@@ -339,11 +408,13 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
     text='\n'.join(header+declarations+[f'static inline int {symbol}_run(const void *const *inputs,void *const *outputs,{symbol}_workspace *workspace,const tiny3tpu_qgemm_backend *backend) {{',
             f'{symbol}_word *w=workspace?workspace->values:0;(void)w;(void)backend;(void)inputs;']+body+['return 0;}','#endif',''])
     # Internal tables must also be namespaced so multiple programs share a translation unit.
-    text=re.sub(r'\b(k[0-9]+|map[0-9]+|tpu_weights_[0-9]+_[0-9]+)\b',lambda m:symbol+'_'+m[0],text)
+    text=re.sub(r'\b(k[0-9]+|map[0-9]+|packed[0-9]+|tpu_weights_[0-9]+_[0-9]+)\b',lambda m:symbol+'_'+m[0],text)
     memory={'workspace_bytes':high*4+((max_packed+3)//4)*4+max_accum*4+loop_bytes,
             'constant_bytes':sum(len(k[1]) for k in constants)+sum(r['constant_bytes'] for r in nested_reports),
             'map_bytes':sum(len(k)*4 for k in map_cache)+sum(r['map_bytes'] for r in nested_reports),
             'tpu_weight_bytes':sum(len(g['weights'])*len(g['weights'][0]) for n in nodes if n.op=='tpu_affine' for g in n.params['groups'])+sum(r['tpu_weight_bytes'] for r in nested_reports),
+            'packed_constant_bytes':packed_constant_bytes+sum(r['packed_constant_bytes'] for r in nested_reports),
+            'packed_matmuls':packed_matmuls+sum(r['packed_matmuls'] for r in nested_reports),
             'source_bytes':len(text)}
     if target.workspace_limit_bytes is not None and memory['workspace_bytes']>target.workspace_limit_bytes:
         raise ProgramError(f'{target.name}: workspace requires {memory["workspace_bytes"]} bytes, limit is {target.workspace_limit_bytes}')

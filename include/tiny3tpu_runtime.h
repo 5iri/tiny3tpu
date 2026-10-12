@@ -26,6 +26,19 @@ typedef struct tiny3tpu_qgemm_backend {
      * Unaligned output storage uses the portable software path. */
     int (*run)(void *user, const int8_t *a, const int8_t *b,
                int32_t *out, uint32_t m, uint32_t k, uint32_t n);
+    /* Optional packed-constant entry point; initialize to NULL when unsupported.
+     * Each packed operand contains 4x4 tiles as four uint32 row words, with
+     * signed bytes in least-significant-byte-first order and zero padding.
+     * Let kt = ceil(K/4). A word (row, tile_k) is at
+     * ((row/4)*kt+tile_k)*4+row%4; B word (tile_col, tile_k, row_in_tile)
+     * is at (tile_col*kt+tile_k)*4+row_in_tile.
+     * packed_a requires ceil(M/4)*kt*4 words, packed_b ceil(N/4)*kt*4.
+     * A raw pointer may be NULL only when its packed pointer is non-NULL.
+     * Missing packed operands use the same raw layout as run. Return zero on
+     * success; generated programs use run when this callback is NULL. */
+    int (*run_packed)(void *user, const int8_t *a, const int8_t *b,
+                      const uint32_t *packed_a, const uint32_t *packed_b,
+                      int32_t *out, uint32_t m, uint32_t k, uint32_t n);
 } tiny3tpu_qgemm_backend;
 
 typedef struct tiny3tpu_runtime_model {

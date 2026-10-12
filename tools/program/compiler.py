@@ -20,6 +20,8 @@ class CompileOptions:
     coefficient_tolerance: float = 0.0
     fusion: bool = True
     affine_policy: str = 'auto'
+    prepack_constants: bool = True
+    gemm_policy: str = 'auto'
 
 
 def _compile_schedule(program, path, options=None):
@@ -49,7 +51,9 @@ def _compile_schedule(program, path, options=None):
         partitions = partition_regions(p)
     report = emit_c(p, path, target=options.target, symbol=options.symbol,
                     math_mode=options.math_mode, allow_approximation=options.allow_approximation,
-                    fusion=options.fusion)
+                    fusion=options.fusion, prepack_constants=options.prepack_constants,
+                    gemm_policy=options.gemm_policy)
+    report['gemm_policy'] = options.gemm_policy
     report['composed_index_maps'] = composed
     report['affine_placement_decisions'] = decisions
     report.update(target=options.target.describe(), program=p.summary(), partitions=partitions,

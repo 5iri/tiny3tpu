@@ -1,0 +1,12 @@
+{
+  "post_url": "https://x.com/lazybanananann/status/2109297764739998109",
+  "author": "@lazybanananann",
+  "posted_at_utc": "2026-10-11T14:59:10Z",
+  "source_video_url": "https://video.twimg.com/tweet_video/HUW7H3paUAAgWx5.mp4",
+  "supplied_by": "Repository owner in this publication task",
+  "description": "Physical KC705, HDMI monitor, rotating banana. Monitor overlay reads 6950 triangles and 3442 vertices.",
+  "source_video_sha256": "4972c99cf22a60e871f7b89938d07168d379c4609a305e65b0aca375e5739586",
+  "preview": "hdmi-board.gif",
+  "preview_processing": "Same full frame and approximately the same playback duration, converted to GIF at 12 fps with a 96-color palette; no crop or generated content.",
+  "measurement_scope": "Visual evidence only; the 30 fps overlay is a design value, not a camera-derived benchmark."
+}

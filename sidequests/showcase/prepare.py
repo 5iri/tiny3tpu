@@ -57,12 +57,12 @@ def main():
  records=[]
  for index,(name,fn,data,description) in enumerate(workloads()):
   d=out/name;d.mkdir(exist_ok=True);artifact=export_function(fn,data,output=d/'program.mlirbc');np.save(d/'input.npy',data)
-  options=CompileOptions(target=KC705,math_mode='freestanding',allow_approximation=True,affine_offload=False)
+  options=CompileOptions(gemm_policy='tpu', target=KC705,math_mode='freestanding',allow_approximation=True,affine_offload=False)
   native=Compiled(artifact,options)
   try:
    status,outputs=native.run(data);assert status==0;expected=np.asarray(jax.jit(fn)(data));np.testing.assert_allclose(outputs[0],expected,rtol=5e-6,atol=5e-6)
    np.save(d/'expected-native.npy',outputs[0]);np.save(d/'expected-jax.npy',expected)
-   report=compile_stablehlo(artifact,d/(name+'.h'),CompileOptions(target=KC705,symbol=name,math_mode='freestanding',allow_approximation=True,affine_offload=False))
+   report=compile_stablehlo(artifact,d/(name+'.h'),CompileOptions(gemm_policy='tpu', target=KC705,symbol=name,math_mode='freestanding',allow_approximation=True,affine_offload=False))
    (d/'compile-report.json').write_text(json.dumps(report,indent=2)+'\n')
    record=dict(id=index,name=name,description=description,input_shape=list(data.shape),output_shape=list(outputs[0].shape),workspace_bytes=report['workspace_bytes'],native_backend_calls=native.library.backend_calls(),jax_max_abs_error=float(np.max(np.abs(outputs[0]-expected))),native_passed=True)
    records.append(record);print(json.dumps(record),flush=True)

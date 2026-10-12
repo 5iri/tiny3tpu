@@ -44,6 +44,7 @@ module tiny3tpu_axi (
     localparam [7:0] REG_STATUS      = 8'h10;
     localparam [7:0] REG_CRD_DATA_LO = 8'h14;
     localparam [7:0] REG_CRD_DATA_HI = 8'h18;
+    localparam [7:0] REG_RESULT_BASE = 8'h80;
 
     reg [31:0] ctrl_reg;
     reg [31:0] ubuf_cfg_reg;
@@ -68,25 +69,47 @@ module tiny3tpu_axi (
     reg        rvalid_reg;
     reg [31:0] rdata_reg;
     reg [1:0]  rresp_reg;
+    reg        result_window_pending;
+    reg        result_window_lock;
+    reg        result_window_core;
+    reg [1:0]  result_window_row;
+    reg [1:0]  result_window_col;
 
     reg        top_ubuf_wr_en;
     reg        top_start;
+    reg        top_continue_accum;
     reg        top_c_rd_en;
     wire       top_busy;
     wire       top_done;
     wire signed [31:0] top_c_rd_data;
+    wire [7:0] window_addr_offset = s_axi_araddr - REG_RESULT_BASE;
+    // Only arbitrate writes against a direct read that can actually be
+    // accepted now. An unrelated stalled R response must not block writes.
+    wire       window_read_request = s_axi_arvalid && !rvalid_reg &&
+                                    !result_window_lock &&
+                                    is_result_window_address(s_axi_araddr);
+    wire       write_inflight = aw_pending || w_pending || bvalid_reg ||
+                                (packed_left != 0);
 
     wire rst;
     assign rst = ~s_axi_aresetn;
 
     // AXI ready is low while a prior transaction of the same channel is
     // still being held.  The write channels remain independent of each other.
-    assign s_axi_awready = ~aw_pending & ~bvalid_reg & (packed_left==0);
-    assign s_axi_wready  = ~w_pending  & ~bvalid_reg & (packed_left==0);
+    // A window read takes priority over a new write, but must not strand a
+    // write half that was accepted before ARVALID. Let its missing partner
+    // through, then wait for the write response to drain before accepting AR.
+    assign s_axi_awready = ~aw_pending & ~bvalid_reg & (packed_left==0) &
+                           ~result_window_lock &
+                           (~window_read_request | w_pending);
+    assign s_axi_wready  = ~w_pending  & ~bvalid_reg & (packed_left==0) &
+                           ~result_window_lock &
+                           (~window_read_request | aw_pending);
     assign s_axi_bvalid  = bvalid_reg;
     assign s_axi_bresp   = bresp_reg;
 
-    assign s_axi_arready = ~rvalid_reg;
+    assign s_axi_arready = ~rvalid_reg & ~result_window_lock &
+                           (~window_read_request | ~write_inflight);
     assign s_axi_rvalid  = rvalid_reg;
     assign s_axi_rdata   = rdata_reg;
     assign s_axi_rresp   = rresp_reg;
@@ -109,12 +132,13 @@ module tiny3tpu_axi (
         .ubuf_wr_col(ubuf_cfg_reg[25:24]),
         .ubuf_wr_data(ubuf_data_reg[7:0]),
         .start(top_start),
+        .continue_accum(top_continue_accum),
         .busy(top_busy),
         .done(top_done),
         .c_rd_en(top_c_rd_en),
-        .c_rd_core(crd_cfg_reg[8]),
-        .c_rd_row(crd_cfg_reg[17:16]),
-        .c_rd_col(crd_cfg_reg[25:24]),
+        .c_rd_core(result_window_pending ? result_window_core : crd_cfg_reg[8]),
+        .c_rd_row(result_window_pending ? result_window_row : crd_cfg_reg[17:16]),
+        .c_rd_col(result_window_pending ? result_window_col : crd_cfg_reg[25:24]),
         .c_rd_data(top_c_rd_data)
     );
 
@@ -163,6 +187,15 @@ module tiny3tpu_axi (
         end
     endfunction
 
+    function is_result_window_address;
+        input [7:0] address;
+        begin
+            is_result_window_address = (address >= REG_RESULT_BASE) &&
+                                      (address <= 8'hfc) &&
+                                      (address[1:0] == 2'b00);
+        end
+    endfunction
+
     function [31:0] read_register;
         input [7:0] address;
         begin
@@ -171,7 +204,11 @@ module tiny3tpu_axi (
                 REG_UBUF_CFG:    read_register = ubuf_cfg_reg;
                 REG_UBUF_DATA:   read_register = ubuf_data_reg;
                 REG_CRD_CFG:     read_register = crd_cfg_reg;
-                REG_STATUS:      read_register = {30'b0, (done_status | top_done),
+                // Bits 8 and 9 advertise accumulation and direct-result
+                // window support. Keep legacy BUSY/DONE positions at bits
+                // 0/1; the other upper bits remain zero.
+                REG_STATUS:      read_register = {22'b0, 1'b1, 1'b1, 6'b0,
+                                                  (done_status | top_done),
                                                   (top_busy | top_start)};
                 REG_CRD_DATA_LO: read_register = crd_data_reg[31:0];
                 REG_CRD_DATA_HI: read_register = crd_data_reg[63:32];
@@ -203,14 +240,21 @@ module tiny3tpu_axi (
             rvalid_reg <= 1'b0;
             rdata_reg  <= 32'b0;
             rresp_reg  <= AXI_OKAY;
+            result_window_pending <= 1'b0;
+            result_window_lock <= 1'b0;
+            result_window_core <= 1'b0;
+            result_window_row <= 2'b0;
+            result_window_col <= 2'b0;
 
             top_ubuf_wr_en <= 1'b0;
             top_start      <= 1'b0;
+            top_continue_accum <= 1'b0;
             top_c_rd_en    <= 1'b0;
         end else begin
             // All accelerator-facing controls are one-cycle pulses.
             top_ubuf_wr_en <= 1'b0;
             top_start      <= 1'b0;
+            top_continue_accum <= 1'b0;
             top_c_rd_en    <= 1'b0;
 
             if (s_axi_awvalid && s_axi_awready) begin
@@ -276,6 +320,7 @@ module tiny3tpu_axi (
                             end
                             if (wstrb_reg[0] && wdata_reg[0]) begin
                                 top_start <= 1'b1;
+                                top_continue_accum <= wdata_reg[3];
                             end
                             if (wstrb_reg[0] && wdata_reg[1]) begin
                                 top_ubuf_wr_en <= 1'b1;
@@ -313,16 +358,42 @@ module tiny3tpu_axi (
 
             // Capture one cycle after the CRD read pulse becomes visible to
             // top.  top_c_rd_data is the selected 32-bit signed C value.
-            if (top_c_rd_en) begin
+            if (top_c_rd_en && !result_window_pending) begin
                 crd_data_reg <= {{32{top_c_rd_data[31]}}, top_c_rd_data};
             end
 
-            if (s_axi_arvalid && s_axi_arready) begin
+            // Reuse the existing combinational top C-data mux. The selector
+            // is latched through this cycle; capture before releasing the
+            // short selector lock. RDATA is now registered, so writes may
+            // proceed during an arbitrary R-channel stall.
+            if (result_window_pending) begin
+                result_window_pending <= 1'b0;
+                result_window_lock <= 1'b0;
                 rvalid_reg <= 1'b1;
-                if (is_read_address(s_axi_araddr)) begin
+                rresp_reg <= AXI_OKAY;
+                rdata_reg <= top_c_rd_data;
+            end
+
+            if (s_axi_arvalid && s_axi_arready) begin
+                if (is_result_window_address(s_axi_araddr)) begin
+                    if (top_busy || top_start) begin
+                        rvalid_reg <= 1'b1;
+                        rresp_reg <= AXI_SLVERR;
+                        rdata_reg <= 32'b0;
+                    end else begin
+                        result_window_core <= window_addr_offset[6];
+                        result_window_row <= window_addr_offset[5:4];
+                        result_window_col <= window_addr_offset[3:2];
+                        result_window_pending <= 1'b1;
+                        result_window_lock <= 1'b1;
+                        top_c_rd_en <= 1'b1;
+                    end
+                end else if (is_read_address(s_axi_araddr)) begin
+                    rvalid_reg <= 1'b1;
                     rresp_reg <= AXI_OKAY;
                     rdata_reg <= read_register(s_axi_araddr);
                 end else begin
+                    rvalid_reg <= 1'b1;
                     rresp_reg <= AXI_SLVERR;
                     rdata_reg <= 32'b0;
                 end

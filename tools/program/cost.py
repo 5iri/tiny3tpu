@@ -10,6 +10,55 @@ import math
 
 
 @dataclass(frozen=True)
+class GemmCostModel:
+    """VexRiscv + packed mailbox estimates, calibrated with full-SoC RTL.
+
+    CPU MAC cost includes loads and loop control. Transport is per accelerator
+    register, including the mailbox envelope, not a bare AXI clock count.
+    Auto placement requires a margin; callers can force either exact backend.
+    No sparsity or particular application/weight values are assumed.
+    """
+    name: str = 'vexriscv-mailbox-retained-v1'
+    cpu_mac_cycles: float = 52.
+    cpu_output_cycles: float = 12.
+    register_cycles: float = 800.
+    tile_packing_cycles: float = 1200.
+    minimum_speedup: float = 1.15
+
+    def __post_init__(self):
+        if not all(math.isfinite(v) and v >= 0 for v in
+                   (self.cpu_mac_cycles, self.cpu_output_cycles,
+                    self.register_cycles, self.tile_packing_cycles)):
+            raise ValueError('GEMM cost coefficients must be finite and nonnegative')
+        if not math.isfinite(self.minimum_speedup) or self.minimum_speedup < 1:
+            raise ValueError('minimum_speedup must be finite and at least one')
+
+    def estimate(self, m, k, n):
+        ceil = lambda x, y: (x+y-1)//y
+        schedules = (
+            ('rows', ceil(m,8)*ceil(k,4)*ceil(n,4)),
+            ('k', ceil(m,4)*ceil(k,8)*ceil(n,4)),
+            ('columns', ceil(m,4)*ceil(k,4)*ceil(n,8)),
+        )
+        schedule, launches = min(schedules, key=lambda item:item[1])
+        # Full tile estimate; read only the final retained partials. Short-K
+        # row batches reuse B; column batches similarly reuse A when M<=4.
+        operand_words = 16*launches
+        if schedule == 'rows' and k <= 4:
+            operand_words = 8*launches+8*ceil(n,4)
+        elif schedule == 'columns' and k <= 4 and m <= 4:
+            operand_words = 8*launches+8
+        results = m*n*(2 if schedule == 'k' and k > 4 else 1)
+        transactions = 1+operand_words+2*launches+results
+        cpu = m*k*n*self.cpu_mac_cycles+m*n*self.cpu_output_cycles
+        tpu = transactions*self.register_cycles+launches*self.tile_packing_cycles
+        return dict(model=self.name, cpu_cycles=cpu, tpu_cycles=tpu,
+                    schedule=schedule, launches=launches,
+                    minimum_speedup=self.minimum_speedup,
+                    profitable=tpu*self.minimum_speedup < cpu)
+
+
+@dataclass(frozen=True)
 class AffineCostModel:
     name: str = 'kc705-packed-mailbox-v1'
     register_cycles: float = 950.
@@ -33,12 +82,13 @@ class AffineCostModel:
         k_tiles=math.ceil(m/4)*math.ceil(k/8)
         row_parallel=row_tiles<=k_tiles
         launches=min(row_tiles,k_tiles)*math.ceil(n/4)
-        # One initial status read, packed A/B rows, launch + completion poll,
-        # and four transactions for each useful core result. Only K<=4 can
+        # Retained accumulation and direct result window: read final sums once.
+        # One initial status read, packed rows, launch and completion poll.
+        # Only K<=4 can
         # retain the complete B tile across all row batches.
         weights=8*math.ceil(n/4) if k<=4 else 8*launches
-        results=m*n*(math.ceil(k/4) if row_parallel else math.ceil(k/8)+k//8+(k%8>4))
-        return (1+8*launches+weights+2*launches+4*results)*self.register_cycles
+        results=m*n*(1 if row_parallel or k<=4 else 2)
+        return (1+8*launches+weights+2*launches+results)*self.register_cycles
 
     def estimate(self,plan,outputs,roots,params):
         # Find work actually eliminated. Shared intermediates retained by a

@@ -1,0 +1,37 @@
+{
+  "chromatic-board.json": {
+    "source": "hardware/chromatic/build/hardware.json",
+    "original_sha256": "deb9ce4782c60aa26cfebf1ad9497bd4e99cd103d185d621452666f192ba1f6c",
+    "publication_changes": "Removed adapter serial/command and replaced workspace prefixes with relative paths; result values unchanged."
+  },
+  "chromatic-rtl.json": {
+    "source": "hardware/chromatic/build/verification.json",
+    "original_sha256": "72091b049eb36d95f0d5211957c73c0a5950ad4844dea1edaef9b7ee2f9955d5",
+    "publication_changes": "Removed adapter serial/command and replaced workspace prefixes with relative paths; result values unchanged."
+  },
+  "hdmi-color-board.json": {
+    "source": "build-kc705-hdmi/hardware-validation/color-fix-load-report.json",
+    "original_sha256": "f507b16a8dac8e35813efef652e092a882ac838d74089fe087f6c1a37c0fb923",
+    "publication_changes": "Removed adapter serial/command and replaced workspace prefixes with relative paths; result values unchanged."
+  },
+  "hdmi-board-load.json": {
+    "source": "build-kc705-hdmi/hardware-validation/smooth-load-report.json",
+    "original_sha256": "b3071fd100b7220338cc60db57eb30359121a2a84c3a224a053aed1e04947791",
+    "publication_changes": "Removed adapter serial/command and replaced workspace prefixes with relative paths; result values unchanged."
+  },
+  "hdmi-implementation.json": {
+    "source": "build-kc705-hdmi/smooth-board/implementation-manifest.json",
+    "original_sha256": "30c11d4266292d9030f8cfc44452752a0e1f7c223fc396aa8961108a85ba2940",
+    "publication_changes": "Removed adapter serial/command and replaced workspace prefixes with relative paths; result values unchanged."
+  },
+  "hdmi-export.json": {
+    "source": "build-kc705-hdmi/smooth-board/bitstream-manifest.json",
+    "original_sha256": "818eddb7ec9982838dda04ab8722f71fd6c26361497fda497c9e133c12223bfe",
+    "publication_changes": "Removed adapter serial/command and replaced workspace prefixes with relative paths; result values unchanged."
+  },
+  "hdmi-rtl.json": {
+    "source": "build-kc705-hdmi/smooth-full-cpu/verification.json",
+    "original_sha256": "12a5fe3d2c4a651ce9aa92f01f7739ab2881162839782fa6ced24c30fa9d7b42",
+    "publication_changes": "Removed adapter serial/command and replaced workspace prefixes with relative paths; result values unchanged."
+  }
+}

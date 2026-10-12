@@ -1,0 +1,17 @@
+{
+  "started_utc": "2026-10-11T14:47:17.290566+00:00",
+  "operation": "volatile_sram_load",
+  "bitstream": "build-kc705-hdmi/smooth-board/soc.bit",
+  "bitstream_sha256": "a15dc7adc29f065cd6d2f67cf975accc07433d6c92fedfcd11e7a9ee32fc0098",
+  "flash_written": false,
+  "hdmi_observed": null,
+  "user_observation": null,
+  "workload": "BananaSpinner369 JAX -> generated RV32 -> VexRiscv + two 4x4 INT8 TPU cores -> MMIO raster -> native 640x480 HDMI",
+  "vertices": 3442,
+  "triangles": 6950,
+  "simulation_full_rotation_fps": 30,
+  "verified_hash_entries": 216,
+  "completed_utc": "2026-10-11T14:47:33.059038+00:00",
+  "returncode": 0,
+  "programmer_success": true
+}

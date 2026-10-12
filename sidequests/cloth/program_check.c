@@ -7,7 +7,7 @@ static int reference_gemm(void *user,const int8_t *a,const int8_t *b,int32_t *ou
   int32_t sum=0;for(uint32_t t=0;t<k;t++)sum+=(int32_t)a[i*k+t]*b[t*n+j];out[i*n+j]=sum;
  }return 0;
 }
-static tiny3tpu_qgemm_backend backend={0,reference_gemm};
+static tiny3tpu_qgemm_backend backend={0,reference_gemm,0};
 int program_step_float(const float *input,float *output){
  const void *inputs[]={input};void *outputs[]={output};
  return t3p_run(inputs,outputs,&workspace,&backend);

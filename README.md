@@ -1,176 +1,142 @@
 # tiny3tpu
 
-`tiny3tpu` is me trying to make a stupidly small TPU-ish thing do real work on an FPGA and, against reason, it actually does.
+A small TPU that runs on an FPGA. It can multiply matrices, recognize handwritten digits, move a banana, and help run cloth physics.
 
-It started with matrix multiplication and MNIST: take a digit, shove it through a tiny hardware stack I built, and get a prediction back. Then the obvious bad idea was to make it run other stuff too. So now there is a compiler, a rotating banana, an attention block, and cloth physics that very clearly lets you know when software floating point is having a bad day.
+The project started with a 4×4 array of multiply-and-add units. It now has a small compiler that turns supported JAX / StableHLO programs into code for a RISC-V CPU and the TPU. The examples below have run on real hardware.
 
-The point is still the same: make the hardware actually do the work, without pretending this is some giant polished accelerator project.
+[Demo gallery](#demos) · [How it works](#how-it-works) · [Build and test](#build-and-test) · [Evidence and media](media/board-demos/README.md)
 
-The two earlier writeups are:
+<a href="https://x.com/lazybanananann/status/2109297764739998109"><img src="media/board-demos/hdmi-board.gif" width="320" alt="Physical KC705 connected to an HDMI monitor showing a rotating yellow banana"></a>
 
-- [Tiny TPU in a Week](https://5iri.me/blog/tiny-tpu-week)
-- [Update: tiny tpu is now bigger!](https://5iri.me/blog/tiny-tpu-is-now-bigger)
+**The FPGA is drawing this banana and sending it straight to HDMI.** This is footage of the real board and monitor. [Original post](https://x.com/lazybanananann/status/2109297764739998109) · [Original video](media/board-demos/hdmi-board.mp4)
 
-## The current pile of parts
+## Demos
 
-The current board setup is a KC705 with:
+| Demo | Hardware | What was checked |
+| --- | --- | --- |
+| [HDMI banana](#banana-straight-to-hdmi) | KC705 | Board loaded; physical display footage |
+| [Handheld banana](#banana-on-a-handheld) | ModRetro Chromatic | Board loaded; rotation confirmed on its LCD |
+| [UART banana](#banana-through-a-host-viewer) | KC705 | Returned coordinates checked; 105 captured frames |
+| [Digit classifier](#handwritten-digits) | KC705 | All logits checked for the first 20 MNIST test images |
+| [Attention](#a-small-attention-block) | KC705 | All 64 output words checked; board cycles measured |
+| [Cloth](#cloth-physics) | KC705 | State and coordinates checked; 51 captured frames |
 
-- a VexRiscv RV32IM CPU at **100 MHz**
-- **two 4×4 int8 systolic cores**, with int32 accumulation
-- **64 KiB of on-chip RAM**
-- a multiplier-free hyperbolic **CORDIC for exponential**
-- packed MMIO transport between the CPU and TPU
-- UART at **921600 baud** to get commands in and results out
+Images are labeled by their source. A simulation preview is useful for seeing the pixels clearly, but the physical evidence is recorded separately.
 
-The current demo images have no DDR runtime. The board has DDR hardware; getting a working memory path into this system is a separate problem. Having chips on the PCB unfortunately does not make the software's memory budget bigger.
+### Banana straight to HDMI
 
-The CPU handles state, control flow and scalar operations. The TPU does the matrix products it supports. CORDIC handles exponential when the compiler selects that target. Sine, cosine, square root and division still run on the CPU, and this CPU has no hardware FPU.
+The KC705 runs a compiled JAX program on its CPU. Two 4×4 int8 TPU cores transform the mesh. A hardware renderer draws **6,950 triangles at 640×480**, then sends the finished frame to HDMI. The computer is not supplying animated vertices or pixels. This image uses on-chip RAM, with no DDR.
 
-![Current CPU + TPU + CORDIC system](media/showcase/system-config.png)
+![Clean HDMI output captured from RTL simulation](media/board-demos/hdmi-rtl.png)
 
-[Editable Excalidraw source](media/showcase/system-config.excalidraw).
+*Pixel preview from RTL simulation. The footage above shows the physical monitor.*
 
-## The compiler bit
+The design runs at 25.2 MHz and refreshes HDMI at 60 Hz. The full-rotation simulation publishes a new image every other refresh: **30 frames per second**. That is a simulated rate, not a measurement taken from the camera clip.
 
-I do not want a separate handwritten math kernel for every demo. The idea is to give the compiler a tensor program and let the backend figure out what this pile of hardware can do with it.
+[Source, build steps and controls](hardware/kc705_hdmi/README.md) · [Board load record](media/board-demos/evidence/hdmi-board-load.json) · [Full-rotation check](media/board-demos/evidence/hdmi-rtl.json)
 
-The interface is **StableHLO**. JAX is one way to produce it:
+### Banana on a handheld
 
-```text
-JAX function / another StableHLO producer
-    |
-    | export offline
-    v
-StableHLO
-    |
-    | verify operations, lower them, fuse eligible work,
-    | plan buffers, choose CPU / TPU / CORDIC placement
-    v
-Generated RISC-V code + accelerator calls
-    |
-    v
-KC705 executes the program and keeps its state
-    |
-    | UART results
-    v
-Host generates pixels
-```
+The ModRetro Chromatic runs a smaller version on its own FPGA. One 4×4 TPU transforms 204 vertices; a hardware renderer draws 407 triangles for the 160×144 LCD. This version has no CPU and needs no host to draw the image.
 
-JAX runs on the host while exporting and checking a program. It does **not** run the model or physics step in these live board demos. The host sends commands, receives results, and does the projection, lighting and rasterization needed to put something on screen.
+<img src="media/board-demos/chromatic-banana-rtl.gif" width="480" alt="Simulation preview of the banana rendered by the Chromatic FPGA design">
 
-This is a generic compiler path, but it supports a **subset of StableHLO today**. It does not magically turn arbitrary float math into an int8 graph, and unsupported operations still need backend work. Approximate math and quantized transformations are explicit choices. The banana and cloth are examples, not special compiler passes.
+*RTL preview. The physical board was programmed successfully, and rotation was confirmed on the handheld.*
 
-The implementation is in [tools/program](tools/program), with the optional JAX exporter in [tools/jax_stablehlo.py](tools/jax_stablehlo.py).
+[Source and controls](hardware/chromatic/README.md) · [Physical board record](media/board-demos/evidence/chromatic-board.json)
 
-## Things that actually ran on the board
+### Banana through a host viewer
 
-### The banana
+In the earlier KC705 demo, the CPU updates the angle and the TPU transforms the mesh. The computer receives the coordinates over UART and draws the pixels. Board compute took about **29.6 ms per frame** in the saved run.
 
-The CPU updates its angle. The TPU transforms the mesh into camera coordinates. The host turns those coordinates into pixels. About **29.6 ms of board compute per frame** for the reduced 204-vertex mesh.
+<img src="media/showcase/gifs/banana.gif" width="500" alt="105 captured banana frames made from coordinates returned by the physical KC705">
 
-This is adapted from the banana rendering example in [SRA-VJTI/jaxsim](https://github.com/SRA-VJTI/jaxsim/blob/c0a097bba1c6db10cac7b359fbac11cfedc48c6b/examples/softras_simple_render.py). 
+[Source and running instructions](sidequests/showcase/README.md) · [Capture record](media/showcase/gifs/banana-capture.json)
 
-![Rotating banana, using actual board-returned geometry](media/showcase/gifs/banana.gif)
+### Handwritten digits
 
-### A trained digit classifier
+A small **784 → 10** classifier recognizes MNIST digits. It was trained on the computer, then quantized to int8. The FPGA runs inference.
 
-A small **784 → 10** MNIST classifier, trained offline on 60,000 images and quantized to int8. The quantized model gets **92.78% accuracy on the separate 10,000-image test set**. The float32 version gets 92.85%.
+<img src="media/showcase/gifs/classifier.gif" width="500" alt="Physical-board predictions for the first 20 MNIST test digits, including one mistake">
 
-The board does the matrix product, bias, logit scaling and prediction. About **104 ms per image**. The GIF uses the first 20 test images, without picking only the ones that look good. It gets 19 right; the 5 it calls a 6 stays in there because that is what the model actually did.
+The quantized model reached **92.78% accuracy** on the separate 10,000-image test set, measured offline. We checked the first **20 images on the physical board**: 19 predictions were correct, and every returned logit matched the reference. The incorrect prediction is left in the GIF. Board compute took about **104 ms per image**; playback holds each digit longer so it is readable.
 
-All ten returned logits matched the native generated-C reference for each of those 20 physical samples. The full test-set accuracy was measured offline; we did not run all 10,000 images through the board.
+[Training and export](sidequests/showcase/train_classifier.py) · [Physical checks](media/showcase/evidence/classifier/physical-check.json) · [Weights and samples](media/showcase/evidence/classifier)
 
-![Trained MNIST classifier running on the physical KC705](media/showcase/gifs/classifier.gif)
+### A small attention block
 
-Training and export: [train_classifier.py](sidequests/showcase/train_classifier.py). Board firmware: [classifier_firmware.c](sidequests/showcase/classifier_firmware.c). The [live viewer](sidequests/showcase/classifier_live.py) checks returned results and draws them, with no host classifier execution.
+This runs an 8-token, 8-feature attention block with six TPU matrix products. It uses synthetic weights to test the computation; it is not a pretrained language model.
 
-### Attention, and why there is now a CORDIC
+![Physical board attention timing: 52.57 ms with software exponential and 45.92 ms with hardware CORDIC](media/board-demos/attention-timing.png)
 
-An 8-token, 8-feature causal attention block runs normalization, Q/K/V, masking, softmax, projection and a residual. Six int8 matrix products go through the TPU. This uses synthetic weights to check execution; it is not a pretrained language model.
+A small CORDIC circuit computes exponential for softmax. It reduced the complete fixture's compute time by **12.6%**, with all 64 checked output words matching the reference. These times exclude UART and host drawing.
 
-Software exponential was expensive enough to be annoying, so we added a hardware CORDIC and taught the compiler to lower `stablehlo.exponential` to it.
+[CORDIC hardware](hardware/math) · [Physical measurements](media/showcase/evidence/physical-check.json)
 
-| Same attention fixture | Physical board compute |
-|---|---:|
-| Software exponential | 52.57 ms |
-| CORDIC exponential | 45.92 ms |
+### Cloth physics
 
-That is **14.5% less compute time**, with all 64 checked output words matching the native reference. It is a speedup for the complete attention fixture, not a claim that the whole system suddenly became fast at everything.
+The CPU runs the compiled physics step. The TPU transforms the resulting geometry, and the computer draws the returned coordinates.
 
-The hardware is in [hardware/math](hardware/math). The 40,014-vector RTL test observed at most two float32 ULPs of error and 187 cycles of latency. Approximate math, tested; not a proof of perfect rounding.
+<img src="media/showcase/gifs/cloth.gif" width="500" alt="Cloth animation from physical-board state, with time-compressed playback labeled on the frames">
 
-### Cloth, where the pain is visible
+This works, but it is slow: about **150 ms of compute for a 1/7680-second simulation step** in the captured run. The GIF speeds up playback. The CPU has no hardware floating-point unit, so this is not real-time cloth.
 
-The compiler generates the physics program. VexRiscv runs the floating-point physics, and the TPU transforms the resulting geometry. In the final capture, physics takes around **150 ms per tiny integration step**. The timestep is **1/7680 of a second**.
+The physical regression checked 180 state words and 84 camera-coordinate words against the native generated-C reference for the tested requests.
 
-So yes, it runs. No, display FPS does not mean the cloth is keeping up with real time. This GIF is deliberately **time-compressed**, with the actual simulation time and measured per-step cost printed on it.
+[Source and running instructions](sidequests/cloth/README.md) · [Capture timings](media/showcase/gifs/cloth-capture.json)
 
-![Physical-board cloth results, with time-compressed playback](media/showcase/gifs/cloth.gif)
+## How it works
 
-The physical regression checked all 180 state words and 84 camera coordinate words against independently executed native generated C for the tested requests. That is a check of this implementation, not a promise of long-run equivalence to the original floating-point JAX trajectory.
+![Compiler, CPU, TPU and display paths for the three board configurations](media/board-demos/architecture.png)
 
-The source is in [sidequests/cloth](sidequests/cloth).
+JAX exports the program on the development computer. The compiler reads StableHLO and generates RISC-V code plus accelerator calls. On the board, the CPU handles control flow and scalar math; the TPU handles supported matrix products.
 
-### The language model that does not fit
+The UART demos use a **100 MHz VexRiscv RV32IM CPU, two 4×4 int8 TPU cores, and 64 KiB of RAM**. The HDMI image uses **25.2 MHz and 256 KiB of CPU RAM**, plus separate display memory. The handheld uses a different, CPU-free design. These are separate FPGA images.
 
-We also checked pretrained TinyStories-1M. Its int8 token embeddings alone would need **3.07 MiB**, roughly **49× the entire RAM in this image**. Other weights, firmware, quantization metadata and working memory are extra.
+The compiler supports a subset of StableHLO. Arbitrary JAX programs still need supported operations, enough memory, and suitable numeric types. The published demos do not use DDR. Larger-memory, Ethernet, and MuJoCo display experiments are not included in this board-demo update.
 
-This is a memory audit. There is no pretrained text generation running on this board. CORDIC does not help you store three megabytes in 64 KiB. A verified larger-memory runtime or weight-streaming path comes first.
+## Build and test
 
-The pinned model configuration and measured reports are in [media/showcase/evidence](media/showcase/evidence).
+Start with Python 3.12+, a C/C++ compiler and CMake. Install Verilator and Icarus Verilog for the RTL checks.
 
-## Running the compiler and checks
-
-Use Python 3.12 or newer for the pinned StableHLO/JAX dependencies:
-
-```bash
+```sh
 python3 -m venv .venv
 .venv/bin/pip install -r tools/requirements-stablehlo.txt
 
 cmake -S . -B build -DCMAKE_C_STANDARD=11 -DCMAKE_C_EXTENSIONS=OFF \
   -DPython3_EXECUTABLE="$PWD/.venv/bin/python"
-cmake --build build -j2
+cmake --build build -j4
 ctest --test-dir build --output-on-failure
 ```
 
-There are native compiler/runtime checks and RTL checks. Verilator runs actual CPU/TPU transport and generated firmware; Icarus covers additional protocol checks, and Yosys covers structural synthesis. Which tests are available depends on the tools installed. The complete configured suite passed **36 checks** when the CORDIC work landed.
+The full CPU/HDMI checks also need a RISC-V cross-compiler and the sibling [Synapse32](https://github.com/5iri/synapse32) checkout for its UART RTL. Board bitstreams need Yosys, nextpnr and the relevant device tools. See the [HDMI](hardware/kc705_hdmi/README.md) and [Chromatic](hardware/chromatic/README.md) guides for their exact paths and commands.
 
-Compile an exported StableHLO program into a C header:
+Compile an exported StableHLO program:
 
-```bash
+```sh
 .venv/bin/python -m tools.program program.mlirbc \
-  --target kc705-cordic \
+  --target kc705-cordic --gemm-policy tpu \
   --math-mode freestanding --allow-approximation \
   -o program.h --report program-report.json
 ```
 
-Use `kc705` for an image without the exponential peripheral. Selecting `kc705-cordic` does not conjure hardware into an older bitstream: that image must have been built with `--cordic`.
+Select a target that matches your FPGA image. `kc705-cordic` needs the CORDIC peripheral; `kc705-direct` needs the direct TPU register interface used by the HDMI demo.
 
-Board builds use [kc705_open_build.py](tools/kc705_open_build.py), Yosys and nextpnr. [kc705_export_bitstream.py](tools/kc705_export_bitstream.py) checks routed timing and bitstream frame roundtrip. A generated header or a passing host test is not the same thing as a programmed, verified board.
+| Folder | Contents |
+| --- | --- |
+| [tools/program](tools/program) | StableHLO compiler |
+| [multi-core](multi-core) and [systolic_array](systolic_array) | TPU hardware |
+| [hardware/kc705_hdmi](hardware/kc705_hdmi) | Direct HDMI demo |
+| [hardware/chromatic](hardware/chromatic) | Handheld demo |
+| [sidequests/showcase](sidequests/showcase) | UART banana, classifier and attention |
+| [sidequests/cloth](sidequests/cloth) | Compiled cloth physics |
+| [media/board-demos](media/board-demos) | Gallery, original video, diagrams and evidence |
 
-The showcase firmware, export scripts and physical checks live in [sidequests/showcase](sidequests/showcase). The trained weights and demo inputs are checked in under [evidence/classifier](media/showcase/evidence/classifier).
+The original MNIST upload/draw tools remain in [pyfiles](pyfiles), with their older firmware in [firmware.c](firmware.c). Use the host tool that matches the programmed image.
 
-## The earlier MNIST stack is still here
+## Sources and earlier writeups
 
-The original cached-model path has model upload, draw-and-infer, blocked logical `16×16` GEMM, and UART/UDP request-response transport. Those larger matrix operations are tiled; they do not mean the current RTL has a physical 16×16 array.
+The banana mesh comes from [SRA-VJTI/jaxsim](https://github.com/SRA-VJTI/jaxsim/blob/c0a097bba1c6db10cac7b359fbac11cfedc48c6b/examples/softras_simple_render.py). Chromatic board support is based on [ModRetro's FPGA sources](https://github.com/ModRetro/oss-chromatic-console-fpga/tree/8b4c965dc3a57fd4412836c136b5228a63c72803), with its license retained in the target directory. Media sources and processing steps are listed in the [asset guide](media/board-demos/README.md).
 
-[firmware.c](firmware.c) and [pyfiles](pyfiles) contain that path. It uses a different firmware/protocol from the current no-DDR StableHLO demos. Match the host tool to the image you programmed, or enjoy yelling binary packets into the void.
-
-```bash
-pip install -r requirements.txt
-
-# Raw GEMM over UART or UDP, with the matching older firmware
-python3 pyfiles/uart_matrix_host.py --port /dev/ttyUSB1
-python3 pyfiles/uart_matrix_host.py --udp-host 192.168.1.77
-
-# Cached-model samples and draw-and-infer
-python3 pyfiles/mnist_infer_uart.py --udp-host 192.168.1.77 --count 20
-python3 pyfiles/mnist_draw_uart.py --udp-host 192.168.1.77
-
-# Train/export a model for that path
-python3 pyfiles/train_mnist_hw.py --epochs 8 --export mnist_int8_4layer.json
-```
-
-## What is next
-
-More generic backend math, less CPU overhead getting tiles into the TPU, and a verified memory path so larger models can stop failing the very first storage calculation.
+- [Tiny TPU in a Week](https://5iri.me/blog/tiny-tpu-week)
+- [Update: tiny tpu is now bigger!](https://5iri.me/blog/tiny-tpu-is-now-bigger)

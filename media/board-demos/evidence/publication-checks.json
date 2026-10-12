@@ -1,0 +1,23 @@
+{
+  "scope": "Checks of the cleaned publication checkout; no new board programming in this publication task.",
+  "ctest": {
+    "passed": 44,
+    "failed_remaining": 0,
+    "note": "43 passed in the full suite. The HDMI I2C runner completed its protocol test but hit a stale report-field name after removal of experimental video modes. The report field was fixed and that test passed on rerun.",
+    "suite_log_sha256": "10d62eb3a798bcf6956bbf95866c4787f6c079b494d8332b6364cdacf3c305a5",
+    "rerun_log_sha256": "02dee9cb596782b1f2eb2baa398cbbdaafc1d94f67ecd5510b30632e856923cd"
+  },
+  "chromatic": {
+    "command": "make -C hardware/chromatic test",
+    "passed": true,
+    "report_sha256": "72091b049eb36d95f0d5211957c73c0a5950ad4844dea1edaef9b7ee2f9955d5"
+  },
+  "hdmi_firmware": {
+    "matches_board_loaded_binary": true,
+    "sha256": "855706c0a96d8668e7774573f8e3e619a14a68b72a622a575789e3090ca0c4ca",
+    "clock_hz": 25200000,
+    "vertices": 3442,
+    "triangles": 6950
+  },
+  "board_loads_repeated": false
+}

@@ -11,7 +11,7 @@ from tools.program import CompileOptions,KC705
 
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--board',type=Path,required=True);p.add_argument('--port',default='/dev/cu.usbserial-0001');a=p.parse_args();out=a.board.resolve()
- banana=Compiled((ROOT/'build-showcase/banana/program.mlirbc').read_bytes(),CompileOptions(target=KC705,math_mode='freestanding',allow_approximation=True));angle=np.zeros(1,np.float32)
+ banana=Compiled((ROOT/'build-showcase/banana/program.mlirbc').read_bytes(),CompileOptions(gemm_policy='tpu', target=KC705,math_mode='freestanding',allow_approximation=True));angle=np.zeros(1,np.float32)
  records=[]
  try:
   with serial.Serial(a.port,921600,timeout=1,write_timeout=5) as uart:

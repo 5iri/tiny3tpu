@@ -12,7 +12,7 @@ def main():
  records=[];fixture=[]
  for mode,name,symbol,target in [(0,'quantized_mlp','mlp',KC705),(1,'attention_block','attention_sw',KC705),(2,'attention_block','attention_hw',KC705_CORDIC),(3,'banana','banana',KC705)]:
   d=ROOT/'build-showcase'/name
-  report=compile_stablehlo(d/'program.mlirbc',out/(symbol+'.h'),CompileOptions(target=target,symbol=symbol,math_mode='freestanding',allow_approximation=True))
+  report=compile_stablehlo(d/'program.mlirbc',out/(symbol+'.h'),CompileOptions(gemm_policy='tpu', target=target,symbol=symbol,math_mode='freestanding',allow_approximation=True))
   (out/(symbol+'-report.json')).write_text(json.dumps(report,indent=2)+'\n')
   if mode<2 or mode==3:
    data=np.load(d/'input.npy');fixture.append(f'static const float input_{mode}[]={{'+','.join(float(v).hex()+'f' for v in data.ravel())+'};')

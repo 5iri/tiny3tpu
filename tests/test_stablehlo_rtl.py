@@ -36,6 +36,18 @@ def main():
     def affine(x,y):return (x-y)*2+(x+y)*3-x*4+y*2
     cases=[('dot',export_function(dot,a,b),[a,b]),
            ('affine',export_function(affine,x,y),[x,y])]
+    constant_a=jnp.asarray(a);constant_b=jnp.asarray(b)
+    def constant_rhs(value):
+        return jax.lax.dot_general(value,constant_b,(((1,),(0,)),((),())),preferred_element_type=jnp.int32)
+    def constant_lhs(value):
+        return jax.lax.dot_general(constant_a,value,(((1,),(0,)),((),())),preferred_element_type=jnp.int32)
+    cases += [('constant_rhs',export_function(constant_rhs,a),[a]),
+              ('constant_lhs',export_function(constant_lhs,b),[b])]
+    batched_a=rng.integers(-128,128,(2,5,9),dtype=np.int8)
+    batched_b=jnp.asarray(rng.integers(-128,128,(2,9,7),dtype=np.int8))
+    def batched(value):
+        return jax.lax.dot_general(value,batched_b,(((2,),(1,)),((0,),(0,))),preferred_element_type=jnp.int32)
+    cases.append(('batched_constants',export_function(batched,batched_a),[batched_a]))
     def looped(x,n):
         weights=jnp.eye(3,dtype=jnp.int8)
         def step(_,state):
@@ -50,7 +62,7 @@ def main():
     for name,source,inputs in cases:
         opts=CompileOptions(target=KC705,symbol=name,allow_approximation=True,
                             math_mode='freestanding',affine_offload=True,
-                            affine_policy='force',
+                            affine_policy='force',gemm_policy='tpu',
                             coefficient_tolerance=.0002 if name=='cloth' else 0.)
         report=compile_stablehlo(source,out/f'{name}.h',opts)
         headers.append(f'#include "{name}.h"')
@@ -80,6 +92,12 @@ def main():
 #include "tiny3tpu_mmio_backend.h"
 #include "axis_mailbox_sim.hpp"
 HEADERS
+static unsigned packed_calls;
+static int packed_gemm(void *u,const int8_t *a,const int8_t *b,const uint32_t *pa,const uint32_t *pb,
+                       int32_t *out,uint32_t m,uint32_t k,uint32_t n) {
+    ++packed_calls;
+    return tiny3tpu_mmio_qgemm_packed(u,a,b,pa,pb,out,m,k,n);
+}
 static int gemm(void *,const int8_t *a,const int8_t *b,int32_t *out,uint32_t m,uint32_t k,uint32_t n) {
     for(uint32_t i=0;i<m;i++)for(uint32_t j=0;j<n;j++) {
         int64_t sum=0;for(uint32_t t=0;t<k;t++)sum+=(int32_t)a[i*k+t]*b[t*n+j];
@@ -91,10 +109,10 @@ static int gemm(void *,const int8_t *a,const int8_t *b,int32_t *out,uint32_t m,u
 int main() {
     Simulation sim;
     tiny3tpu_mmio io{&sim,read32,write32,1000};
-    tiny3tpu_qgemm_backend hardware{&io,tiny3tpu_mmio_qgemm},reference{nullptr,gemm};
+    tiny3tpu_qgemm_backend hardware{&io,tiny3tpu_mmio_qgemm,packed_gemm},reference{nullptr,gemm,nullptr};
     STATEMENTS
-    if(!sim.launches)return 4;
-    std::cout<<"PASS StableHLO backend: "<<sim.launches<<" physical-design RTL launches\n";
+    if(!sim.launches||!packed_calls)return 4;
+    std::cout<<"PASS StableHLO backend: "<<sim.launches<<" physical-design RTL launches, "<<packed_calls<<" packed calls\n";
 }
 '''.replace('HEADERS','\n'.join(headers)).replace('STATEMENTS','\n'.join(statements))
     (out/'check.cpp').write_text(source)

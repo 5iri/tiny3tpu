@@ -7,7 +7,9 @@ module vexriscv_tpu_soc #(
     parameter BOOT_HEX = "",
     parameter BOOT_WORDS = 16384,
     parameter PIPELINED_DECODE = 0,
-    parameter ENABLE_CORDIC = 0
+    parameter ENABLE_CORDIC = 0,
+    // Explicit hardware/firmware ABI choice. Legacy bitstreams use the mailbox.
+    parameter DIRECT_TPU = 0
 ) (
     input wire clk, input wire rst, input wire ready_to_run,
     input wire uart_rx, output wire uart_tx,
@@ -29,7 +31,8 @@ module vexriscv_tpu_soc #(
     reg response_error;
     reg [3:0] termination;
     reg owner_data, last_owner_data;
-    localparam IDLE=3'd0, LOCAL=3'd1, EXT_REQ=3'd2, EXT_WAIT=3'd3, RESP=3'd4, DECODE=3'd5;
+    localparam IDLE=3'd0, LOCAL=3'd1, EXT_REQ=3'd2, EXT_WAIT=3'd3, RESP=3'd4, DECODE=3'd5,
+               TPU_REQ=3'd6, TPU_WAIT=3'd7;
     reg [2:0] state;
     // Register each master's ACK/ERR separately. Do not decode state, owner,
     // error or the board reset combinationally into the CPU's control path.
@@ -66,7 +69,7 @@ module vexriscv_tpu_soc #(
     wire [5:0] address_decode = {
         addr == 32'h20002004,
         addr == 32'h20002000,
-        addr[31:5] == (32'h20001000 >> 5),
+        DIRECT_TPU ? addr[31:8] == (32'h20001000 >> 8) : addr[31:5] == (32'h20001000 >> 5),
         addr[31:5] == (32'h20000000 >> 5),
         addr >= 32'h80000000 && (addr - 32'h80000000) < BOOT_WORDS*4,
         addr[31:30] == 2'b01 || addr[31:16] == 16'hf000
@@ -125,11 +128,28 @@ module vexriscv_tpu_soc #(
     assign bus_rdata = response_boot ? boot_rdata : response_data;
     // The CPU response mux uses this registered RAM read just like peripheral data.
     wire [31:0] tpu_data, uart_data;
-    synapse32_tpu_peripheral accelerator (
+    wire tpu_req_ready,tpu_resp_valid,tpu_resp_error;
+    wire [31:0] tpu_resp_data;
+    generate if(DIRECT_TPU)begin: direct_tpu
+      tiny3tpu_direct_peripheral accelerator (
+        .clk(clk),.rst_n(!peripheral_reset),
+        .req_valid(state==TPU_REQ),.req_ready(tpu_req_ready),
+        .req_write(write),.req_addr(addr[7:0]),.req_wdata(wdata),.req_wstrb(wstrb),
+        .resp_valid(tpu_resp_valid),.resp_ready(state==TPU_WAIT),
+        .resp_rdata(tpu_resp_data),.resp_error(tpu_resp_error)
+      );
+      assign tpu_data=0;
+    end else begin: mailbox_tpu
+      synapse32_tpu_peripheral accelerator (
         .clk(clk), .rst_n(!peripheral_reset), .cpu_wr_en(local_access && tpu_address && write),
         .cpu_rd_en(local_access && tpu_address && !write), .cpu_addr(addr[4:0]),
         .cpu_wdata(wdata), .cpu_wstrb(wstrb), .cpu_rdata(tpu_data)
-    );
+      );
+      assign tpu_req_ready=0;
+      assign tpu_resp_valid=0;
+      assign tpu_resp_error=0;
+      assign tpu_resp_data=0;
+    end endgenerate
     // High address bits have already been decoded. Keeping them constant avoids
     // carrying the UART's legacy 32-bit range comparator through its read path.
     // The USB UART is asynchronous to clk. Only the second synchronizer
@@ -177,6 +197,7 @@ module vexriscv_tpu_soc #(
                 end
                 LOCAL: begin
                     if (external_address) state <= EXT_REQ;
+                    else if (DIRECT_TPU && tpu_address) state <= TPU_REQ;
                     else begin
                         state <= RESP; response_data <= 0;
                         response_boot <= boot_address;
@@ -196,6 +217,12 @@ module vexriscv_tpu_soc #(
                     end
                 end
                 EXT_REQ: if (ext_req_ready) state <= EXT_WAIT;
+                TPU_REQ: if(tpu_req_ready)state<=TPU_WAIT;
+                TPU_WAIT: if(tpu_resp_valid)begin
+                    response_data<=tpu_resp_data;response_error<=tpu_resp_error;
+                    termination<=terminate_beat(owner_data,tpu_resp_error);
+                    state<=RESP;
+                end
                 EXT_WAIT: if (ext_resp_valid) begin
                     response_data <= ext_resp_rdata; response_error <= ext_resp_error;
                     termination <= terminate_beat(owner_data, ext_resp_error);

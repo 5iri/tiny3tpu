@@ -3,14 +3,14 @@ import argparse
 from dataclasses import replace
 import json
 from pathlib import Path
-from . import ProgramError, CPU, KC705, KC705_ROCKET, KC705_CORDIC, CompileOptions, compile_stablehlo
+from . import ProgramError, CPU, KC705, KC705_ROCKET, KC705_CORDIC, KC705_DIRECT, KC705_DIRECT_CORDIC, CompileOptions, compile_stablehlo
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('input', type=Path)
     parser.add_argument('-o', '--output', type=Path, required=True)
-    parser.add_argument('--target', choices=('cpu', 'kc705', 'kc705-rocket','kc705-cordic'), default='cpu')
+    parser.add_argument('--target', choices=('cpu', 'kc705', 'kc705-rocket','kc705-cordic','kc705-direct','kc705-direct-cordic'), default='cpu')
     parser.add_argument('--symbol', default='t3p')
     parser.add_argument('--entry', default='main')
     parser.add_argument('--math-mode', choices=('libm', 'freestanding'), default='libm')
@@ -18,13 +18,18 @@ def main():
     parser.add_argument('--affine-offload', action='store_true')
     parser.add_argument('--affine-policy',choices=('auto','force'),default='auto')
     parser.add_argument('--no-fusion',action='store_true')
+    parser.add_argument('--gemm-policy',choices=('auto','cpu','tpu'),default='auto',
+                        help='exact int8 GEMM placement; auto uses the target cost model')
+    parser.add_argument('--no-prepack-constants',action='store_true',
+                        help='keep constant TPU matmul operands in the raw fallback layout')
     parser.add_argument('--input-fraction-bits', type=int, default=20)
     parser.add_argument('--digits', type=int, default=3)
     parser.add_argument('--coefficient-tolerance', type=float, default=0.)
     parser.add_argument('--workspace-limit', type=int)
     parser.add_argument('--report', type=Path)
     args = parser.parse_args()
-    target = {'cpu':CPU,'kc705':KC705,'kc705-rocket':KC705_ROCKET,'kc705-cordic':KC705_CORDIC}[args.target]
+    target = {'cpu':CPU,'kc705':KC705,'kc705-rocket':KC705_ROCKET,'kc705-cordic':KC705_CORDIC,
+              'kc705-direct':KC705_DIRECT,'kc705-direct-cordic':KC705_DIRECT_CORDIC}[args.target]
     if args.workspace_limit is not None:
         target = replace(target, workspace_limit_bytes=args.workspace_limit)
     try:
@@ -33,7 +38,8 @@ def main():
             allow_approximation=args.allow_approximation, affine_offload=args.affine_offload,
             input_fraction_bits=args.input_fraction_bits, digits=args.digits,
             coefficient_tolerance=args.coefficient_tolerance,affine_policy=args.affine_policy,
-            fusion=not args.no_fusion), entry=args.entry)
+            fusion=not args.no_fusion,prepack_constants=not args.no_prepack_constants,
+            gemm_policy=args.gemm_policy), entry=args.entry)
     except ProgramError as exc:
         parser.exit(1, f'compile error: {exc}\n')
     if args.report:

@@ -19,8 +19,8 @@ def abstract_array(source):
 w=max(1,(n-1).bit_length())
 h=f'''module equiv(input [{n*n*32-1}:0] formal_array_result,input clk,rst,start,load_en,load_sel,c_rd_en,input [{w-1}:0] load_row,load_col,c_rd_row,c_rd_col,input signed [7:0] load_data,output same);
 wire gb,gd,cb,cd;wire signed [31:0] gr,cr;
-gold #(.N({n})) gold(.formal_array_result(formal_array_result),.clk(clk),.rst(rst),.start(start),.busy(gb),.done(gd),.load_en(load_en),.load_sel(load_sel),.load_row(load_row),.load_col(load_col),.load_data(load_data),.c_rd_en(c_rd_en),.c_rd_row(c_rd_row),.c_rd_col(c_rd_col),.c_rd_data(gr));
-gate #(.N({n})) gate(.formal_array_result(formal_array_result),.clk(clk),.rst(rst),.start(start),.busy(cb),.done(cd),.load_en(load_en),.load_sel(load_sel),.load_row(load_row),.load_col(load_col),.load_data(load_data),.c_rd_en(c_rd_en),.c_rd_row(c_rd_row),.c_rd_col(c_rd_col),.c_rd_data(cr));
+gold #(.N({n})) gold(.formal_array_result(formal_array_result),.clk(clk),.rst(rst),.start(start),.continue_accum(1'b0),.busy(gb),.done(gd),.load_en(load_en),.load_sel(load_sel),.load_row(load_row),.load_col(load_col),.load_data(load_data),.c_rd_en(c_rd_en),.c_rd_row(c_rd_row),.c_rd_col(c_rd_col),.c_rd_data(gr));
+gate #(.N({n})) gate(.formal_array_result(formal_array_result),.clk(clk),.rst(rst),.start(start),.continue_accum(1'b0),.busy(cb),.done(cd),.load_en(load_en),.load_sel(load_sel),.load_row(load_row),.load_col(load_col),.load_data(load_data),.c_rd_en(c_rd_en),.c_rd_row(c_rd_row),.c_rd_col(c_rd_col),.c_rd_data(cr));
 '''
 checks=['gb==cb','gd==cd','gr==cr']
 for sig in ['state','clear','t_count','flush_count']: checks.append(f'gold.{sig}==gate.{sig}')

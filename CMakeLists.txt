@@ -240,7 +240,7 @@ if(TINY3TPU_IVERILOG AND TINY3TPU_VVP)
         -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_dram_unit_test.cmake)
     set_tests_properties(${module}_rtl PROPERTIES TIMEOUT 60)
   endforeach()
-  foreach(module tiny3tpu_axis_bridge synapse32_axis_mailbox synapse32_tpu_mmio)
+  foreach(module tiny3tpu_axis_bridge synapse32_axis_mailbox synapse32_tpu_mmio tiny3tpu_direct_peripheral)
     add_test(NAME ${module}_rtl
       COMMAND ${CMAKE_COMMAND}
         -DIVERILOG=${TINY3TPU_IVERILOG} -DVVP=${TINY3TPU_VVP}
@@ -309,4 +309,41 @@ if(TINY3TPU_SYNAPSE32_DIR)
       -DDRAM_TEST=ON
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_synapse32_cpu_test.cmake)
   set_tests_properties(synapse32_divider_dram PROPERTIES TIMEOUT 240)
+endif()
+
+# Physical display targets. MuJoCo, DDR video and Ethernet experiments are separate.
+if(Python3_Interpreter_FOUND AND TINY3TPU_VERILATOR)
+  foreach(check display rotation cpu)
+    if(check STREQUAL "display")
+      set(hdmi_script test.py)
+      set(hdmi_args "")
+    elseif(check STREQUAL "cpu")
+      set(hdmi_script test_cpu.py)
+      set(hdmi_args --prepare --full-rotation)
+    else()
+      set(hdmi_script test_rotation.py)
+      set(hdmi_args "")
+    endif()
+    add_test(NAME kc705_hdmi_${check}
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tests/${hdmi_script}
+        ${hdmi_args} --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-${check})
+    set_tests_properties(kc705_hdmi_${check} PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  endforeach()
+endif()
+if(Python3_Interpreter_FOUND AND TINY3TPU_IVERILOG AND TINY3TPU_VVP)
+  add_test(NAME kc705_hdmi_init COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tb/test_init.py --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-init)
+  add_test(NAME kc705_hdmi_mmio COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tests/test_mmio.py --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-mmio)
+  foreach(check top_direct_load core_wrapper)
+    if(check STREQUAL "core_wrapper")
+      set(check_script run_core_wrapper_test.cmake)
+    else()
+      set(check_script run_top_direct_load.cmake)
+    endif()
+    add_test(NAME tiny3tpu_${check}_rtl COMMAND ${CMAKE_COMMAND}
+      -DIVERILOG=${TINY3TPU_IVERILOG} -DVVP=${TINY3TPU_VVP}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/${check}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/${check_script})
+  endforeach()
 endif()

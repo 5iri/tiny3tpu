@@ -8,6 +8,7 @@ module tpu_core_wrapper #(
     input  wire                         clk,
     input  wire                         rst,
     input  wire                         start,
+    input  wire                         continue_accum,
     output reg                          busy,
     output reg                          done,
 
@@ -35,6 +36,7 @@ module tpu_core_wrapper #(
     reg [2:0] state;
 
     reg clear;
+    reg continue_latched;
     reg signed [DW-1:0] a_in [0:N-1];
     reg signed [DW-1:0] b_in [0:N-1];
     wire signed [N*DW-1:0] a_in_flat;
@@ -100,6 +102,7 @@ module tpu_core_wrapper #(
             busy <= 1'b0;
             done <= 1'b0;
             clear <= 1'b0;
+            continue_latched <= 1'b0;
             t_count <= 0;
             flush_count <= 0;
 
@@ -128,6 +131,9 @@ module tpu_core_wrapper #(
                     clear <= 1'b0;
                     if (start) begin
                         busy <= 1'b1;
+                        // Capture the command with START; subsequent control
+                        // changes cannot alter this operation while it runs.
+                        continue_latched <= continue_accum;
                         t_count <= 0;
                         flush_count <= 0;
                         for (i = 0; i < N; i++) begin
@@ -139,7 +145,10 @@ module tpu_core_wrapper #(
                 end
 
                 ST_CLEAR: begin
-                    clear <= 1'b1;
+                    // Keep this cycle in the state machine for timing and
+                    // pipeline alignment. A continued tile simply leaves the
+                    // PE accumulators intact while the zero inputs drain.
+                    clear <= !continue_latched;
                     for (i = 0; i < N; i++) begin
                         a_in[i] <= {DW{1'b0}};
                         b_in[i] <= {DW{1'b0}};

@@ -27,7 +27,7 @@ def main():
     def step(x):return jnp.concatenate(cloth.advance((x[:,:3],x[:,3:]),1),axis=1)
     out=args.out.resolve();out.mkdir(parents=True,exist_ok=True)
     artifact=export_function(step,initial,output=out/'cloth.mlirbc')
-    report=compile_stablehlo(artifact,out/'cloth_program.h',CompileOptions(
+    report=compile_stablehlo(artifact,out/'cloth_program.h',CompileOptions(gemm_policy='tpu',
         target=KC705,math_mode='freestanding',allow_approximation=True,
         affine_offload=args.affine_offload,affine_policy=args.affine_policy,coefficient_tolerance=.0002))
     (out/'compile-report.json').write_text(json.dumps(report,indent=2)+'\n')
