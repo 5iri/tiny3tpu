@@ -105,7 +105,7 @@ static int run_model(Simulation& simulation, int argc, char **argv) {
     std::vector<uint8_t> bytes((std::istreambuf_iterator<char>(file)), {});
     tiny3tpu_runtime runtime;
     tiny3tpu_mmio io{&simulation, read32, write32, 1000};
-    tiny3tpu_qgemm_backend backend{&io, tiny3tpu_mmio_qgemm, tiny3tpu_mmio_qgemm_packed};
+    tiny3tpu_qgemm_backend backend{&io, tiny3tpu_mmio_qgemm, tiny3tpu_mmio_qgemm_packed, nullptr};
     const tiny3tpu_runtime_model *model;
     tiny3tpu_tensor_view input{}, output{}, tensor{};
     if (!file || bytes.size() > UINT32_MAX ||

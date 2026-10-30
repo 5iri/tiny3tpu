@@ -1,0 +1,397 @@
+{
+  "schema": "tiny3tpu-uart-end-to-end-comparison-v1",
+  "date": "2026-10-28",
+  "scope": "Request/response through actual VexRiscv, TPU, CORDIC and UART RTL. Includes complete application compute, UART request and full response; excludes host OS/USB latency and rendering. On-chip RAM only; DDR3 and physical board measurements are excluded.",
+  "baseline": "Generic TPU driver, forced TPU placement, specialization disabled; same sources, hardware, fixtures and -O2 as optimized firmware.",
+  "optimized": "Shape-specialized TPU kernels; forced TPU placement to isolate compiler specialization.",
+  "cpu_reference": "CPU matmuls on the same direct-transport RTL; CORDIC remains enabled for the hardware-exponential attention mode.",
+  "clock_hz": 100000000,
+  "uart_cycles_per_bit": 109,
+  "nominal_baud": 921600,
+  "physical_validation": false,
+  "rows": [
+    {
+      "workload": "Classifier, first sample",
+      "variants": {
+        "cpu": {
+          "compute_cycles": 380147,
+          "roundtrip_cycles": 476439,
+          "compute_ms": 3.80147,
+          "roundtrip_ms": 4.76439,
+          "response_bytes": 72,
+          "output_words": 11,
+          "backend_calls": 0
+        },
+        "before": {
+          "compute_cycles": 834581,
+          "roundtrip_cycles": 930860,
+          "compute_ms": 8.34581,
+          "roundtrip_ms": 9.3086,
+          "response_bytes": 72,
+          "output_words": 11,
+          "backend_calls": 1
+        },
+        "after": {
+          "compute_cycles": 200606,
+          "roundtrip_cycles": 296916,
+          "compute_ms": 2.00606,
+          "roundtrip_ms": 2.96916,
+          "response_bytes": 72,
+          "output_words": 11,
+          "backend_calls": 1
+        }
+      },
+      "uart_speedup_vs_generic_tpu": 3.1350954478707784,
+      "uart_speedup_vs_cpu": 1.604625550660793,
+      "compute_speedup_vs_generic_tpu": 4.16029929314178
+    },
+    {
+      "workload": "Attention + CORDIC",
+      "variants": {
+        "cpu": {
+          "compute_cycles": 1173022,
+          "roundtrip_cycles": 1500930,
+          "compute_ms": 11.73022,
+          "roundtrip_ms": 15.0093,
+          "response_bytes": 284,
+          "output_words": 64,
+          "backend_calls": 0
+        },
+        "before": {
+          "compute_cycles": 1244908,
+          "roundtrip_cycles": 1572870,
+          "compute_ms": 12.44908,
+          "roundtrip_ms": 15.7287,
+          "response_bytes": 284,
+          "output_words": 64,
+          "backend_calls": 6
+        },
+        "after": {
+          "compute_cycles": 1100549,
+          "roundtrip_cycles": 1428554,
+          "compute_ms": 11.00549,
+          "roundtrip_ms": 14.28554,
+          "response_bytes": 284,
+          "output_words": 64,
+          "backend_calls": 6
+        }
+      },
+      "uart_speedup_vs_generic_tpu": 1.1010224324736761,
+      "uart_speedup_vs_cpu": 1.0506638180985808,
+      "compute_speedup_vs_generic_tpu": 1.1311699887965005
+    },
+    {
+      "workload": "Banana, full payload",
+      "variants": {
+        "cpu": {
+          "compute_cycles": 301899,
+          "roundtrip_cycles": 3027802,
+          "compute_ms": 3.01899,
+          "roundtrip_ms": 30.27802,
+          "response_bytes": 2480,
+          "output_words": 613,
+          "backend_calls": 0
+        },
+        "before": {
+          "compute_cycles": 442921,
+          "roundtrip_cycles": 3168957,
+          "compute_ms": 4.42921,
+          "roundtrip_ms": 31.68957,
+          "response_bytes": 2480,
+          "output_words": 613,
+          "backend_calls": 1
+        },
+        "after": {
+          "compute_cycles": 245300,
+          "roundtrip_cycles": 2971340,
+          "compute_ms": 2.453,
+          "roundtrip_ms": 29.7134,
+          "response_bytes": 2480,
+          "output_words": 613,
+          "backend_calls": 1
+        }
+      },
+      "uart_speedup_vs_generic_tpu": 1.066507703595011,
+      "uart_speedup_vs_cpu": 1.019002201027146,
+      "compute_speedup_vs_generic_tpu": 1.805629841011007
+    },
+    {
+      "workload": "Banana, compact payload",
+      "variants": {
+        "cpu": {
+          "compute_cycles": 302843,
+          "roundtrip_cycles": 1775392,
+          "compute_ms": 3.02843,
+          "roundtrip_ms": 17.75392,
+          "response_bytes": 1268,
+          "output_words": 613,
+          "backend_calls": 0
+        },
+        "before": {
+          "compute_cycles": 443698,
+          "roundtrip_cycles": 1910770,
+          "compute_ms": 4.43698,
+          "roundtrip_ms": 19.1077,
+          "response_bytes": 1268,
+          "output_words": 613,
+          "backend_calls": 1
+        },
+        "after": {
+          "compute_cycles": 245904,
+          "roundtrip_cycles": 1713044,
+          "compute_ms": 2.45904,
+          "roundtrip_ms": 17.13044,
+          "response_bytes": 1268,
+          "output_words": 613,
+          "backend_calls": 1
+        }
+      },
+      "uart_speedup_vs_generic_tpu": 1.1154237719521507,
+      "uart_speedup_vs_cpu": 1.036396029524052,
+      "compute_speedup_vs_generic_tpu": 1.804354544863036
+    },
+    {
+      "workload": "Quantized MLP",
+      "variants": {
+        "cpu": {
+          "compute_cycles": 67573,
+          "roundtrip_cycles": 203285,
+          "compute_ms": 0.67573,
+          "roundtrip_ms": 2.03285,
+          "response_bytes": 108,
+          "output_words": 20,
+          "backend_calls": 0
+        },
+        "before": {
+          "compute_cycles": 92145,
+          "roundtrip_cycles": 227810,
+          "compute_ms": 0.92145,
+          "roundtrip_ms": 2.2781,
+          "response_bytes": 108,
+          "output_words": 20,
+          "backend_calls": 2
+        },
+        "after": {
+          "compute_cycles": 56305,
+          "roundtrip_cycles": 192058,
+          "compute_ms": 0.56305,
+          "roundtrip_ms": 1.92058,
+          "response_bytes": 108,
+          "output_words": 20,
+          "backend_calls": 2
+        }
+      },
+      "uart_speedup_vs_generic_tpu": 1.1861520998864927,
+      "uart_speedup_vs_cpu": 1.058456299659478,
+      "compute_speedup_vs_generic_tpu": 1.6365331675694876
+    }
+  ],
+  "builds": {
+    "showcase-cpu": {
+      "report": "build-e2e-final/showcase-cpu-uart/report.json",
+      "report_sha256": "c074f4f54411d1228fc78630e1439dc99bd85863480227c3c536c071874773c0",
+      "build_manifest": "build-e2e-final/showcase-cpu/build-manifest.json",
+      "build_manifest_sha256": "7110048a7891f41f69a3b1e5d5c3c632d60b84559ca212b323d03f8cafd76e00",
+      "memory": {
+        "ram_bytes": 65536,
+        "static_end": 2147523280,
+        "static_bytes": 39632,
+        "stack_reserved_bytes": 4096,
+        "remaining_after_stack_bytes": 21808,
+        "scope": "Static linker allocation; runtime peak stack is not measured"
+      },
+      "firmware_sha256": {
+        "firmware.elf": "900425ba0b33581551dd479571926859b8109b284855c84f2c4cb9224912bcbb",
+        "firmware.hex": "b0cdfea9b67445306ca1284d13a321ba3db539fa52512f84b30deeef8ca28057",
+        "firmware.bin": "4c809c0326b7a65b1df8b096d0c2c19766e10100c1a5b9f12214ec855219103c"
+      },
+      "compiler_specialize_matmuls": true,
+      "gemm_policy": "cpu",
+      "source_sha256": {
+        "sidequests/showcase/firmware.c": "c02274e0a554f048ace215689b7d6f6e75bfa46fcf4352cfff30ef48843db65f",
+        "hardware/synapse32/start.S": "81f3a14172d861a700c613050b57059a2823a43ea2525c1e36de79adc3fa729f",
+        "hardware/synapse32/bringup.ld": "1bbfa48ad6dae1621df5de481c6191832b72f08efc6dea7a91190f5c2178c6cf",
+        "src/axis_mailbox.c": "4cb34c09be95053bf9dfe524de63c97e3d8f69983a62e56c6f54ed6bfc29f68b",
+        "src/mmio_backend.c": "cd7036df3ac17b8480f1ba5b946496693861a03d76148c9f943f878796b7073a",
+        "include/tiny3tpu_uart_coords.h": "ac0b38240584b80a1c7700287cb35ba851be806efe841d931a39a4a875c193b8",
+        "include/tiny3tpu_program_math.h": "8988f3894d2d346f6c4c0cb9eda0e0fdef716ba9a367c87e50d16f3c64c29a92",
+        "include/tiny3tpu_demo_transport.h": "67ad899a513a043dcc5c9ddbbb15275e8467c373329a0a11cc398ef4ed47133b"
+      }
+    },
+    "showcase-before": {
+      "report": "build-e2e-final/showcase-before-uart/report.json",
+      "report_sha256": "3cd8a1bdba29bb3168e56423abd92e8b7b14ef20a1cf8c46a1d959fb8e6d22e6",
+      "build_manifest": "build-e2e-final/showcase-before/build-manifest.json",
+      "build_manifest_sha256": "a492e86769ed3bf4cec4df8fb488b5f341cdb60cb3c3f69dac6a8b4e97d21a87",
+      "memory": {
+        "ram_bytes": 65536,
+        "static_end": 2147534976,
+        "static_bytes": 51328,
+        "stack_reserved_bytes": 4096,
+        "remaining_after_stack_bytes": 10112,
+        "scope": "Static linker allocation; runtime peak stack is not measured"
+      },
+      "firmware_sha256": {
+        "firmware.elf": "fc460ebc76ec867b45dfb65e4a15fe31681b5859e83f162206bc645afaf261b0",
+        "firmware.hex": "e39091e53eae359c94124aa035191242e971f80882ff6e3561f5053ca99f75a2",
+        "firmware.bin": "5a6862c5e7f375bbd6f7157b3116b23185b7770303a29511635f8abaf5895c0b"
+      },
+      "compiler_specialize_matmuls": false,
+      "gemm_policy": "tpu",
+      "source_sha256": {
+        "sidequests/showcase/firmware.c": "c02274e0a554f048ace215689b7d6f6e75bfa46fcf4352cfff30ef48843db65f",
+        "hardware/synapse32/start.S": "81f3a14172d861a700c613050b57059a2823a43ea2525c1e36de79adc3fa729f",
+        "hardware/synapse32/bringup.ld": "1bbfa48ad6dae1621df5de481c6191832b72f08efc6dea7a91190f5c2178c6cf",
+        "src/axis_mailbox.c": "4cb34c09be95053bf9dfe524de63c97e3d8f69983a62e56c6f54ed6bfc29f68b",
+        "src/mmio_backend.c": "cd7036df3ac17b8480f1ba5b946496693861a03d76148c9f943f878796b7073a",
+        "include/tiny3tpu_uart_coords.h": "ac0b38240584b80a1c7700287cb35ba851be806efe841d931a39a4a875c193b8",
+        "include/tiny3tpu_program_math.h": "8988f3894d2d346f6c4c0cb9eda0e0fdef716ba9a367c87e50d16f3c64c29a92",
+        "include/tiny3tpu_demo_transport.h": "67ad899a513a043dcc5c9ddbbb15275e8467c373329a0a11cc398ef4ed47133b"
+      }
+    },
+    "showcase-after": {
+      "report": "build-e2e-final/showcase-after-uart/report.json",
+      "report_sha256": "a48c6b113616f72377dacfc1f789dfeddca6ca82c648b2c9bc3fc84914310f5e",
+      "build_manifest": "build-e2e-final/showcase-after/build-manifest.json",
+      "build_manifest_sha256": "c12d0ee7ac7e5d147479c144391aa7e43ccfb21328528d4f0f82acd5971dcb97",
+      "memory": {
+        "ram_bytes": 65536,
+        "static_end": 2147545016,
+        "static_bytes": 61368,
+        "stack_reserved_bytes": 4096,
+        "remaining_after_stack_bytes": 72,
+        "scope": "Static linker allocation; runtime peak stack is not measured"
+      },
+      "firmware_sha256": {
+        "firmware.elf": "8e2c5a63dd4f1f247ed728070659654711147dbbf5cf71beb7e578f82496cc79",
+        "firmware.hex": "64b49a67a9c6b524956a094e4184ae3ae39e8a86d325b8f31b430a0227cb3588",
+        "firmware.bin": "255914efc6edbe5a285065639aaf5747b9ac791400c4a0fb10ec0a6928618985"
+      },
+      "compiler_specialize_matmuls": true,
+      "gemm_policy": "tpu",
+      "source_sha256": {
+        "sidequests/showcase/firmware.c": "c02274e0a554f048ace215689b7d6f6e75bfa46fcf4352cfff30ef48843db65f",
+        "hardware/synapse32/start.S": "81f3a14172d861a700c613050b57059a2823a43ea2525c1e36de79adc3fa729f",
+        "hardware/synapse32/bringup.ld": "1bbfa48ad6dae1621df5de481c6191832b72f08efc6dea7a91190f5c2178c6cf",
+        "src/axis_mailbox.c": "4cb34c09be95053bf9dfe524de63c97e3d8f69983a62e56c6f54ed6bfc29f68b",
+        "src/mmio_backend.c": "cd7036df3ac17b8480f1ba5b946496693861a03d76148c9f943f878796b7073a",
+        "include/tiny3tpu_uart_coords.h": "ac0b38240584b80a1c7700287cb35ba851be806efe841d931a39a4a875c193b8",
+        "include/tiny3tpu_program_math.h": "8988f3894d2d346f6c4c0cb9eda0e0fdef716ba9a367c87e50d16f3c64c29a92",
+        "include/tiny3tpu_demo_transport.h": "67ad899a513a043dcc5c9ddbbb15275e8467c373329a0a11cc398ef4ed47133b"
+      }
+    },
+    "classifier-cpu": {
+      "report": "build-e2e-final/classifier-cpu-uart/report.json",
+      "report_sha256": "11bdd14678b1ec27d40b7525da670b3ca75c4a10d552f173670a1e72d621922a",
+      "build_manifest": "build-e2e-final/classifier-cpu/build-manifest.json",
+      "build_manifest_sha256": "4e7bb4a42ea784e1971cf6ed67cb9e499ea6f53c291ff095c2ffd5983efaa63c",
+      "memory": {
+        "ram_bytes": 65536,
+        "static_end": 2147513724,
+        "static_bytes": 30076,
+        "stack_reserved_bytes": 4096,
+        "remaining_after_stack_bytes": 31364,
+        "scope": "Static linker allocation; runtime peak stack is not measured"
+      },
+      "firmware_sha256": {
+        "firmware.elf": "a2b2e191a1b86454f5fdf7b475461fe44d4f44563806517b6f32bd92fa982c66",
+        "firmware.hex": "bb569b7de26752bbc2ab1a387de75d52c37a2edf8a541041a9f0e6573b51d728",
+        "firmware.bin": "bfc9908cf0999554f215400dc9fdbbfbd2e8533bad0682f9e141ac2032bed3d5"
+      },
+      "compiler_specialize_matmuls": true,
+      "gemm_policy": "cpu",
+      "source_sha256": {
+        "sidequests/showcase/classifier_firmware.c": "14cbc4704d0f274bbe93c058c57c625d0f6499d1932ef826d8fdbd0113abbc42",
+        "hardware/synapse32/start.S": "81f3a14172d861a700c613050b57059a2823a43ea2525c1e36de79adc3fa729f",
+        "hardware/synapse32/bringup.ld": "1bbfa48ad6dae1621df5de481c6191832b72f08efc6dea7a91190f5c2178c6cf",
+        "src/axis_mailbox.c": "4cb34c09be95053bf9dfe524de63c97e3d8f69983a62e56c6f54ed6bfc29f68b",
+        "src/mmio_backend.c": "cd7036df3ac17b8480f1ba5b946496693861a03d76148c9f943f878796b7073a",
+        "include/tiny3tpu_uart_coords.h": "ac0b38240584b80a1c7700287cb35ba851be806efe841d931a39a4a875c193b8",
+        "include/tiny3tpu_program_math.h": "8988f3894d2d346f6c4c0cb9eda0e0fdef716ba9a367c87e50d16f3c64c29a92",
+        "include/tiny3tpu_demo_transport.h": "67ad899a513a043dcc5c9ddbbb15275e8467c373329a0a11cc398ef4ed47133b"
+      }
+    },
+    "classifier-before": {
+      "report": "build-e2e-final/classifier-before-uart/report.json",
+      "report_sha256": "1d7305051c2c6be38fcfaf1c62aea63b78da62751e47cba3665da25bf603bafe",
+      "build_manifest": "build-e2e-final/classifier-before/build-manifest.json",
+      "build_manifest_sha256": "9847cf61e9a91371cc220151899a09461825bf2d123998ea3a709281956ca539",
+      "memory": {
+        "ram_bytes": 65536,
+        "static_end": 2147528880,
+        "static_bytes": 45232,
+        "stack_reserved_bytes": 4096,
+        "remaining_after_stack_bytes": 16208,
+        "scope": "Static linker allocation; runtime peak stack is not measured"
+      },
+      "firmware_sha256": {
+        "firmware.elf": "eaaffa5aa38c74247e43ee9bc689131dec7e9633a005652b0c9b2901c6f4c472",
+        "firmware.hex": "4f48f64fd028d088232fcfa304a391cf8a054feabb5a0e4f543d94a018fe1eba",
+        "firmware.bin": "81ebc8aac341587ac7dae31eb1a242599bd1d83c431d3a0667a45a162a47a5af"
+      },
+      "compiler_specialize_matmuls": false,
+      "gemm_policy": "tpu",
+      "source_sha256": {
+        "sidequests/showcase/classifier_firmware.c": "14cbc4704d0f274bbe93c058c57c625d0f6499d1932ef826d8fdbd0113abbc42",
+        "hardware/synapse32/start.S": "81f3a14172d861a700c613050b57059a2823a43ea2525c1e36de79adc3fa729f",
+        "hardware/synapse32/bringup.ld": "1bbfa48ad6dae1621df5de481c6191832b72f08efc6dea7a91190f5c2178c6cf",
+        "src/axis_mailbox.c": "4cb34c09be95053bf9dfe524de63c97e3d8f69983a62e56c6f54ed6bfc29f68b",
+        "src/mmio_backend.c": "cd7036df3ac17b8480f1ba5b946496693861a03d76148c9f943f878796b7073a",
+        "include/tiny3tpu_uart_coords.h": "ac0b38240584b80a1c7700287cb35ba851be806efe841d931a39a4a875c193b8",
+        "include/tiny3tpu_program_math.h": "8988f3894d2d346f6c4c0cb9eda0e0fdef716ba9a367c87e50d16f3c64c29a92",
+        "include/tiny3tpu_demo_transport.h": "67ad899a513a043dcc5c9ddbbb15275e8467c373329a0a11cc398ef4ed47133b"
+      }
+    },
+    "classifier-after": {
+      "report": "build-e2e-final/classifier-after-uart/report.json",
+      "report_sha256": "2ba42455a197d5672e47a81a9ed6d4e0980a817ba6bbf9f165151ee206a16276",
+      "build_manifest": "build-e2e-final/classifier-after/build-manifest.json",
+      "build_manifest_sha256": "8fe3c55fd295ba974a0551a07b91f64492519b36331e03b3c63ae5a48025b6a4",
+      "memory": {
+        "ram_bytes": 65536,
+        "static_end": 2147530552,
+        "static_bytes": 46904,
+        "stack_reserved_bytes": 4096,
+        "remaining_after_stack_bytes": 14536,
+        "scope": "Static linker allocation; runtime peak stack is not measured"
+      },
+      "firmware_sha256": {
+        "firmware.elf": "3fa2f5ab70ae2fa38c0db83a8dfefc0ae6b1e705f8dfb48923a4d20a9c8d0655",
+        "firmware.hex": "e043e9215b38f321cc7ba368398dd7d85faf0259a86ac38904b0e27b83d61ac0",
+        "firmware.bin": "5c07c86a27ad4218660e7078a1d5e043ac7a8a04fee366b5887c7765fa1c7fe6"
+      },
+      "compiler_specialize_matmuls": true,
+      "gemm_policy": "tpu",
+      "source_sha256": {
+        "sidequests/showcase/classifier_firmware.c": "14cbc4704d0f274bbe93c058c57c625d0f6499d1932ef826d8fdbd0113abbc42",
+        "hardware/synapse32/start.S": "81f3a14172d861a700c613050b57059a2823a43ea2525c1e36de79adc3fa729f",
+        "hardware/synapse32/bringup.ld": "1bbfa48ad6dae1621df5de481c6191832b72f08efc6dea7a91190f5c2178c6cf",
+        "src/axis_mailbox.c": "4cb34c09be95053bf9dfe524de63c97e3d8f69983a62e56c6f54ed6bfc29f68b",
+        "src/mmio_backend.c": "cd7036df3ac17b8480f1ba5b946496693861a03d76148c9f943f878796b7073a",
+        "include/tiny3tpu_uart_coords.h": "ac0b38240584b80a1c7700287cb35ba851be806efe841d931a39a4a875c193b8",
+        "include/tiny3tpu_program_math.h": "8988f3894d2d346f6c4c0cb9eda0e0fdef716ba9a367c87e50d16f3c64c29a92",
+        "include/tiny3tpu_demo_transport.h": "67ad899a513a043dcc5c9ddbbb15275e8467c373329a0a11cc398ef4ed47133b"
+      }
+    }
+  },
+  "verification": {
+    "passed": true,
+    "uart_requests": 96,
+    "matched_before_after_uart_requests": 64,
+    "exact_output_words_checked": true,
+    "identical_reference_arrays_across_all_three_variants": true,
+    "identical_packet_sizes_per_workload": true
+  },
+  "limitations": [
+    "16x256x16 has whole-program compute measurements only; no UART application round-trip benchmark was run for that fixture.",
+    "The combined optimized showcase reserves 4096 bytes of stack and has 72 additional static bytes free. Runtime peak stack remains unmeasured."
+  ],
+  "publication_reproduction": {
+    "base_commit": "4137fe97979315ed2686a0b1667f8606612996d2",
+    "firmware_variants": 6,
+    "executable_binary_and_hex_match_recorded_runs": true,
+    "uart_requests_rechecked": 96,
+    "uart_reports_match_recorded_runs_including_cycle_counts": true,
+    "scope": "Rebuilt the six UART firmware variants on the publication branch and re-ran their complete UART RTL checks. The original measurement source inventory is retained above; independent development changes were omitted from publication. ELF metadata may vary with build paths; executable binary and hex hashes match exactly."
+  }
+}

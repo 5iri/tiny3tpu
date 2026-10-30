@@ -19,6 +19,12 @@ typedef enum tiny3tpu_runtime_status {
     TINY3TPU_RUNTIME_BACKEND_ERROR = -7
 } tiny3tpu_runtime_status;
 
+struct tiny3tpu_mmio;
+/* A generated fixed-shape kernel. The context borrows the program workspace
+ * only for this call. Return 1 before any writes when hardware capabilities
+ * are unavailable, zero on success, and a negative value on device errors. */
+typedef int (*tiny3tpu_mmio_kernel)(struct tiny3tpu_mmio *io, void *context);
+
 typedef struct tiny3tpu_qgemm_backend {
     void *user;
     /* Optional signed-int8 QGEMM callback: A[M,K], B[K,N], native int32
@@ -39,6 +45,12 @@ typedef struct tiny3tpu_qgemm_backend {
     int (*run_packed)(void *user, const int8_t *a, const int8_t *b,
                       const uint32_t *packed_a, const uint32_t *packed_b,
                       int32_t *out, uint32_t m, uint32_t k, uint32_t n);
+    /* Optional generated-MMIO-kernel entry point. Initialize to NULL for other
+     * backends. The callback supplies an exclusively owned tiny3tpu_mmio to
+     * kernel and forwards its status unchanged; it may also instrument timing.
+     * Generated programs retain run/run_packed fallback when this is NULL or
+     * the kernel returns 1 (unsupported capabilities, before device writes). */
+    int (*run_mmio_kernel)(void *user, tiny3tpu_mmio_kernel kernel, void *context);
 } tiny3tpu_qgemm_backend;
 
 typedef struct tiny3tpu_runtime_model {

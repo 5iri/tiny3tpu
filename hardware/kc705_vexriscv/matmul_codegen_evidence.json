@@ -1,0 +1,786 @@
+{
+  "schema": "tiny3tpu-matmul-codegen-evidence-v1",
+  "date": "2026-10-28",
+  "clock_hz": 100000000,
+  "physical_validation": false,
+  "optimization": "O2",
+  "scope": "Whole generated program in VexRiscv/TPU RTL; exact output-word verification against independently executed native C. Attention uses CORDIC in every variant. Compute comparisons exclude UART and host rendering. No RTL changed for this optimization.",
+  "toolchain": {
+    "riscv64-unknown-elf-gcc": "riscv64-unknown-elf-gcc (g1b306039a) 15.1.0",
+    "verilator": "Verilator 5.046 2026-02-28 rev vUNKNOWN-built20260228"
+  },
+  "source_sha256": {
+    "hardware/kc705_vexriscv/ddr_phy_debug.c": "602448ac06b6d836701f23196844ba4d1183f30b6cdb391a464f9134777f57c1",
+    "hardware/kc705_vexriscv/ddr_stress.c": "36ec5f905cac7a8afc7a4fbfd712825da771ea1055bf807b8affc4b549f0b090",
+    "hardware/kc705_vexriscv/kc705_vexriscv_noddr_top.sv": "558bf64c98cffb24dbc7d78b95d55c4d88bab8e9b0d638d075786335d9d7f03e",
+    "hardware/kc705_vexriscv/kc705_vexriscv_top.sv": "519f21dc8975d5480e80e8c3bc7d5aa92903cbab4cf860aa54a1fbaa24598032",
+    "hardware/kc705_vexriscv/litedram_wishbone32_to512.sv": "92b77e68a64f2ec57b866af646557f27f44f7bf83aed322ae7e128d0863ea683",
+    "hardware/kc705_vexriscv/req_resp_cdc.sv": "779399c2df0bc431f963eedd42813db0d8db1d0372ea9599f1324af6a9f4039d",
+    "hardware/kc705_vexriscv/tiny3tpu_udp_peripheral.sv": "19a28928945a13c84b0438f66ebbe654d10b64e4a0c6af3aac970d1a5c15559a",
+    "hardware/kc705_vexriscv/vexriscv_tpu_soc.sv": "872ad0219d5e683bd5adedfc39841d89919e3c90b2a7b05cdc8bca7a5b875b4b",
+    "hardware/math/tiny3tpu_cordic_exp.sv": "8823032751f6681060b1dd23f0ee8586c52f90e3e77340a5149d9b69e6a085cd",
+    "hardware/math/tiny3tpu_cordic_mmio.sv": "ee46c3aad6cb85925e9141ba8b8e61c7bf8a9e0a5042e170d4ef115272c570d4",
+    "hardware/synapse32/bringup.ld": "1bbfa48ad6dae1621df5de481c6191832b72f08efc6dea7a91190f5c2178c6cf",
+    "hardware/synapse32/start.S": "81f3a14172d861a700c613050b57059a2823a43ea2525c1e36de79adc3fa729f",
+    "include/tiny3tpu_abi.h": "36b87a7f6659df29eed93f12a57e39e4c6a8c55c473ec4544f89b3f0ebe46c94",
+    "include/tiny3tpu_axis_mailbox.h": "706df3ef6b059a2bad6d577a0e15b73e2b293f94014ed7d9117a90d00f2e6446",
+    "include/tiny3tpu_cordic.h": "acef175748c153b2c016f21c0ca3b98ccd89db64c55798890e50eb49a2d4863a",
+    "include/tiny3tpu_demo_transport.h": "67ad899a513a043dcc5c9ddbbb15275e8467c373329a0a11cc398ef4ed47133b",
+    "include/tiny3tpu_dma.h": "b22e9dc37a78480a903222a0d1940d92cda7037e07fff2cb134fd1a7e57e6296",
+    "include/tiny3tpu_firmware_runtime_adapter.h": "9d7eea6674e0c9f7e41993f363f5d23cbc9da9671b3c558856a4a4f84f9655da",
+    "include/tiny3tpu_framebuffer.h": "8f8d9570a3f590f3168798fabc28face1bc9d7cef0b8174657cc76a2a07edc2c",
+    "include/tiny3tpu_hdmi.h": "8aed4ad270802c53913e5e47fabd95106a1cc7a68120a526296a88f9118cb430",
+    "include/tiny3tpu_mmio_backend.h": "ac3729df841f4535bf6db3cb0e5b7ddaa277fe9710265e2c5640f032316a78de",
+    "include/tiny3tpu_program_math.h": "8988f3894d2d346f6c4c0cb9eda0e0fdef716ba9a367c87e50d16f3c64c29a92",
+    "include/tiny3tpu_runtime.h": "7a2af3f279364da4162bc438338e9567f91ab23af9f07b36fa92b1a45f1b8400",
+    "include/tiny3tpu_uart_coords.h": "ac0b38240584b80a1c7700287cb35ba851be806efe841d931a39a4a875c193b8",
+    "multi-core/synapse32_axi_dma.sv": "5257ff01f4f4834a1b9c3010655deb28f4f76fc7a121a5e9aab3be4d3ef576ff",
+    "multi-core/synapse32_axis_mailbox.sv": "21f7b27b0da09dcff9146066fc30e92828dfcab6dd262ae015e80d3049ce4b6b",
+    "multi-core/synapse32_tpu_mmio.sv": "e3391351b2a41bda35e0fa198f9e0518b4c70088d2bbc460bd5db47392148191",
+    "multi-core/synapse32_tpu_peripheral.sv": "e8b3ebbef65fc57e0216060133d56d7a7047e3f43689c828e172e3c7fed227f8",
+    "multi-core/tb_synapse32_axis_mailbox.sv": "e913f05b0e89da75b2112420b71dac51ff27078c9ecd283109d4e41d4c8e82a6",
+    "multi-core/tb_synapse32_tpu_mmio.sv": "acc78df53110acc995db9bedcc67531a26ce941fcc2df39d594616d9c81d3a24",
+    "multi-core/tb_tiny3tpu_axi.sv": "c2b7997ff8f0d30fc4c3869bdf495a2adebdc55377778078a53a1714ff99b570",
+    "multi-core/tb_tiny3tpu_axis_bridge.sv": "13a215d251a835c393f04d01932cf5f01de8a337c86622d95691f0e966a59405",
+    "multi-core/tb_tiny3tpu_direct_peripheral.sv": "a2245ae33797745703d32952429462e85c98597ded08234c5dd5d73864a6e130",
+    "multi-core/tb_tpu_core_wrapper.v": "244189e7a04046f91fc1fbb5810fe88013bf21be61bbe6fbc5d50a22174ed0d5",
+    "multi-core/tiny3tpu_axi.sv": "6435ae488fe54a64f732cf0dc620a65b95c49f08ed31067b9797df1172c330f7",
+    "multi-core/tiny3tpu_axis.sv": "7068dfcaddf4da84d4654d7a6d9574a0cb11922dd1833235539a730fa5164b1f",
+    "multi-core/tiny3tpu_axis_bridge.sv": "9ba6a1d30cf22358c7a8f75b2460b081917f73239834b30af76e989cff6934cb",
+    "multi-core/tiny3tpu_direct_peripheral.sv": "927ccbce7689fa41cbdf35a1960b23829cad2b8d9ce53aeda477d18d5eba7d67",
+    "multi-core/tiny3tpu_dma_batch.sv": "457e9e4af2581b3de14d6a4eda98c3d4061510a3964f9a29392beff8eff850de",
+    "multi-core/top.v": "e8c010fa050fc64ff4d6e532a30416e99392ab2a6ae22350c9ea571bf889c767",
+    "multi-core/tpu_core_wrapper.sv": "8bacd7dbce1193879ee7d9f0ab0151cb203a2a827771c6d274b32a673e047d0a",
+    "src/axis_mailbox.c": "4cb34c09be95053bf9dfe524de63c97e3d8f69983a62e56c6f54ed6bfc29f68b",
+    "src/dma_backend.c": "1ec063bbd20013a8f94b588bc2a4336b1a7dd9875d8730834fab94b3e9c93e42",
+    "src/firmware_runtime_adapter.c": "3f9a56c8917a96b9b17c5354392ab0c3175340c2f32dcd19c4dfa2bfa87f7ad2",
+    "src/mmio_backend.c": "cd7036df3ac17b8480f1ba5b946496693861a03d76148c9f943f878796b7073a",
+    "src/runtime.c": "35adaf006e849875ee33cf45996c50521ded802e910ceb7c9848b3d835b060fe",
+    "systolic_array/rtl/NxN_systolic_array.v": "3d34466234240425d431a77e85ceb3551e537f885176d45d0d96e4e9599bd0c6",
+    "systolic_array/rtl/pe.v": "d102d469baa26a3ce5859aafb391b5cb0c91d7b48b651bbce1c93b12a65f1547",
+    "tests/test_stablehlo_compiler.py": "312c8488dd08487fcd6d6a0215cf3effc68de91a5028fa7ee6cbf511d83a6e81",
+    "tests/test_stablehlo_soc.py": "0baeb5f284d0b554acad46a038fdb1883ad8b819cd492d26740035977f1775aa",
+    "third_party/vexriscv/VexRiscv_Lite.v": "90e0b8f5912df2532d12bc766b110a632c1b85dd82b8aecd431d715c25f4cbbe",
+    "tools/program/__init__.py": "7d470b4caddb1361ac411163aabea83d2c66b655f76ed28e5b98755d2cf82ba7",
+    "tools/program/__main__.py": "9dab57a12c46ebe979d3fb141bd89f1f8d32f561c1a3dfbfdad6618996137969",
+    "tools/program/_schedule.py": "4e436761e4f3d66221437f542efba82c7bf78394fdf8caee31f6a211128ceb59",
+    "tools/program/c_backend.py": "8d790a433a3db61a7b69eede70fd617e1879d39e11a9daf24b9d8fcf6e256c3d",
+    "tools/program/compiler.py": "436ebe8f84b84f7298d51179e8f10db790351cfd87c5a0e699d4476fabe4810f",
+    "tools/program/cost.py": "4e16a81ce88823c103c7b67b5906edc36eb8c3057cf9fc0ad77d148ea56717e9",
+    "tools/program/mmio_codegen.py": "c765fc77cd37a35a65136994f8e14d37bf05e898e7df7fe5b6996237709849d0",
+    "tools/program/optimize.py": "42629efc406ef9694dc45a90fe4cdcdc8a44e91639055bc93e153f471fceeaac",
+    "tools/program/partition.py": "8b33ad59f17f859524b0e2a6838dd7d4168172f8441b7cdc399105e7d7b061ac",
+    "tools/program/stablehlo.py": "aa89c0ed5174658a2b04d843029d37ab29a71ecbc4d88b62478f30e922ea2c4d",
+    "tools/program/target.py": "aed4404a15b3f7bc1f767bd629f4fbeb5d785fac7c18f1b95a5067b642dee13f",
+    "/Users/siriboi/github/synapse32/rtl/arty_a7_ddr3_cpu.v": "fa699b6688d41ea11d28471c6222764bca9f8b635f5228cc2c7d0481fe820f45",
+    "/Users/siriboi/github/synapse32/rtl/arty_a7_top.v": "65a7408b7ccb7ad346fffdf34fe09b5c8c00b6c43cb56bb6514fc32963afadc1",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/alu.v": "c547fb3ba283ecea39ce2ccbfba966f7d6af6b1c253e2694126e0a53b4bc07b0",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/atomic_lsu.v": "bd1a848130eb380526feddc88008b3c6c1b2e1e58675b5961ba7cd62581ef13b",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/csr_exec.v": "b3fb3c3210200928cbcbf7e9700a68f35039b795fe7ffdf544e2abc78a070c8b",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/csr_file.v": "7708863f72052ceee98ce5e193242013ee4fb9e853e2c11b0c11012ac5885c14",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/decoder.v": "a3cc835029710ed96edb1b4c6b22f89318990611c5cdd4f9c21d3f8ae93a36a3",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/divider.v": "2a714c59fb62259c69b1a1976a331e8a56ba9299b404bd4d289e2ed4e01434d6",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/interrupt_controller.v": "a499bfc969e45ff0cafba63892ebdacedb1d25e10fe3494db50b95bab4bd048d",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/multiplier.v": "156892734c4694e7c7d74e03221f7842a88170cf458af763645ad9f35a0ce25a",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/pc.v": "cc6960788b8819280b0ea4571374ac188cea4043103dacf7d000ba9e42e97885",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/plic.v": "6a2ab46ef2f99dd8657eec5ab4a0e8b0210b4ddd83223802cf095a21dbf2a861",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/registerfile.v": "ed76f869be32e4d27e71522583cf6a90ad7c3d3da13b7bc31cbef11f7fdc0b94",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/timer.v": "f8ba198dcdbaee3c24ebcc4b3480329bee5babaebe50ff37cc15d5b04f22f71a",
+    "/Users/siriboi/github/synapse32/rtl/core_modules/uart.v": "1fcff923cce212e9ba99924edeedf2fafd47896c312431398fbc717e56b03828",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/artix7_pll.v": "180d868972d367c2d567f05d4f6841b6f801ed223d39064e33268f3082772c29",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/arty_a7_ddr3_memtest.v": "5a155c149fde023ab7c21585d41bd6291b594eb25bb2160e636a09793c230097",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/arty_a7_pll_led_test.v": "0491b70531cee66b406c665e3cae67445be509dfed9ff1e93e5fce9b034d2be9",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/arty_a7_pll_test.v": "37e70919382f2f4ae4f0cb57fd5516eb6102f2d015c61fa41ee1a1e38238a378",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/arty_a7_uart_probe.v": "b54f65e6205e703cade03fb769f4c7098ce6a48d04ef5576919afdfc60b3ee71",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/ddr3_axi.v": "19355a5627b0408d4c5d218b40166cd6e37a36f90c04ea0a744babafdb9732b1",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/ddr3_axi_pmem.v": "5013164c06db2cc45f04610cbce85626e2ec764a52f04d20dc03bc79c027b3de",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/ddr3_axi_retime.v": "314515838aaf3a97719b6ea224a58bd3b2a64af3246a264400e797cfce5edb7c",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/ddr3_core.v": "eea2ce1c205a439e33a43188447ef824b0570b7848dab6870015c8a2c75a5cb9",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/ddr3_cpu_axi_bridge.v": "e083f7b797cdc895477eb7ee56cfb14abbf03f2b0714b25dc0ecb089b85fb687",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/ddr3_cpu_cdc_bridge.v": "441474d6f247669d66ec8d9801475f7d02541aaddc52ae70318b074679b4acf3",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/ddr3_dfi_phy.v": "060b75eb23a12b114992387ed062fbbb3f38d01d5599cfbee9fb3e48f7e32f2a",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/ddr3_dfi_seq.v": "0e8a1f48e93f2471b40e14f89c3e5ad98f44d272c5baa26ab62cf794d0096e09",
+    "/Users/siriboi/github/synapse32/rtl/ddr3/reset_gen.v": "75cff342a73d7ef47794632e93ad08496f63d3d145a8f40f8d50b005c56f9fa0",
+    "/Users/siriboi/github/synapse32/rtl/execution_unit.v": "2f6e3388b2be1d38889e9c990dea1d95c1f3b7ed081fc78ce5e7ac8efab9f53b",
+    "/Users/siriboi/github/synapse32/rtl/include/instr_defines.vh": "8a3c7cf00fcb454fcaa7963896b29ae2a05d251f6a0bf2685aff5339270856ae",
+    "/Users/siriboi/github/synapse32/rtl/include/memory_map.vh": "7d79f7bdf25f2b02f1a2e736c71002e510e7abd5e02af449dee2f4dc251cf0cf",
+    "/Users/siriboi/github/synapse32/rtl/memory_unit.v": "ceeb74519d13b7e5e6739e98181d3f5a38a903f2457ef534aa604da58a3bba3e",
+    "/Users/siriboi/github/synapse32/rtl/mmu/boot_bram.v": "e0d5cdcd7dfcf65de2de0d97a685287ca7a3872327361d938836d3ed6a5490ee",
+    "/Users/siriboi/github/synapse32/rtl/mmu/sv32_data_check.v": "375648ba3199bc44e703c4b39b346089e4753ca3d0560f440508b96f37f9bc9c",
+    "/Users/siriboi/github/synapse32/rtl/mmu/sv32_instr_check.v": "ee5f41c3ea0c9d5f5f9eeb58348c8d9889fa2bbeaeb61296b5c4f1c8008a82af",
+    "/Users/siriboi/github/synapse32/rtl/mmu/sv32_mmu.v": "f5c8b9fda7e9bbdb8afd034a3be28a674a9a0d9878f3c7c1f18a051cc83ac139",
+    "/Users/siriboi/github/synapse32/rtl/mmu/sv32_page_walker.v": "4cbae8fea9ce5fde0f7c253ffa9bd645f39f0349a4a40295f553e6baa3a15fe3",
+    "/Users/siriboi/github/synapse32/rtl/mmu/unified_mem.v": "ea53a281d7ffa40e899556c4d2d54bd3d69fb45cda287e59af264150a434f1e6",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/EX_MEM.v": "5f7c0f1271eeddbbc95bbce0f98916bc6760c10a792960efccc975361c056876",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/ID_EX.v": "21c4c2df13f6b464044bcc63e11d2d68ba7365ff296826b6f0eeee1a108a6d52",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/IF_ID.v": "19b123fdb0afa629366ef1acf6b742ab11e2401ce8bc4e56f570cd6d1fb016c8",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/MEM_WB.v": "85f3792bda16ed8ae1b8d8b7034949f95854b9b7da0a273cfbe3c0ddf438492f",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/forwarding_unit.v": "694179272194872d67334939cca69cbf334d4fdccb97c2ecdaf8cd729643e914",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/load_use_detector.v": "4702dfb0f7b67d09043504d7dead4673a0c8bd4719275d5a5a92db78528407ba",
+    "/Users/siriboi/github/synapse32/rtl/pipeline_stages/store_load_detector.v": "d94b590da965aa3fc2d0b1e3db1c02a09f658bf9e8ba30d43a5d8ef78dd1884a",
+    "/Users/siriboi/github/synapse32/rtl/riscv_cpu.v": "42e2b8c56c8db20b813c22b9665a4d620e5ac145e92e57c12b4597306eaa2d61",
+    "/Users/siriboi/github/synapse32/rtl/seven_seg.v": "2af130c79dcf43e930cfc3d0afc1f88c2bfe359c43aeb459dc6624480fc6ecf9",
+    "/Users/siriboi/github/synapse32/rtl/top.v": "1fac35091276680f8a66208a6f205c203c768b6eb04233c798111b6f7c86a974",
+    "/Users/siriboi/github/synapse32/rtl/writeback.v": "6c7e1a1f45ddeefac39328ad80619019b4f947aa82073bf496acd4da794a4c8a"
+  },
+  "comparisons": {
+    "classifier-direct": {
+      "comparison": "build-matmul-specialization/final/classifier-direct/comparison.json",
+      "comparison_sha256": "869753c742bcf98bfbef21e4c9450d5ab9f580eb84b36ac6c84c51fe239f77b5",
+      "input_sha256": "918ea67527ca55409c5ed681d6827d893063034ba51aab9c01ae030184d20e68",
+      "artifact_sha256": "fdefca882f385363d440f6355c70d3852d46616a3e1bc66ec10db8d79744f9ac",
+      "reference_sha256": "784a0a8fb554064a88fa00b902716bbd01a9747043043e949ff1900ff466e48a",
+      "best_compute_policy": "auto",
+      "cpu_to_generated_tpu_speedup": 1.9529724704302465,
+      "generic_to_generated_tpu_speedup": 4.3674138732503485,
+      "variants": {
+        "cpu": {
+          "total_cycles": 378115,
+          "tpu_callback_cycles": 0,
+          "backend_calls": 0,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 0,
+          "verified_words": 10,
+          "firmware_sha256": "af89204cba9fade7d1b28178892db0c598393c1477f0f37d22f3a4516054353b",
+          "sections_bytes": {
+            "text": 9952,
+            "data": 784,
+            "bss": 3240
+          },
+          "generated_program_sha256": "41d96a88f9700f7cdf33b585ddbb60ef46b8ef3cf29a3d0b0a85220ce3846355"
+        },
+        "auto": {
+          "total_cycles": 193610,
+          "tpu_callback_cycles": 175428,
+          "backend_calls": 1,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 1,
+          "verified_words": 10,
+          "firmware_sha256": "61540454cd747c0f1add4e90df63248d119e4052fc7a4902db679852fd20d655",
+          "sections_bytes": {
+            "text": 18276,
+            "data": 784,
+            "bss": 11896
+          },
+          "generated_program_sha256": "6a6272701f2a7f9a7381b255ff67008a9d6d36a47c000367b2cc4be83b859cac"
+        },
+        "tpu": {
+          "total_cycles": 193610,
+          "tpu_callback_cycles": 175428,
+          "backend_calls": 1,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 1,
+          "verified_words": 10,
+          "firmware_sha256": "2fdc9abc4aaa16423395547e57a55c42f3adddb80a716dbdd32d8c5489a155e8",
+          "sections_bytes": {
+            "text": 18276,
+            "data": 784,
+            "bss": 11896
+          },
+          "generated_program_sha256": "6a6272701f2a7f9a7381b255ff67008a9d6d36a47c000367b2cc4be83b859cac"
+        },
+        "tpu-generic": {
+          "total_cycles": 845575,
+          "tpu_callback_cycles": 820649,
+          "backend_calls": 1,
+          "packed_backend_calls": 1,
+          "specialized_backend_calls": 0,
+          "verified_words": 10,
+          "firmware_sha256": "14f652b33c861d466ffd375fa006ac28c83b86886b9b0f203734ca8f8585e71d",
+          "sections_bytes": {
+            "text": 16536,
+            "data": 784,
+            "bss": 11896
+          },
+          "generated_program_sha256": "d2cebcd2ebc38eb2983691a0f4462e6605549a51fd9a84d17107f36e1dcbc6fa"
+        }
+      }
+    },
+    "banana-direct": {
+      "comparison": "build-matmul-specialization/final/banana-direct/comparison.json",
+      "comparison_sha256": "ae9765e3e77b4cc206a17621b72296bdb9b7faa35a715685079b895fcbc10837",
+      "input_sha256": "579f4fc9e240b80aade6941d3fba86534d9e959a8520066318b52ed266243e65",
+      "artifact_sha256": "b5124b7d7671db487868c94bf10b54a115aa04d3c917d06534b53c713348368b",
+      "reference_sha256": "c5e5cd356c449752b6c79fa8a244b90d2e9c359923d7e8054b0b3440bbcea991",
+      "best_compute_policy": "auto",
+      "cpu_to_generated_tpu_speedup": 1.2284270429855508,
+      "generic_to_generated_tpu_speedup": 1.7893609322445085,
+      "variants": {
+        "cpu": {
+          "total_cycles": 298751,
+          "tpu_callback_cycles": 0,
+          "backend_calls": 0,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 0,
+          "verified_words": 613,
+          "firmware_sha256": "9d7d6d3f51e4aa19db221cee039c37bdeae782d8226abafce899c7c11dec45c9",
+          "sections_bytes": {
+            "text": 18748,
+            "data": 0,
+            "bss": 7440
+          },
+          "generated_program_sha256": "e8fe312542ed85d30334dbbe01ffa12e9f8e0f93ba749ee95e1ac921e6696301"
+        },
+        "auto": {
+          "total_cycles": 243198,
+          "tpu_callback_cycles": 40222,
+          "backend_calls": 1,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 1,
+          "verified_words": 613,
+          "firmware_sha256": "c532209e0bbb079a81463cb3d4979c1785afd76d3a5001c85b8f299792dc8bad",
+          "sections_bytes": {
+            "text": 25644,
+            "data": 0,
+            "bss": 10520
+          },
+          "generated_program_sha256": "46c2a34b4491777d7ba02fb21194575661a1684a7d563c9433013c79f0cc7d67"
+        },
+        "tpu": {
+          "total_cycles": 243198,
+          "tpu_callback_cycles": 40222,
+          "backend_calls": 1,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 1,
+          "verified_words": 613,
+          "firmware_sha256": "f23b5b50da7ced26e6798bbbf5e1c96abf5a3b7bcf9038afbec7ce13b5391e7e",
+          "sections_bytes": {
+            "text": 25644,
+            "data": 0,
+            "bss": 10520
+          },
+          "generated_program_sha256": "46c2a34b4491777d7ba02fb21194575661a1684a7d563c9433013c79f0cc7d67"
+        },
+        "tpu-generic": {
+          "total_cycles": 435169,
+          "tpu_callback_cycles": 225388,
+          "backend_calls": 1,
+          "packed_backend_calls": 1,
+          "specialized_backend_calls": 0,
+          "verified_words": 613,
+          "firmware_sha256": "fe8b413f0d86df49254c77b84ed67bf2ff48edcfc3badbc477fcb6e8ba4b8178",
+          "sections_bytes": {
+            "text": 23956,
+            "data": 0,
+            "bss": 10520
+          },
+          "generated_program_sha256": "c9befd3c9f4f4b08261b11391774b4d0fcd463bb019f902913862b2e736691a3"
+        }
+      }
+    },
+    "attention-direct": {
+      "comparison": "build-matmul-specialization/final/attention-direct/comparison.json",
+      "comparison_sha256": "b4a582c89130d71353225f2997f8f2d28ac66c612eabe17e94e2f941f23b8a9e",
+      "input_sha256": "518f38dcf4dd25cade6399bf719513ae04d956619dd51d03c6ebc471bf203bd4",
+      "artifact_sha256": "9bcbc207ac0512003db392e5f19c099240a3549e4245fe185e6bf2937bfdef8e",
+      "reference_sha256": "ff128b48433d25dd8282f98af8463919f51d014952baa2d295e9c12eca523864",
+      "best_compute_policy": "auto",
+      "cpu_to_generated_tpu_speedup": 1.0641582520415562,
+      "generic_to_generated_tpu_speedup": 1.1190224580301213,
+      "variants": {
+        "cpu": {
+          "total_cycles": 1168118,
+          "tpu_callback_cycles": 0,
+          "backend_calls": 0,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 0,
+          "verified_words": 64,
+          "firmware_sha256": "dccf9d6d775ccbeb2f1dc084632f4804d78cf134a236d94b45f16c15e86f0a96",
+          "sections_bytes": {
+            "text": 12472,
+            "data": 256,
+            "bss": 1624
+          },
+          "generated_program_sha256": "e87d72e1a1375cc2b10fa54c16502447518c0f86c54884e02d23f87383a97e5d"
+        },
+        "auto": {
+          "total_cycles": 1097692,
+          "tpu_callback_cycles": 62332,
+          "backend_calls": 6,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 6,
+          "verified_words": 64,
+          "firmware_sha256": "650d1c5b569e057ea9ac2f52d9e2cca9356272d6d57825fc8adf040738f6a7df",
+          "sections_bytes": {
+            "text": 23180,
+            "data": 256,
+            "bss": 2000
+          },
+          "generated_program_sha256": "063345bdfa87268a643edb9d24e3aca2e7cb58943d9228afc12f79dc8c891767"
+        },
+        "tpu": {
+          "total_cycles": 1097692,
+          "tpu_callback_cycles": 62332,
+          "backend_calls": 6,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 6,
+          "verified_words": 64,
+          "firmware_sha256": "db17d741ff12ad3ec91841999864f06229ce2de12c10a466b00cd9d5cb258f47",
+          "sections_bytes": {
+            "text": 23180,
+            "data": 256,
+            "bss": 2000
+          },
+          "generated_program_sha256": "063345bdfa87268a643edb9d24e3aca2e7cb58943d9228afc12f79dc8c891767"
+        },
+        "tpu-generic": {
+          "total_cycles": 1228342,
+          "tpu_callback_cycles": 194055,
+          "backend_calls": 6,
+          "packed_backend_calls": 4,
+          "specialized_backend_calls": 0,
+          "verified_words": 64,
+          "firmware_sha256": "268bb53d8ede2085a42ef35ac1984a92946adc81c2f518690a5c72d126fbcbb1",
+          "sections_bytes": {
+            "text": 17724,
+            "data": 256,
+            "bss": 2000
+          },
+          "generated_program_sha256": "4d3f105dbd84d933877aebbdf2ff008802c045fabecccfd81303d430427b71aa"
+        }
+      }
+    },
+    "full-tile-direct": {
+      "comparison": "build-matmul-specialization/final/full-tile-direct/comparison.json",
+      "comparison_sha256": "ac61cc0a711ef93f641da6f4b64624f5fa8b6dd998695004c69140e9a9d23dda",
+      "input_sha256": "ebe23e0167fcf9ad13c9a0d9d687f54725052078e921ff78b36ee252b77d6260",
+      "artifact_sha256": "c1b3ddaa6df47329a2f209ac01d2351345117cefac87c5caf763bee446f4163c",
+      "reference_sha256": "e683479a05e4239f44aef3ed9f6a57bd3aed36807937bc8fca3afa1f149236d6",
+      "best_compute_policy": "auto",
+      "cpu_to_generated_tpu_speedup": 4.430730682645079,
+      "generic_to_generated_tpu_speedup": 3.233135687647808,
+      "variants": {
+        "cpu": {
+          "total_cycles": 3117533,
+          "tpu_callback_cycles": 0,
+          "backend_calls": 0,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 0,
+          "verified_words": 256,
+          "firmware_sha256": "06c3f7d677a2477fcaa90df3ec24fceb844acadef5625b94e99469dabab1b536",
+          "sections_bytes": {
+            "text": 6224,
+            "data": 4096,
+            "bss": 18456
+          },
+          "generated_program_sha256": "b1bb56d4ea7eec4123ad45b8dd4d25632655d66e775cd50f3a9869ecbad6e5e5"
+        },
+        "auto": {
+          "total_cycles": 703616,
+          "tpu_callback_cycles": 603392,
+          "backend_calls": 1,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 1,
+          "verified_words": 256,
+          "firmware_sha256": "adf587083d2dc4e69170f97691f1054b5036d23d92ab6d4e0abf5554ac3cfb64",
+          "sections_bytes": {
+            "text": 12968,
+            "data": 4096,
+            "bss": 27664
+          },
+          "generated_program_sha256": "5eeb750f2478ba9f2899ab91fac9f742b9025aef10d812d1307a0a95053da22e"
+        },
+        "tpu": {
+          "total_cycles": 703616,
+          "tpu_callback_cycles": 603392,
+          "backend_calls": 1,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 1,
+          "verified_words": 256,
+          "firmware_sha256": "c1653972258c0fb4344bbed19a3ebf4034c8bdfa1fdc4429d837805593012350",
+          "sections_bytes": {
+            "text": 12968,
+            "data": 4096,
+            "bss": 27664
+          },
+          "generated_program_sha256": "5eeb750f2478ba9f2899ab91fac9f742b9025aef10d812d1307a0a95053da22e"
+        },
+        "tpu-generic": {
+          "total_cycles": 2274886,
+          "tpu_callback_cycles": 2135571,
+          "backend_calls": 1,
+          "packed_backend_calls": 1,
+          "specialized_backend_calls": 0,
+          "verified_words": 256,
+          "firmware_sha256": "43b1be8885bd0310140410513652b3b9ff6f8811d091b6093afea2c0587e7724",
+          "sections_bytes": {
+            "text": 11212,
+            "data": 4096,
+            "bss": 27664
+          },
+          "generated_program_sha256": "1f6fa6eb51f49f3e60774b291e6f1d8d5ed905da7412f2e9d2528cb663254446"
+        }
+      }
+    },
+    "classifier-mailbox": {
+      "comparison": "build-matmul-specialization/final/classifier-mailbox/comparison.json",
+      "comparison_sha256": "9dedb2f8a77e8b7d95bfad085133181f5914da325693201e64e26960a2a0bdb1",
+      "input_sha256": "918ea67527ca55409c5ed681d6827d893063034ba51aab9c01ae030184d20e68",
+      "artifact_sha256": "fdefca882f385363d440f6355c70d3852d46616a3e1bc66ec10db8d79744f9ac",
+      "reference_sha256": "784a0a8fb554064a88fa00b902716bbd01a9747043043e949ff1900ff466e48a",
+      "best_compute_policy": "cpu",
+      "cpu_to_generated_tpu_speedup": 0.20186572641884623,
+      "generic_to_generated_tpu_speedup": 1.2551892017413446,
+      "variants": {
+        "cpu": {
+          "total_cycles": 378148,
+          "tpu_callback_cycles": 0,
+          "backend_calls": 0,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 0,
+          "verified_words": 10,
+          "firmware_sha256": "39e9745323a8d99338eab32865fa18de1699c90746f60d59560fb2150b890a99",
+          "sections_bytes": {
+            "text": 10132,
+            "data": 784,
+            "bss": 3240
+          },
+          "generated_program_sha256": "41d96a88f9700f7cdf33b585ddbb60ef46b8ef3cf29a3d0b0a85220ce3846355"
+        },
+        "auto": {
+          "total_cycles": 378148,
+          "tpu_callback_cycles": 0,
+          "backend_calls": 0,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 0,
+          "verified_words": 10,
+          "firmware_sha256": "f53d804baa3de89874f9a549c95ebf9c0f4a87da6e5982e99a3797a0b1d9fba9",
+          "sections_bytes": {
+            "text": 10132,
+            "data": 784,
+            "bss": 3240
+          },
+          "generated_program_sha256": "41d96a88f9700f7cdf33b585ddbb60ef46b8ef3cf29a3d0b0a85220ce3846355"
+        },
+        "tpu": {
+          "total_cycles": 1873265,
+          "tpu_callback_cycles": 1854566,
+          "backend_calls": 1,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 1,
+          "verified_words": 10,
+          "firmware_sha256": "2584bdcadf6ecf1fc3291653d5bc4ab15a1eb02c4dcac27533db01ac697e66f7",
+          "sections_bytes": {
+            "text": 19008,
+            "data": 784,
+            "bss": 11896
+          },
+          "generated_program_sha256": "6a6272701f2a7f9a7381b255ff67008a9d6d36a47c000367b2cc4be83b859cac"
+        },
+        "tpu-generic": {
+          "total_cycles": 2351302,
+          "tpu_callback_cycles": 2324878,
+          "backend_calls": 1,
+          "packed_backend_calls": 1,
+          "specialized_backend_calls": 0,
+          "verified_words": 10,
+          "firmware_sha256": "5963d3cf2dcf37fc49bb67fa3e03ec9cf05f3fc20e8c65a1667cc492461b56b3",
+          "sections_bytes": {
+            "text": 17264,
+            "data": 784,
+            "bss": 11896
+          },
+          "generated_program_sha256": "d2cebcd2ebc38eb2983691a0f4462e6605549a51fd9a84d17107f36e1dcbc6fa"
+        }
+      }
+    },
+    "banana-mailbox": {
+      "comparison": "build-matmul-specialization/final/banana-mailbox/comparison.json",
+      "comparison_sha256": "a03fa64a226ab78c50a7199c119f6ada87413696f5f847739fb5312efb31d628",
+      "input_sha256": "579f4fc9e240b80aade6941d3fba86534d9e959a8520066318b52ed266243e65",
+      "artifact_sha256": "b5124b7d7671db487868c94bf10b54a115aa04d3c917d06534b53c713348368b",
+      "reference_sha256": "c5e5cd356c449752b6c79fa8a244b90d2e9c359923d7e8054b0b3440bbcea991",
+      "best_compute_policy": "cpu",
+      "cpu_to_generated_tpu_speedup": 0.4488009823277315,
+      "generic_to_generated_tpu_speedup": 1.521813454037656,
+      "variants": {
+        "cpu": {
+          "total_cycles": 298248,
+          "tpu_callback_cycles": 0,
+          "backend_calls": 0,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 0,
+          "verified_words": 613,
+          "firmware_sha256": "16aab4bed763d59301aa04cb47907c6e9500460f5431bdc0c7cbbfb931dcdcf2",
+          "sections_bytes": {
+            "text": 18924,
+            "data": 0,
+            "bss": 7440
+          },
+          "generated_program_sha256": "e8fe312542ed85d30334dbbe01ffa12e9f8e0f93ba749ee95e1ac921e6696301"
+        },
+        "auto": {
+          "total_cycles": 298248,
+          "tpu_callback_cycles": 0,
+          "backend_calls": 0,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 0,
+          "verified_words": 613,
+          "firmware_sha256": "c05750a4e3723b71d8aae704516cf15dcae2ff2ebb82ad0084fa4ce340ab427b",
+          "sections_bytes": {
+            "text": 18924,
+            "data": 0,
+            "bss": 7440
+          },
+          "generated_program_sha256": "e8fe312542ed85d30334dbbe01ffa12e9f8e0f93ba749ee95e1ac921e6696301"
+        },
+        "tpu": {
+          "total_cycles": 664544,
+          "tpu_callback_cycles": 461857,
+          "backend_calls": 1,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 1,
+          "verified_words": 613,
+          "firmware_sha256": "d9e76a63d1a05c4d6d17c117fd1dae792a0b702f7153dc00596bdad15558a917",
+          "sections_bytes": {
+            "text": 26364,
+            "data": 0,
+            "bss": 10520
+          },
+          "generated_program_sha256": "46c2a34b4491777d7ba02fb21194575661a1684a7d563c9433013c79f0cc7d67"
+        },
+        "tpu-generic": {
+          "total_cycles": 1011312,
+          "tpu_callback_cycles": 803275,
+          "backend_calls": 1,
+          "packed_backend_calls": 1,
+          "specialized_backend_calls": 0,
+          "verified_words": 613,
+          "firmware_sha256": "77f3bb7561dfdbc58f5523fee863a4066025e376fc54324c3f3e262d79f5a320",
+          "sections_bytes": {
+            "text": 24660,
+            "data": 0,
+            "bss": 10520
+          },
+          "generated_program_sha256": "c9befd3c9f4f4b08261b11391774b4d0fcd463bb019f902913862b2e736691a3"
+        }
+      }
+    },
+    "attention-mailbox": {
+      "comparison": "build-matmul-specialization/final/attention-mailbox/comparison.json",
+      "comparison_sha256": "2aa28ddab08580b650e376373b94e01b3f81ead889130ab5f55216c6a6ed320f",
+      "input_sha256": "518f38dcf4dd25cade6399bf719513ae04d956619dd51d03c6ebc471bf203bd4",
+      "artifact_sha256": "9bcbc207ac0512003db392e5f19c099240a3549e4245fe185e6bf2937bfdef8e",
+      "reference_sha256": "ff128b48433d25dd8282f98af8463919f51d014952baa2d295e9c12eca523864",
+      "best_compute_policy": "cpu",
+      "cpu_to_generated_tpu_speedup": 0.7745374057678416,
+      "generic_to_generated_tpu_speedup": 1.064628244377823,
+      "variants": {
+        "cpu": {
+          "total_cycles": 1170862,
+          "tpu_callback_cycles": 0,
+          "backend_calls": 0,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 0,
+          "verified_words": 64,
+          "firmware_sha256": "2d3b5f2cce253a35a352dc822ab13672972831eb21c439555879dfc224313f0c",
+          "sections_bytes": {
+            "text": 12808,
+            "data": 256,
+            "bss": 1624
+          },
+          "generated_program_sha256": "e87d72e1a1375cc2b10fa54c16502447518c0f86c54884e02d23f87383a97e5d"
+        },
+        "auto": {
+          "total_cycles": 1170862,
+          "tpu_callback_cycles": 0,
+          "backend_calls": 0,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 0,
+          "verified_words": 64,
+          "firmware_sha256": "388217dac9654406a0d1f7c24fc131285e36aa2fa35981faf7aadfb17c8927c2",
+          "sections_bytes": {
+            "text": 12808,
+            "data": 256,
+            "bss": 1624
+          },
+          "generated_program_sha256": "e87d72e1a1375cc2b10fa54c16502447518c0f86c54884e02d23f87383a97e5d"
+        },
+        "tpu": {
+          "total_cycles": 1511692,
+          "tpu_callback_cycles": 463568,
+          "backend_calls": 6,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 6,
+          "verified_words": 64,
+          "firmware_sha256": "6ca4db50ddbcde1b2e96f424640c475615ce19422f900e26f7c7cee2689b209d",
+          "sections_bytes": {
+            "text": 23876,
+            "data": 256,
+            "bss": 2000
+          },
+          "generated_program_sha256": "063345bdfa87268a643edb9d24e3aca2e7cb58943d9228afc12f79dc8c891767"
+        },
+        "tpu-generic": {
+          "total_cycles": 1609390,
+          "tpu_callback_cycles": 563888,
+          "backend_calls": 6,
+          "packed_backend_calls": 4,
+          "specialized_backend_calls": 0,
+          "verified_words": 64,
+          "firmware_sha256": "986088fa31acbc3d997f5fa175b6df123d7819ab640949294da4570e51787e22",
+          "sections_bytes": {
+            "text": 18404,
+            "data": 256,
+            "bss": 2000
+          },
+          "generated_program_sha256": "4d3f105dbd84d933877aebbdf2ff008802c045fabecccfd81303d430427b71aa"
+        }
+      }
+    },
+    "full-tile-mailbox": {
+      "comparison": "build-matmul-specialization/final/full-tile-mailbox/comparison.json",
+      "comparison_sha256": "1e0106894d4a5919ae25335ceaebe85c03ad22a1cd712ac9641ded2bb52176e9",
+      "input_sha256": "ebe23e0167fcf9ad13c9a0d9d687f54725052078e921ff78b36ee252b77d6260",
+      "artifact_sha256": "c1b3ddaa6df47329a2f209ac01d2351345117cefac87c5caf763bee446f4163c",
+      "reference_sha256": "e683479a05e4239f44aef3ed9f6a57bd3aed36807937bc8fca3afa1f149236d6",
+      "best_compute_policy": "cpu",
+      "cpu_to_generated_tpu_speedup": 0.5604787419853543,
+      "generic_to_generated_tpu_speedup": 1.1289558141161322,
+      "variants": {
+        "cpu": {
+          "total_cycles": 3117473,
+          "tpu_callback_cycles": 0,
+          "backend_calls": 0,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 0,
+          "verified_words": 256,
+          "firmware_sha256": "8ea2dcfa1b28c0ef1ac7ab4af15338da56b40497b05fd3e0e9a2ce7cf5d4bab6",
+          "sections_bytes": {
+            "text": 6396,
+            "data": 4096,
+            "bss": 18456
+          },
+          "generated_program_sha256": "b1bb56d4ea7eec4123ad45b8dd4d25632655d66e775cd50f3a9869ecbad6e5e5"
+        },
+        "auto": {
+          "total_cycles": 3117473,
+          "tpu_callback_cycles": 0,
+          "backend_calls": 0,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 0,
+          "verified_words": 256,
+          "firmware_sha256": "5ed146e40d5e54ed48086f7094196b40c12e73e6a05e1f23f9fb814ccc48b58f",
+          "sections_bytes": {
+            "text": 6396,
+            "data": 4096,
+            "bss": 18456
+          },
+          "generated_program_sha256": "b1bb56d4ea7eec4123ad45b8dd4d25632655d66e775cd50f3a9869ecbad6e5e5"
+        },
+        "tpu": {
+          "total_cycles": 5562161,
+          "tpu_callback_cycles": 5461965,
+          "backend_calls": 1,
+          "packed_backend_calls": 0,
+          "specialized_backend_calls": 1,
+          "verified_words": 256,
+          "firmware_sha256": "d9ad6e5d0d3fe64183158821cfafcfe6818008cfd61f935c40570c40dac57440",
+          "sections_bytes": {
+            "text": 13704,
+            "data": 4096,
+            "bss": 27664
+          },
+          "generated_program_sha256": "5eeb750f2478ba9f2899ab91fac9f742b9025aef10d812d1307a0a95053da22e"
+        },
+        "tpu-generic": {
+          "total_cycles": 6279434,
+          "tpu_callback_cycles": 6140030,
+          "backend_calls": 1,
+          "packed_backend_calls": 1,
+          "specialized_backend_calls": 0,
+          "verified_words": 256,
+          "firmware_sha256": "cd32d2d7a436fe80c18638f48c591b3991edf04dadbc2a61e5734a2846ec07b3",
+          "sections_bytes": {
+            "text": 11920,
+            "data": 4096,
+            "bss": 27664
+          },
+          "generated_program_sha256": "1f6fa6eb51f49f3e60774b291e6f1d8d5ed905da7412f2e9d2528cb663254446"
+        }
+      }
+    }
+  },
+  "production_uart": {
+    "showcase": {
+      "requests": 10,
+      "report": "build-matmul-specialization/showcase-uart/report.json",
+      "report_sha256": "69dc081c0509ca8f43e0a510f89e1c17ffd9bfbd0f1182adf68f83daf7612dcc",
+      "firmware_sha256": {
+        "firmware.elf": "dc56f92adeea02efbdbd097aea758ba037a438e91b7d9cf35ba174d41ebd11ec",
+        "firmware.hex": "64b49a67a9c6b524956a094e4184ae3ae39e8a86d325b8f31b430a0227cb3588",
+        "firmware.bin": "255914efc6edbe5a285065639aaf5747b9ac791400c4a0fb10ec0a6928618985"
+      },
+      "memory": {
+        "ram_bytes": 65536,
+        "static_end": 2147545016,
+        "static_bytes": 61368,
+        "stack_reserved_bytes": 4096,
+        "remaining_after_stack_bytes": 72,
+        "scope": "Static linker allocation; runtime peak stack is not measured"
+      }
+    },
+    "classifier": {
+      "requests": 22,
+      "report": "build-matmul-specialization/classifier-uart/report.json",
+      "report_sha256": "a28d33b0ce2611779dbaba30dac058be6d0e27ee103e954be0153b074364f093",
+      "firmware_sha256": {
+        "firmware.elf": "7845a51b467f251c1a676c0fc820a1b7de050510286058dfb213f8d68a77a256",
+        "firmware.hex": "e043e9215b38f321cc7ba368398dd7d85faf0259a86ac38904b0e27b83d61ac0",
+        "firmware.bin": "5c07c86a27ad4218660e7078a1d5e043ac7a8a04fee366b5887c7765fa1c7fe6"
+      },
+      "memory": {
+        "ram_bytes": 65536,
+        "static_end": 2147530552,
+        "static_bytes": 46904,
+        "stack_reserved_bytes": 4096,
+        "remaining_after_stack_bytes": 14536,
+        "scope": "Static linker allocation; runtime peak stack is not measured"
+      }
+    }
+  },
+  "validation": {
+    "final_relevant_ctest_passed": 8,
+    "final_relevant_ctest_failed": 0,
+    "final_ctest_log": "build-matmul-specialization/checks/Testing/Temporary/LastTest.log",
+    "final_ctest_log_sha256": "e90c2464eab5d57dff42049ee3729da8b718225a5405c45badd68f04b9027675",
+    "initial_full_ctest_passed": 57,
+    "initial_full_ctest_failed": 0,
+    "full_suite_scope": "Full configured suite passed before final code-size refinements; all eight affected compiler/runtime/MMIO/RTL checks passed again on final sources.",
+    "native_codegen_test_cases": 8,
+    "production_uart_requests": 32,
+    "legacy_capability_fallback": {
+      "total_cycles": 512171,
+      "tpu_callback_cycles": 48941,
+      "cpu_and_conversion_cycles": 463230,
+      "backend_calls": 4,
+      "packed_backend_calls": 4,
+      "specialized_backend_calls": 0,
+      "verified_words": 4,
+      "clock_hz": 100000000,
+      "cpu": "vexriscv",
+      "steps": 1,
+      "gemm_policy": "tpu",
+      "optimization": "O2",
+      "tpu_transport": "direct",
+      "accumulation_mode": "legacy",
+      "result_read_mode": "legacy",
+      "prepack_constants": true,
+      "specialize_matmuls": true,
+      "scope": "instrumented full CPU+TPU RTL; tpu_callback_cycles includes packing, MMIO transport, polling, readback and CPU sum merge; state remains in simulated SoC RAM between steps"
+    }
+  },
+  "limitations": [
+    "Direct transport requires matching DIRECT_TPU hardware; no new physical board measurements.",
+    "The compiler uses a conservative operation cost estimate, not a timing guarantee for all shapes.",
+    "The combined direct showcase reserves 4 KiB stack and has only 72 further static bytes free; runtime peak stack is not measured."
+  ],
+  "publication_reproduction": {
+    "base_commit": "4137fe97979315ed2686a0b1667f8606612996d2",
+    "firmware_variants": 6,
+    "executable_binary_and_hex_match_recorded_runs": true,
+    "uart_requests_rechecked": 96,
+    "uart_reports_match_recorded_runs_including_cycle_counts": true,
+    "scope": "Rebuilt the six UART firmware variants on the publication branch and re-ran their complete UART RTL checks. The original measurement source inventory is retained above; independent development changes were omitted from publication. ELF metadata may vary with build paths; executable binary and hex hashes match exactly."
+  }
+}

@@ -4,16 +4,18 @@ import numpy as np
 from ._schedule import ProgramError
 from .target import CPU, legalize
 from .optimize import elementwise_groups
+from .mmio_codegen import emit_mmio_kernel
 import re
 from collections import defaultdict
 
-def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=False, symbol='t3p', fusion=True, prepack_constants=True, gemm_policy='auto'):
+def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=False, symbol='t3p', fusion=True, prepack_constants=True, specialize_matmuls=True, gemm_policy='auto'):
     if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*', symbol):
         raise ProgramError('symbol must be a C identifier beginning with a letter')
     if math_mode not in ('libm', 'freestanding'):
         raise ProgramError('math_mode must be libm or freestanding')
     p=program;p.validate();live=p.dce();nodes=p.nodes
-    placement=legalize(p,target,math_mode=math_mode,allow_approximation=allow_approximation,gemm_policy=gemm_policy)
+    placement=legalize(p,target,math_mode=math_mode,allow_approximation=allow_approximation,
+                      gemm_policy=gemm_policy,specialize_matmuls=specialize_matmuls)
     devices={item['value']:item['device'] for item in placement}
     groups,inlined=elementwise_groups(p,devices) if fusion else ({},set())
     ctypes={'float32':'float','int32':'int32_t','uint32':'uint32_t','bool':'uint8_t','int8':'int8_t','uint8':'uint8_t'}
@@ -83,6 +85,7 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
         for output in n.outputs:allocate(output,index)
     declarations=[];constants={};map_cache={};const_names={};bit_constants=set();max_packed=1;max_accum=1
     packed_constants={};packed_constant_bytes=0;packed_matmuls=0
+    mmio_kernels=[];specialized_matmuls=[];mmio_kernel_cache={}
     for v in p.values:
         if v.id not in live or v.data is None:continue
         key=(v.dtype,v.data.tobytes())
@@ -257,7 +260,7 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
                 name=f'{symbol}_{label}_{role}';region_names.append(name)
                 code,report=emit_c(region,None,target=target,math_mode=math_mode,
                                    allow_approximation=allow_approximation,symbol=name,fusion=fusion,
-                                   prepack_constants=prepack_constants,gemm_policy=gemm_policy)
+                                   prepack_constants=prepack_constants,specialize_matmuls=specialize_matmuls,gemm_policy=gemm_policy)
                 nested_headers.append(code);nested_reports.append(report);sizes.append(report['workspace_bytes'])
             fields=[];size=0
             for index,vid in enumerate(n.inputs):
@@ -326,6 +329,52 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
                 packed_a=packed_operand(lhs_static,True)
                 packed_b=packed_operand(rhs_static,False)
                 if packed_a or packed_b:packed_matmuls+=1
+                specialized = specialize_matmuls and target.mmio_kernels and k <= 131071
+                if specialized:
+                    name=f'{symbol}_mmio_{out.id}'
+                    # Projections with the same shape/layout share machine
+                    # code. Workspace bases and packed constant pointers vary
+                    # per invocation; all tiling and lane decisions stay fixed.
+                    def contiguous(vid):
+                        base=root(vid)
+                        return base not in views and p.values[base].data is None
+                    shared=(packed_a or contiguous(lhs.id)) and (packed_b or contiguous(rhs.id))
+                    context=f'{symbol}_mmio_context context={{w,batch}};'
+                    kernel_ref=ref;kernel_pa=packed_a;kernel_pb=packed_b
+                    key=None
+                    if shared:
+                        key=(m,k,cols,bool(packed_a),bool(packed_b))
+                        def base(vid,size):return f'w+{offsets[root(vid)]}+batch*{size}'
+                        pa=f'{packed_a[0]}+batch*{packed_a[1]}' if packed_a else '0'
+                        pb=f'{packed_b[0]}+batch*{packed_b[1]}' if packed_b else '0'
+                        ap='0' if packed_a else base(lhs.id,m*k)
+                        bp='0' if packed_b else base(rhs.id,k*cols)
+                        context=f'{symbol}_mmio_operands context={{{ap},{bp},{base(out.id,m*cols)},{pa},{pb}}};'
+                        def kernel_ref(vid,index):
+                            # Use formal operand roles, even when A and B are
+                            # the same SSA value. The shared body must also
+                            # work for a later call with distinct operands.
+                            field=('lhs','rhs','output')[vid]
+                            return f'{field}_data[{index}].i'
+                        kernel_pa=('packed_lhs',packed_a[1]) if packed_a else None
+                        kernel_pb=('packed_rhs',packed_b[1]) if packed_b else None
+                    if key is not None and key in mmio_kernel_cache:
+                        name,details=mmio_kernel_cache[key]
+                    else:
+                        context_type=f'{symbol}_mmio_operands' if shared else f'{symbol}_mmio_context'
+                        operand_ids=(0,1,2) if shared else (lhs.id,rhs.id,out.id)
+                        kernel,details=emit_mmio_kernel(name,context_type,f'{symbol}_word',
+                            m,k,cols,*operand_ids,kernel_ref,kernel_pa,kernel_pb,
+                            batch_expression='0U' if shared else 'context->batch',base_pointers=bool(shared))
+                        mmio_kernels.append(kernel)
+                        if key is not None:mmio_kernel_cache[key]=(name,details)
+                    specialized_matmuls.append(dict(value=out.id,shape_mkn=[m,k,cols],**details))
+                    body.append('if(!backend)return -5;')
+                    body.append(context)
+                    body.append('int kernel_status=TINY3TPU_MMIO_KERNEL_UNSUPPORTED;')
+                    body.append(f'if(backend->run_mmio_kernel)kernel_status=backend->run_mmio_kernel(backend->user,{name},&context);')
+                    body.append('if(kernel_status!=0&&kernel_status!=TINY3TPU_MMIO_KERNEL_UNSUPPORTED)return -5;')
+                    body.append('if(kernel_status==TINY3TPU_MMIO_KERNEL_UNSUPPORTED){')
                 if packed_a or packed_b:
                     pa=f'{packed_a[0]}+batch*{packed_a[1]}' if packed_a else '0'
                     pb=f'{packed_b[0]}+batch*{packed_b[1]}' if packed_b else '0'
@@ -346,6 +395,7 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
                     loop(k*cols,f'workspace->packed[{m*k}+i]=(int8_t){ref(rhs.id,f"batch*{k*cols}+i")};')
                     body.append(f'if(backend->run(backend->user,workspace->packed,workspace->packed+{m*k},workspace->accum,{m},{k},{cols}))return -5;')
                 loop(m*cols,f'{ref(out.id,f"batch*{m*cols}+i")}=workspace->accum[i];')
+                if specialized:body.append('}')
             else:
                 typ='float' if out.dtype=='float32' else 'int32_t'
                 body.append(f'for(uint32_t i=0;i<{m};i++)for(uint32_t j=0;j<{cols};j++){{{typ} sum=0;for(uint32_t t=0;t<{k};t++)sum+={ref(lhs.id,f"batch*{m*k}+i*{k}+t")}*{ref(rhs.id,f"batch*{k*cols}+t*{cols}+j")};{ref(out.id,f"batch*{m*cols}+i*{cols}+j")}=sum;}}')
@@ -396,16 +446,20 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
     high=max(1,high)
     guard=symbol.upper()+'_GENERATED_PROGRAM_H'
     header=[f'#ifndef {guard}',f'#define {guard}','#include <stdint.h>','#include "tiny3tpu_program_math.h"','#include "tiny3tpu_runtime.h"']
+    if mmio_kernels:header.append('#include "tiny3tpu_mmio_backend.h"')
     if math_mode=='libm':header.append('#include <math.h>')
     if target.cordic_exp:header.append('#include "tiny3tpu_cordic.h"')
     header += nested_headers
     header += [f'#define {symbol.upper()}_INPUT_COUNT {len(p.inputs)}',f'#define {symbol.upper()}_OUTPUT_COUNT {len(p.outputs)}',f'#define {symbol.upper()}_WORKSPACE_WORDS {high}',
                f'typedef union {{float f;int32_t i;uint32_t u;}} {symbol}_word;',
                f'typedef struct {{{symbol}_word values[{high}];int8_t packed[{max_packed}];int32_t accum[{max_accum}];'+''.join(loop_fields)+f'}} {symbol}_workspace;']
+    if mmio_kernels:header.append(f'typedef struct {{{symbol}_word *w;uint32_t batch;}} {symbol}_mmio_context;')
+    if mmio_kernels:header.append(f'typedef struct {{{symbol}_word *lhs,*rhs,*output;'
+                                 f'const uint32_t *packed_a,*packed_b;}} {symbol}_mmio_operands;')
     for kind,ids in (('INPUT',p.inputs),('OUTPUT',p.outputs)):
         for index,vid in enumerate(ids):
             header.append(f'#define {symbol.upper()}_{kind}_{index}_ELEMENTS {p.values[vid].size}')
-    text='\n'.join(header+declarations+[f'static inline int {symbol}_run(const void *const *inputs,void *const *outputs,{symbol}_workspace *workspace,const tiny3tpu_qgemm_backend *backend) {{',
+    text='\n'.join(header+declarations+mmio_kernels+[f'static inline int {symbol}_run(const void *const *inputs,void *const *outputs,{symbol}_workspace *workspace,const tiny3tpu_qgemm_backend *backend) {{',
             f'{symbol}_word *w=workspace?workspace->values:0;(void)w;(void)backend;(void)inputs;']+body+['return 0;}','#endif',''])
     # Internal tables must also be namespaced so multiple programs share a translation unit.
     text=re.sub(r'\b(k[0-9]+|map[0-9]+|packed[0-9]+|tpu_weights_[0-9]+_[0-9]+)\b',lambda m:symbol+'_'+m[0],text)
@@ -418,7 +472,8 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
             'source_bytes':len(text)}
     if target.workspace_limit_bytes is not None and memory['workspace_bytes']>target.workspace_limit_bytes:
         raise ProgramError(f'{target.name}: workspace requires {memory["workspace_bytes"]} bytes, limit is {target.workspace_limit_bytes}')
-    report={**memory,'fusion':{'groups':len(groups),'eliminated_arrays':len(inlined),'index_views':len(views)},
+    report={**memory,'specialized_matmuls':specialized_matmuls,'specialized_kernel_count':len(mmio_kernels),
+        'fusion':{'groups':len(groups),'eliminated_arrays':len(inlined),'index_views':len(views)},
         'placement':placement,'regions':nested_reports,'signature':{
         name:[{'id':i,'dtype':p.values[i].dtype,'shape':p.values[i].shape,'bytes':p.values[i].size*np.dtype(p.values[i].dtype).itemsize} for i in ids]
         for name,ids in (('inputs',p.inputs),('outputs',p.outputs))}}

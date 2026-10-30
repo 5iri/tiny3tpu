@@ -2,7 +2,7 @@
 from dataclasses import dataclass, asdict, replace
 import numpy as np
 from ._schedule import ProgramError
-from .cost import AffineCostModel, GemmCostModel
+from .cost import AffineCostModel, GemmCostModel, SpecializedGemmCostModel
 
 
 CPU_OPS = frozenset(('add', 'add_any', 'sub', 'mul', 'div', 'neg', 'abs', 'sqrt',
@@ -23,6 +23,8 @@ class Target:
     workspace_limit_bytes: int | None = None
     affine_cost_model: AffineCostModel | None = None
     gemm_cost_model: GemmCostModel | None = None
+    mmio_kernels: bool = False
+    specialized_gemm_cost_model: GemmCostModel | None = None
 
     def describe(self):
         result = asdict(self)
@@ -31,21 +33,22 @@ class Target:
 
 
 CPU = Target('portable-c')
-KC705 = Target('kc705-cpu-tpu', qgemm=True, libm=False, affine_cost_model=AffineCostModel(), gemm_cost_model=GemmCostModel())
+KC705 = Target('kc705-cpu-tpu', qgemm=True, libm=False, affine_cost_model=AffineCostModel(), gemm_cost_model=GemmCostModel(), mmio_kernels=True)
 # A separate target keeps the RV32 soft-float cost estimates off Rocket's FPU.
 # Approximate affine placement stays on the CPU until its transport is measured;
 # exact int8 GEMM still uses the existing hardware backend.
 KC705_ROCKET = Target('kc705-rocket-tpu', qgemm=True, libm=False)
-KC705_CORDIC = Target('kc705-cordic-tpu', qgemm=True, cordic_exp=True, libm=False, affine_cost_model=AffineCostModel(), gemm_cost_model=GemmCostModel())
+KC705_CORDIC = replace(KC705, name='kc705-cordic-tpu', cordic_exp=True)
 # Requires the matching DIRECT_TPU hardware ABI. Coefficients include measured
 # driver work, not just bus latency; the mailbox target stays conservative.
 # Approximate affine placement retains its conservative existing cost model.
 KC705_DIRECT = replace(KC705, name='kc705-direct-tpu', gemm_cost_model=GemmCostModel(
-    name='vexriscv-direct-retained-v1', register_cycles=200., tile_packing_cycles=2000.))
+    name='vexriscv-direct-retained-v1', register_cycles=200., tile_packing_cycles=2000.),
+    specialized_gemm_cost_model=SpecializedGemmCostModel())
 KC705_DIRECT_CORDIC = replace(KC705_DIRECT, name='kc705-direct-cordic-tpu', cordic_exp=True)
 
 
-def legalize(program, target, *, math_mode='libm', allow_approximation=False, gemm_policy='auto'):
+def legalize(program, target, *, math_mode='libm', allow_approximation=False, gemm_policy='auto', specialize_matmuls=True):
     """Verify every operation and return its target placement. Never silently fall back."""
     program.validate()
     if gemm_policy not in ('auto', 'cpu', 'tpu'):
@@ -76,7 +79,7 @@ def legalize(program, target, *, math_mode='libm', allow_approximation=False, ge
                         'loop carry type mismatch')
             for region in (cond,body):
                 legalize(region,target,math_mode=math_mode,allow_approximation=allow_approximation,
-                         gemm_policy=gemm_policy)
+                         gemm_policy=gemm_policy,specialize_matmuls=specialize_matmuls)
         elif n.op == 'tpu_affine':
             require(target.qgemm, 'requires an int8 QGEMM backend')
             require(allow_approximation, 'fixed-point affine lowering requires allow_approximation')
@@ -109,13 +112,16 @@ def legalize(program, target, *, math_mode='libm', allow_approximation=False, ge
                 if integer:
                     require(args[0].shape[-1] <= target.qgemm_max_k, 'K can overflow int32 accumulation')
                     require(gemm_policy != 'tpu' or target.qgemm, 'forced TPU GEMM requires a QGEMM backend')
-                    estimate = (target.gemm_cost_model.estimate(args[0].shape[-2], args[0].shape[-1], args[1].shape[-1])
-                                if target.qgemm and target.gemm_cost_model is not None else None)
+                    model = (target.specialized_gemm_cost_model
+                             if specialize_matmuls and target.mmio_kernels and args[0].shape[-1]<=131071
+                             and target.specialized_gemm_cost_model is not None else target.gemm_cost_model)
+                    estimate = (model.estimate(args[0].shape[-2], args[0].shape[-1], args[1].shape[-1])
+                                if target.qgemm and model is not None else None)
                     if estimate is not None:
                         batch_count=args[0].shape[0] if len(args[0].shape)==3 else 1
                         estimate=dict(estimate,batch_count=batch_count)
-                        for field in ('cpu_cycles','tpu_cycles','launches'):
-                            estimate[field]*=batch_count
+                        for field in ('cpu_cycles','tpu_cycles','launches','operand_word_writes','result_reads','register_transactions_min'):
+                            if field in estimate:estimate[field]*=batch_count
                     if target.qgemm and gemm_policy != 'cpu' and (
                             gemm_policy == 'tpu' or 'matmul' not in target.cpu_ops or
                             estimate is None or estimate['profitable']):

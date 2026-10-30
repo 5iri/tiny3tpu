@@ -38,6 +38,8 @@ def main():
                         help='Mask the direct result window capability for readback A/B measurements')
     parser.add_argument('--no-prepack-constants',action='store_true',
                         help='Disable compiler-generated packed constants for A/B measurements')
+    parser.add_argument('--no-specialize-matmuls',action='store_true',
+                        help='Use generic MMIO kernels for fixed-shape A/B measurements')
     parser.add_argument('--cpu',choices=('vexriscv','rocket'),default='vexriscv')
     parser.add_argument('--steps',type=int,default=1,help='Repeat a shape-preserving state update on board')
     parser.add_argument('--synapse32-dir',type=Path,default=ROOT.parent/'synapse32')
@@ -71,7 +73,8 @@ def main():
     options=CompileOptions(target=target,math_mode='freestanding',allow_approximation=True,
                            affine_offload=not args.no_affine,coefficient_tolerance=.0002,
                            affine_policy='force' if args.force_affine else 'auto',fusion=not args.no_fusion,
-                           prepack_constants=not args.no_prepack_constants,gemm_policy=args.gemm_policy)
+                           prepack_constants=not args.no_prepack_constants,
+                           specialize_matmuls=not args.no_specialize_matmuls,gemm_policy=args.gemm_policy)
     native=Compiled(source,options)
     try:
         signature=native.report['signature']['inputs']
@@ -124,7 +127,7 @@ int main(void){
     tiny3tpu_axis_mailbox mailbox;
     if(tiny3tpu_axis_mailbox_init(&mailbox,0,rd,wr,1000))return 1;
     tiny3tpu_mmio io={&mailbox,accelerator_read32,tiny3tpu_axis_mailbox_write32,1000};
-    tiny3tpu_qgemm_backend be={&io,tiny3tpu_mmio_qgemm,tiny3tpu_mmio_qgemm_packed};
+    tiny3tpu_qgemm_backend be={&io,tiny3tpu_mmio_qgemm,tiny3tpu_mmio_qgemm_packed,tiny3tpu_mmio_run_kernel};
     const void *inputs[]={state};void *outputs[]={result};
     /* PROFILE_TIMER_START */
     int status=t3p_run(inputs,outputs,&workspace,&be);
@@ -149,7 +152,7 @@ int main(void){
             'int status=0;for(unsigned step=0;step<'+str(args.steps)+';step++){\n'
             'status=t3p_run(inputs,outputs,&workspace,&be);if(status)break;memcpy(state,result,sizeof(state));}\n')
     if args.profile:
-        firmware=firmware.replace('int main(void){', '''static uint32_t tpu_cycles,calls,packed_calls;
+        firmware=firmware.replace('int main(void){', '''static uint32_t tpu_cycles,calls,packed_calls,kernel_calls;
 static uint32_t clock_cycles(void){return *(volatile uint32_t *)(uintptr_t)0x20002008U;}
 static int timed_gemm(void *user,const int8_t *a,const int8_t *b,int32_t *c,uint32_t m,uint32_t k,uint32_t n){
  uint32_t start=clock_cycles();int status=tiny3tpu_mmio_qgemm(user,a,b,c,m,k,n);
@@ -159,9 +162,14 @@ static int timed_gemm_packed(void *user,const int8_t *a,const int8_t *b,const ui
  uint32_t start=clock_cycles();int status=tiny3tpu_mmio_qgemm_packed(user,a,b,pa,pb,c,m,k,n);
  tpu_cycles+=clock_cycles()-start;calls++;packed_calls++;return status;
 }
+static int timed_kernel(void *user,tiny3tpu_mmio_kernel kernel,void *context){
+ uint32_t start=clock_cycles();int status=tiny3tpu_mmio_run_kernel(user,kernel,context);
+ tpu_cycles+=clock_cycles()-start;
+ if(status!=TINY3TPU_MMIO_KERNEL_UNSUPPORTED){calls++;kernel_calls++;}return status;
+}
 int main(void){''')
-        firmware=firmware.replace('be={&io,tiny3tpu_mmio_qgemm,tiny3tpu_mmio_qgemm_packed}',
-                                  'be={&io,timed_gemm,timed_gemm_packed}')
+        firmware=firmware.replace('be={&io,tiny3tpu_mmio_qgemm,tiny3tpu_mmio_qgemm_packed,tiny3tpu_mmio_run_kernel}',
+                                  'be={&io,timed_gemm,timed_gemm_packed,timed_kernel}')
         firmware=firmware.replace('    /* PROFILE_TIMER_START */\n',
                                   '    uint32_t start=clock_cycles();\n')
         firmware=firmware.replace('    if(status)return 10-status;',
@@ -170,7 +178,8 @@ int main(void){''')
         firmware=firmware.replace(marker,'''*(volatile uint32_t *)(uintptr_t)0x20002004U=total;
     *(volatile uint32_t *)(uintptr_t)0x20002004U=tpu_cycles;
     *(volatile uint32_t *)(uintptr_t)0x20002004U=calls;
-    *(volatile uint32_t *)(uintptr_t)0x20002004U=packed_calls;\n    '''+marker)
+    *(volatile uint32_t *)(uintptr_t)0x20002004U=packed_calls;
+    *(volatile uint32_t *)(uintptr_t)0x20002004U=kernel_calls;\n    '''+marker)
     else:
         firmware=firmware.replace('    /* PROFILE_TIMER_START */\n','')
     (out/'firmware.c').write_text(firmware)
@@ -238,16 +247,17 @@ int main(int argc,char **argv){
     run([out/('obj/V'+top)],'run')
     if args.profile:
         values=[int(line.split('=')[1]) for line in (out/'run.log').read_text().splitlines() if line.startswith('measurement=')]
-        if len(values)!=5:raise RuntimeError('Missing profiling reports')
+        if len(values)!=6:raise RuntimeError('Missing profiling reports')
         (out/'profile.json').write_text(json.dumps(dict(total_cycles=values[0],tpu_callback_cycles=values[1],
             cpu_and_conversion_cycles=values[0]-values[1],backend_calls=values[2],
-            packed_backend_calls=values[3],verified_words=values[4],
+            packed_backend_calls=values[3],specialized_backend_calls=values[4],verified_words=values[5],
             clock_hz=100000000,cpu=args.cpu,steps=args.steps,
             gemm_policy=args.gemm_policy,optimization=args.optimization,
             tpu_transport=args.tpu_transport,
             accumulation_mode='legacy' if args.legacy_accumulation else 'auto',
             result_read_mode='legacy' if args.legacy_result_reads else 'auto',
             prepack_constants=not args.no_prepack_constants,
+            specialize_matmuls=not args.no_specialize_matmuls,
             scope='instrumented full CPU+TPU RTL; tpu_callback_cycles includes packing, MMIO transport, polling, readback and CPU sum merge; state remains in simulated SoC RAM between steps'),indent=2)+'\n')
     print((out/'size.log').read_text(),end='')
     print((out/'run.log').read_text(),end='')

@@ -22,6 +22,8 @@ def main():
                         help='exact int8 GEMM placement; auto uses the target cost model')
     parser.add_argument('--no-prepack-constants',action='store_true',
                         help='keep constant TPU matmul operands in the raw fallback layout')
+    parser.add_argument('--no-specialize-matmuls',action='store_true',
+                        help='disable fixed-shape MMIO kernels for generic-driver comparisons')
     parser.add_argument('--input-fraction-bits', type=int, default=20)
     parser.add_argument('--digits', type=int, default=3)
     parser.add_argument('--coefficient-tolerance', type=float, default=0.)
@@ -39,6 +41,7 @@ def main():
             input_fraction_bits=args.input_fraction_bits, digits=args.digits,
             coefficient_tolerance=args.coefficient_tolerance,affine_policy=args.affine_policy,
             fusion=not args.no_fusion,prepack_constants=not args.no_prepack_constants,
+            specialize_matmuls=not args.no_specialize_matmuls,
             gemm_policy=args.gemm_policy), entry=args.entry)
     except ProgramError as exc:
         parser.exit(1, f'compile error: {exc}\n')

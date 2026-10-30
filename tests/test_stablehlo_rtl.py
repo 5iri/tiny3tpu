@@ -36,6 +36,11 @@ def main():
     def affine(x,y):return (x-y)*2+(x+y)*3-x*4+y*2
     cases=[('dot',export_function(dot,a,b),[a,b]),
            ('affine',export_function(affine,x,y),[x,y])]
+    # A distinct output-column schedule, including full and partial K/column
+    # tiles, must agree with the physical systolic-array dataflow too.
+    column_a=rng.integers(-128,128,(4,9),dtype=np.int8)
+    column_b=rng.integers(-128,128,(9,17),dtype=np.int8)
+    cases.append(('columns',export_function(dot,column_a,column_b),[column_a,column_b]))
     constant_a=jnp.asarray(a);constant_b=jnp.asarray(b)
     def constant_rhs(value):
         return jax.lax.dot_general(value,constant_b,(((1,),(0,)),((),())),preferred_element_type=jnp.int32)
@@ -93,6 +98,12 @@ def main():
 #include "axis_mailbox_sim.hpp"
 HEADERS
 static unsigned packed_calls;
+static unsigned kernel_calls;
+static int generated_kernel(void *u,tiny3tpu_mmio_kernel kernel,void *context) {
+    int status=tiny3tpu_mmio_run_kernel(u,kernel,context);
+    if(status!=TINY3TPU_MMIO_KERNEL_UNSUPPORTED)++kernel_calls;
+    return status;
+}
 static int packed_gemm(void *u,const int8_t *a,const int8_t *b,const uint32_t *pa,const uint32_t *pb,
                        int32_t *out,uint32_t m,uint32_t k,uint32_t n) {
     ++packed_calls;
@@ -109,10 +120,10 @@ static int gemm(void *,const int8_t *a,const int8_t *b,int32_t *out,uint32_t m,u
 int main() {
     Simulation sim;
     tiny3tpu_mmio io{&sim,read32,write32,1000};
-    tiny3tpu_qgemm_backend hardware{&io,tiny3tpu_mmio_qgemm,packed_gemm},reference{nullptr,gemm,nullptr};
+    tiny3tpu_qgemm_backend hardware{&io,tiny3tpu_mmio_qgemm,packed_gemm,generated_kernel},reference{nullptr,gemm,nullptr,nullptr};
     STATEMENTS
-    if(!sim.launches||!packed_calls)return 4;
-    std::cout<<"PASS StableHLO backend: "<<sim.launches<<" physical-design RTL launches, "<<packed_calls<<" packed calls\n";
+    if(!sim.launches||!kernel_calls)return 4;
+    std::cout<<"PASS StableHLO backend: "<<sim.launches<<" physical-design RTL launches, "<<kernel_calls<<" generated kernel calls, "<<packed_calls<<" packed calls\n";
 }
 '''.replace('HEADERS','\n'.join(headers)).replace('STATEMENTS','\n'.join(statements))
     (out/'check.cpp').write_text(source)

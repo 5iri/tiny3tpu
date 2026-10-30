@@ -149,7 +149,7 @@ int main(void)
     int8_t input[2] = {3, -4};
     int32_t output[2];
     tiny3tpu_runtime runtime;
-    tiny3tpu_qgemm_backend backend = {0, 0, 0};
+    tiny3tpu_qgemm_backend backend = {0, 0, 0, 0};
 
     build_model(model);
     if (tiny3tpu_runtime_init(&runtime, &backend) != TINY3TPU_RUNTIME_OK)

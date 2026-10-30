@@ -45,6 +45,17 @@ static int gemm(void *u,const int8_t *a,const int8_t *b,int32_t *c,
     backend_calls++;
     return tiny3tpu_mmio_qgemm(u,a,b,c,m,k,n);
 }
+static int gemm_packed(void *u,const int8_t *a,const int8_t *b,
+                       const uint32_t *pa,const uint32_t *pb,int32_t *c,
+                       uint32_t m,uint32_t k,uint32_t n) {
+    backend_calls++;
+    return tiny3tpu_mmio_qgemm_packed(u,a,b,pa,pb,c,m,k,n);
+}
+static int gemm_kernel(void *u,tiny3tpu_mmio_kernel kernel,void *context) {
+    int status=tiny3tpu_mmio_run_kernel(u,kernel,context);
+    if(status!=TINY3TPU_MMIO_KERNEL_UNSUPPORTED)backend_calls++;
+    return status;
+}
 static unsigned get_byte(void) {while(!(UART[5]&1)){}return UART[0]&255;}
 static void put_byte(unsigned v) {while(!(UART[5]&32)){}UART[0]=v&255;}
 static uint32_t get_word(void) {
@@ -57,7 +68,7 @@ int main(void) {
     tiny3tpu_axis_mailbox mailbox;
     if(tiny3tpu_axis_mailbox_init(&mailbox,0,rd,wr,1000))return 1;
     tiny3tpu_mmio io={&mailbox,tiny3tpu_axis_mailbox_read32,tiny3tpu_axis_mailbox_write32,1000};
-    tiny3tpu_qgemm_backend backend={&io,gemm};
+    tiny3tpu_qgemm_backend backend={&io,gemm,gemm_packed,gemm_kernel};
     const void *inputs[]={state};void *outputs[]={state};
     memcpy(state,initial_state,sizeof(state));
     const char *banner="CLOTH STABLEHLO CPU+TPU 921600 noddr\n";

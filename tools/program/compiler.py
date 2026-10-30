@@ -21,6 +21,7 @@ class CompileOptions:
     fusion: bool = True
     affine_policy: str = 'auto'
     prepack_constants: bool = True
+    specialize_matmuls: bool = True
     gemm_policy: str = 'auto'
 
 
@@ -52,6 +53,7 @@ def _compile_schedule(program, path, options=None):
     report = emit_c(p, path, target=options.target, symbol=options.symbol,
                     math_mode=options.math_mode, allow_approximation=options.allow_approximation,
                     fusion=options.fusion, prepack_constants=options.prepack_constants,
+                    specialize_matmuls=options.specialize_matmuls,
                     gemm_policy=options.gemm_policy)
     report['gemm_policy'] = options.gemm_policy
     report['composed_index_maps'] = composed

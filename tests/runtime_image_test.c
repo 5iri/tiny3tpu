@@ -260,7 +260,7 @@ static void alignment_tests(void)
         _Alignas(int32_t) uint8_t storage[ARENA_BYTES + 4];
         tiny3tpu_runtime r;
         unsigned calls = 0;
-        tiny3tpu_qgemm_backend b = {&calls, backend, 0};
+        tiny3tpu_qgemm_backend b = {&calls, backend, 0, 0};
         int32_t output[2];
         tiny3tpu_runtime_status want = !misaligned && !extra ?
             TINY3TPU_RUNTIME_NO_MEMORY : TINY3TPU_RUNTIME_OK;

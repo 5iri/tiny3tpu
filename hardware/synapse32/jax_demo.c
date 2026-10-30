@@ -35,7 +35,7 @@ int main(void)
     memcpy(model,jax_model,sizeof(jax_model));
     memcpy(input,jax_input,sizeof(jax_input));
     if(tiny3tpu_dma_init(&dma)) { puts("JAX FAIL: DMA init"); return 12; }
-    tiny3tpu_qgemm_backend backend={&dma,run_tpu,0};
+    tiny3tpu_qgemm_backend backend={&dma,run_tpu,0,0};
     tiny3tpu_runtime runtime;
     int status=tiny3tpu_runtime_init(&runtime,&backend);
     if(!status) status=tiny3tpu_runtime_load_model(&runtime,model,sizeof(jax_model));

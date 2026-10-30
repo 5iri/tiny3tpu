@@ -96,6 +96,13 @@ add_test(NAME tiny3tpu_firmware_runtime_adapter_test
          COMMAND tiny3tpu_firmware_runtime_adapter_test)
 
 find_package(Python3 COMPONENTS Interpreter QUIET)
+foreach(transport demo_transport demo_uart_transport)
+  add_executable(tiny3tpu_${transport}_test tests/${transport}_test.c)
+  target_include_directories(tiny3tpu_${transport}_test PRIVATE include)
+  target_compile_options(tiny3tpu_${transport}_test PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
+  add_test(NAME tiny3tpu_${transport}_test COMMAND tiny3tpu_${transport}_test)
+  set_tests_properties(tiny3tpu_${transport}_test PROPERTIES TIMEOUT 30)
+endforeach()
 if(Python3_Interpreter_FOUND)
   add_test(NAME kc705_io_export
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_kc705_io_export.py)
@@ -116,6 +123,9 @@ if(Python3_Interpreter_FOUND)
   add_test(NAME stablehlo_compiler
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_stablehlo_compiler.py)
   set_tests_properties(stablehlo_compiler PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+  add_test(NAME stablehlo_mmio_codegen
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mmio_codegen.py)
+  set_tests_properties(stablehlo_mmio_codegen PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
 endif()
 
 find_program(TINY3TPU_IVERILOG iverilog)

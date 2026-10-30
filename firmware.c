@@ -939,7 +939,8 @@ static tiny3tpu_mmio g_generic_mmio = {
     (void *)0, generic_mmio_read, generic_mmio_write, MAX_WAIT_POLLS
 };
 static tiny3tpu_qgemm_backend g_generic_qgemm_backend = {
-    &g_generic_mmio, tiny3tpu_mmio_qgemm, tiny3tpu_mmio_qgemm_packed
+    &g_generic_mmio, tiny3tpu_mmio_qgemm, tiny3tpu_mmio_qgemm_packed,
+    tiny3tpu_mmio_run_kernel
 };
 #endif
 

@@ -7,6 +7,7 @@ Targets may override these coefficients without changing the frontend/pass.
 """
 from dataclasses import dataclass
 import math
+from .mmio_codegen import tile_statistics
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,39 @@ class GemmCostModel:
                     schedule=schedule, launches=launches,
                     minimum_speedup=self.minimum_speedup,
                     profitable=tpu*self.minimum_speedup < cpu)
+
+
+@dataclass(frozen=True)
+class SpecializedGemmCostModel(GemmCostModel):
+    """Conservative direct-MMIO kernel estimate from full VexRiscv RTL runs.
+
+    Charge all operand words for dynamic packing, even when prepacked constants
+    make the actual kernel cheaper. Keep the generic model as a separate target
+    property so disabling specialization also restores its placement estimate.
+    """
+    name: str = 'vexriscv-direct-specialized-v1'
+    register_cycles: float = 52.
+    tile_packing_cycles: float = 0.
+    word_packing_cycles: float = 20.
+    launch_cycles: float = 40.
+    result_store_cycles: float = 10.
+
+    def __post_init__(self):
+        super().__post_init__()
+        if not all(math.isfinite(v) and v>=0 for v in
+                   (self.word_packing_cycles,self.launch_cycles,self.result_store_cycles)):
+            raise ValueError('GEMM cost coefficients must be finite and nonnegative')
+
+    def estimate(self,m,k,n):
+        traffic=tile_statistics(m,k,n)
+        cpu=m*k*n*self.cpu_mac_cycles+m*n*self.cpu_output_cycles
+        tpu=(traffic['register_transactions_min']*self.register_cycles+
+             traffic['operand_word_writes']*self.word_packing_cycles+
+             traffic['launches']*self.launch_cycles+
+             traffic['result_reads']*self.result_store_cycles)
+        return dict(model=self.name,cpu_cycles=cpu,tpu_cycles=tpu,**traffic,
+                    minimum_speedup=self.minimum_speedup,
+                    profitable=tpu*self.minimum_speedup<cpu)
 
 
 @dataclass(frozen=True)

@@ -63,7 +63,7 @@ static int gemm_packed(void *user,const int8_t *a,const int8_t *b,
     return 0;
 }
 int run(const void *const *inputs,void *const *outputs,int mode) {
-    tiny3tpu_qgemm_backend backend={(mode==2||mode==4)?&calls:0,gemm,mode>=3?gemm_packed:0};
+    tiny3tpu_qgemm_backend backend={(mode==2||mode==4)?&calls:0,gemm,mode>=3?gemm_packed:0,0};
     return t3p_run(inputs,outputs,&workspace,mode==1?0:&backend);
 }
 unsigned backend_calls(void){return calls;}
@@ -73,7 +73,7 @@ unsigned workspace_size(void){return sizeof(workspace);}
 
 
 class Compiled:
-    def __init__(self, source, options=None, harness=HARNESS, plan=None):
+    def __init__(self, source, options=None, harness=HARNESS, plan=None, extra_sources=()):
         self.temp = tempfile.TemporaryDirectory(prefix='tiny3tpu-stablehlo-')
         self.path = Path(self.temp.name)
         if plan is None:
@@ -83,12 +83,13 @@ class Compiled:
             generated,self.report=emit_c(plan,None,target=options.target,symbol=options.symbol,
                                          math_mode=options.math_mode,allow_approximation=options.allow_approximation,
                                          fusion=options.fusion,prepack_constants=options.prepack_constants,
+                                         specialize_matmuls=options.specialize_matmuls,
                                          gemm_policy=options.gemm_policy)
             (self.path/'program.h').write_text(generated)
         (self.path/'check.c').write_text(harness)
         subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror','-pedantic',
                         '-O2','-ffp-contract=off','-shared','-fPIC', '-I'+str(ROOT/'include'),
-                        str(self.path/'check.c'),'-lm','-o',str(self.path/'check.so')], check=True, capture_output=True)
+                        str(self.path/'check.c'),*map(str,extra_sources),'-lm','-o',str(self.path/'check.so')], check=True, capture_output=True)
         self.library = ctypes.CDLL(str(self.path/'check.so'))
         self.library.run.argtypes = [ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(ctypes.c_void_p), ctypes.c_int]
         assert self.library.workspace_size()==self.report['workspace_bytes'], 'workspace size report mismatch'

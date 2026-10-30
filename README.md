@@ -134,6 +134,85 @@ Select a target that matches your FPGA image. `kc705-cordic` needs the CORDIC pe
 
 The original MNIST upload/draw tools remain in [pyfiles](pyfiles), with their older firmware in [firmware.c](firmware.c). Use the host tool that matches the programmed image.
 
+### Shape-specific matrix kernels
+
+The compiler now emits fixed-shape MMIO kernels for KC705 INT8 products. It
+resolves core assignment, padding and tile addresses at compile time, packs
+dynamic operands directly from its workspace, and writes results back there
+without a separate accumulator copy. Small outer tile loops bound code size;
+projections with the same shape and operand layout share a kernel. Constant
+prepacking remains optional.
+
+The direct targets use a separate cost model for these kernels. `auto` selects
+the TPU for all four fixtures below. These are whole-program VexRiscv RTL cycles
+at `-O2`, using the same RTL, input and reference outputs for every variant.
+Attention retains CORDIC exponential in every variant. UART and host rendering
+are excluded.
+
+| Fixture | CPU matmuls | Generic direct TPU | Generated direct TPU | Gain over CPU |
+| --- | ---: | ---: | ---: | ---: |
+| Classifier, first sample | 378,115 | 845,575 | 193,610 | 1.95× |
+| Banana, first transform | 298,751 | 435,169 | 243,198 | 1.23× |
+| Attention + CORDIC | 1,168,118 | 1,228,342 | 1,097,692 | 1.06× |
+| 16×256×16 product | 3,117,533 | 2,274,886 | 703,616 | 4.43× |
+
+Every variant matched every output word. Mailbox placement stays conservative;
+these direct-transport gains require the matching `DIRECT_TPU=1` hardware.
+They are simulation results, with physical validation still pending.
+The [measurement record](hardware/kc705_vexriscv/matmul_codegen_evidence.json)
+records firmware sizes, source hashes and the individual comparisons.
+
+For an exported fixture, reproduce CPU, automatic, generated-TPU and generic-TPU
+comparisons with:
+
+```bash
+.venv/bin/python tests/profile_end_to_end.py \
+  --artifact build-showcase/attention_block/program.mlirbc \
+  --input build-showcase/attention_block/input.npy \
+  --out build-matmul-specialization/attention-direct \
+  --tpu-transport direct --optimization O2 --cordic --compare-generic
+```
+
+`CompileOptions(specialize_matmuls=False)` and `--no-specialize-matmuls` on the
+compiler/SoC runner restore the generic path and its placement model. Compiler
+reports list `specialized_matmuls` and `specialized_kernel_count`; SoC profiles
+count actual `specialized_backend_calls`.
+
+Embedding firmware opts in through the new optional backend field
+`run_mmio_kernel=tiny3tpu_mmio_run_kernel`, with `user` pointing to its
+`tiny3tpu_mmio`. Rebuild callers against the updated backend struct and initialize
+this field to zero for other backends. Missing hooks or hardware without both
+retained accumulation and the result window use the existing generic callbacks.
+Bus errors and timeouts propagate without retrying a partly executed operation.
+
+The combined direct showcase image passes 10 UART RTL requests, and the trained
+classifier image passes 22, including all 20 samples. Both retain the linker's
+4 KiB stack reservation. The combined image leaves only 72 additional bytes;
+runtime peak stack remains unmeasured.
+
+Matched UART-level comparisons now include CPU matmuls, the generic TPU driver,
+and generated TPU kernels, all at `-O2` with direct transport. These times cover
+the complete request/response, including application compute and UART traffic,
+in 100 MHz RTL simulation. Attention retains CORDIC in every variant. The CPU
+column is a separate reference; the speedup column compares the two TPU versions.
+
+| Workload | CPU matmuls | Generic TPU | Generated TPU | TPU before/after gain |
+| --- | ---: | ---: | ---: | ---: |
+| Classifier, first sample | 4.76 ms | 9.31 ms | 2.97 ms | 3.14× |
+| Attention + CORDIC | 15.01 ms | 15.73 ms | 14.29 ms | 1.10× |
+| Banana, full payload | 30.28 ms | 31.69 ms | 29.71 ms | 1.07× |
+| Banana, compact payload | 17.75 ms | 19.11 ms | 17.13 ms | 1.12× |
+
+The full banana response spends about 27.26 ms outside application compute,
+mostly on serial transfer, which limits the visible benefit of faster matrix
+execution. Across the six firmware variants, all **96 requests** passed exact
+output and backend-count checks, and native reference arrays matched across
+all variants. See the [UART comparison evidence](hardware/kc705_vexriscv/matmul_end_to_end_evidence.json).
+Both showcase firmware builders accept `--no-specialize-matmuls` to generate
+the generic-driver baseline. These measurements exclude host OS/USB latency,
+rendering, DDR3 and physical-board timing. The 16×256×16 fixture has compute-only
+measurements above; its UART request/response time has not been measured.
+
 ## Sources and earlier writeups
 
 The banana mesh comes from [SRA-VJTI/jaxsim](https://github.com/SRA-VJTI/jaxsim/blob/c0a097bba1c6db10cac7b359fbac11cfedc48c6b/examples/softras_simple_render.py). Chromatic board support is based on [ModRetro's FPGA sources](https://github.com/ModRetro/oss-chromatic-console-fpga/tree/8b4c965dc3a57fd4412836c136b5228a63c72803), with its license retained in the target directory. Media sources and processing steps are listed in the [asset guide](media/board-demos/README.md).

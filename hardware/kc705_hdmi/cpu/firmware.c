@@ -49,7 +49,7 @@ static int packed(void *u,const int8_t *a,const int8_t *b,const uint32_t *pa,con
 }
 int main(void){
     tiny3tpu_mmio io={0,rd,wr,1000};
-    tiny3tpu_qgemm_backend backend={&io,gemm,packed};
+    tiny3tpu_qgemm_backend backend={&io,gemm,packed,0};
     if(tiny3tpu_hdmi_read(0)!=TINY3TPU_HDMI_ID)return 1;
     if(tiny3tpu_hdmi_read(0x24)!=JAX_VERTEX_COUNT)return 1;
     const void *inputs[]={phase_input};void *outputs[]={coordinates};
