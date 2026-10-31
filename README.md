@@ -535,3 +535,10 @@ The remaining major limits are CPU soft-float, per-register operand transfers,
 short K tiles, and the unqualified larger-memory path. No new bitstream has been
 flashed: no KC705 serial device was connected, and the configured Kintex-7 route
 database was unavailable during this run.
+
+## MJX learning
+
+This branch adds compiled MJX balancing and random-search policy learning,
+a CPU port of the MuJoCo renderer using TinyGL, and HDMI framebuffer output.
+Native convergence and bounded integrated RTL execution have separate
+validation scopes. See [the learning guide](sidequests/mjx_rl/README.md).

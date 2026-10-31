@@ -389,3 +389,19 @@ if(TINY3TPU_SYNAPSE32_DIR)
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_synapse32_cpu_test.cmake)
   set_tests_properties(synapse32_divider_dram PROPERTIES TIMEOUT 240)
 endif()
+
+# Optional MJX learning and renderer checks.
+set(TINY3TPU_MJX_PYTHON "" CACHE FILEPATH "Python with sidequests/mjx_rl/requirements.txt for MJX learning and HDMI RTL checks")
+if(TINY3TPU_MJX_PYTHON)
+  if(NOT TINY3TPU_VERILATOR)
+    message(FATAL_ERROR "MJX SoC/HDMI checks require Verilator")
+  endif()
+  add_test(NAME mjx_rl_hdmi
+    COMMAND ${TINY3TPU_MJX_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/sidequests/mjx_rl/verify.py
+      --rtl --out ${CMAKE_CURRENT_BINARY_DIR}/mjx-rl)
+  set_tests_properties(mjx_rl_hdmi PROPERTIES TIMEOUT 1200)
+  add_test(NAME mjx_rl_hdmi_720p
+    COMMAND ${TINY3TPU_MJX_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/sidequests/mjx_rl/render/verify_rtl.py
+      ${CMAKE_CURRENT_BINARY_DIR}/mjx-rl-720p --video-mode 720p)
+  set_tests_properties(mjx_rl_hdmi_720p PROPERTIES TIMEOUT 1200)
+endif()
