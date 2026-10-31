@@ -535,3 +535,12 @@ The remaining major limits are CPU soft-float, per-register operand transfers,
 short K tiles, and the unqualified larger-memory path. No new bitstream has been
 flashed: no KC705 serial device was connected, and the configured Kintex-7 route
 database was unavailable during this run.
+
+## tinygrad and ONNX frontend
+
+This branch lowers tinygrad Tensor and ONNX graphs through the shared compiler,
+including INT8 convolution and matrix products. The OpenPilot-inspired example
+is a compact synthetic policy with seeded random weights, used to check compiler
+coverage; it supplies no trained driving model or driving validation. See
+[the frontend example](sidequests/openpilot/prepare.py) and
+[the integration checks](tests/test_tinygrad_openpilot.py).

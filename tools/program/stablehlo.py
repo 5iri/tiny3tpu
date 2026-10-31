@@ -363,11 +363,14 @@ class Lowering:
 
 
 def compile_stablehlo(source, output, options=None, *, entry='main'):
-    """Compile MLIR text or a StableHLO portable artifact.
+    """Compile MLIR text, a StableHLO portable artifact, or an ONNX model (via tinygrad).
 
     The source artifact is the public compiler contract. The returned report
     describes lowered operations, memory, precision policy and CPU/TPU placement.
     """
+    if isinstance(source, (str, Path)) and str(source).endswith('.onnx'):
+        from .tinygrad_frontend import compile_onnx_via_tinygrad
+        return compile_onnx_via_tinygrad(Path(source), output, options)
     if isinstance(source, Path):
         source = source.read_bytes()
     ir, hlo, func, context = _bindings()

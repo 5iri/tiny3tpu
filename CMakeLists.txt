@@ -389,3 +389,9 @@ if(TINY3TPU_SYNAPSE32_DIR)
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_synapse32_cpu_test.cmake)
   set_tests_properties(synapse32_divider_dram PROPERTIES TIMEOUT 240)
 endif()
+
+if(Python3_Interpreter_FOUND)
+  add_test(NAME tinygrad_openpilot
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_tinygrad_openpilot.py)
+  set_tests_properties(tinygrad_openpilot PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+endif()
