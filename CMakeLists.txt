@@ -389,3 +389,29 @@ if(TINY3TPU_SYNAPSE32_DIR)
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_synapse32_cpu_test.cmake)
   set_tests_properties(synapse32_divider_dram PROPERTIES TIMEOUT 240)
 endif()
+
+# Hardware Ethernet transport checks.
+set(TINY3TPU_ETHERNET_PYTHON "" CACHE FILEPATH "Python with LiteEth/LiteX 2024.12 and Migen 0.9.2 for GMII tests")
+if(TINY3TPU_ETHERNET_PYTHON)
+  if(NOT TINY3TPU_VERILATOR)
+    message(FATAL_ERROR "Ethernet GMII tests require Verilator")
+  endif()
+  add_test(NAME kc705_liteeth_gmii
+    COMMAND ${TINY3TPU_ETHERNET_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_ethernet/test.py
+      --test gmii --out ${CMAKE_CURRENT_BINARY_DIR}/liteeth-gmii)
+  set_tests_properties(kc705_liteeth_gmii PROPERTIES TIMEOUT 240)
+endif()
+if(TINY3TPU_IVERILOG AND TINY3TPU_VVP AND Python3_Interpreter_FOUND)
+  add_test(NAME tiny3tpu_udp_transport
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_udp_transport.py)
+    add_test(NAME kc705_phy_mdio
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_ethernet/test.py
+        --test mdio --out ${CMAKE_CURRENT_BINARY_DIR}/phy-mdio)
+    set_tests_properties(kc705_phy_mdio PROPERTIES TIMEOUT 30)
+  add_test(NAME tiny3tpu_udp_peripheral
+    COMMAND ${CMAKE_COMMAND}
+      -DIVERILOG=${TINY3TPU_IVERILOG} -DVVP=${TINY3TPU_VVP}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/udp-peripheral
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_udp_peripheral.cmake)
+endif()

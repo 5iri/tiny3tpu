@@ -10,7 +10,8 @@ module vexriscv_tpu_soc #(
     parameter ENABLE_CORDIC = 0,
     parameter ENABLE_FPU = 1,
     // Explicit hardware/firmware ABI choice. Legacy bitstreams use the mailbox.
-    parameter DIRECT_TPU = 0
+    parameter DIRECT_TPU = 0,
+    parameter ENABLE_ETHERNET = 0
 ) (
     input wire clk, input wire rst, input wire ready_to_run,
     input wire uart_rx, output wire uart_tx,
@@ -73,7 +74,8 @@ module vexriscv_tpu_soc #(
         DIRECT_TPU ? addr[31:10] == (32'h20001000 >> 10) : addr[31:5] == (32'h20001000 >> 5),
         addr[31:5] == (32'h20000000 >> 5),
         addr >= 32'h80000000 && (addr - 32'h80000000) < BOOT_WORDS*4,
-        addr[31:30] == 2'b01 || addr[31:16] == 16'hf000
+        addr[31:30] == 2'b01 || addr[31:16] == 16'hf000 ||
+            (ENABLE_ETHERNET && addr[31:13] == (32'h20004000 >> 13))
     };
     reg [5:0] registered_decode;
     reg registered_full_write;

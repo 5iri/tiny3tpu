@@ -59,6 +59,7 @@ def main():
     parser.add_argument('--no-specialize-matmuls', action='store_true',
                         help='Use the generic TPU driver for matched firmware comparisons')
     parser.add_argument('--tpu-transport', choices=('mailbox', 'direct'), default='mailbox')
+    parser.add_argument('--io-transport', choices=('uart', 'udp'), default='uart', help='UDP requires freshly synthesized Ethernet hardware')
     parser.add_argument('--ram-kib', type=int, choices=(64, 128, 256, 512), default=64, help='On-chip boot RAM budget in KiB')
     stage = parser.add_mutually_exclusive_group()
     stage.add_argument('--compile-only', action='store_true', help='Compile firmware only (default)')
@@ -73,7 +74,7 @@ def main():
         print('Prepared classifier headers and verified all 20 samples; no training or firmware build.')
         return
     build = compile_firmware(ROOT / 'sidequests/showcase/classifier_firmware.c', [out], out,
-                             args.optimization, args.tpu_transport, 'uart', ram_kib=args.ram_kib)
+                             args.optimization, args.tpu_transport, args.io_transport, ram_kib=args.ram_kib)
     build.update(schema_version=1, gemm_policy=args.gemm_policy,
                  specialize_matmuls=not args.no_specialize_matmuls,
                  artifact_dir=str(args.artifacts.resolve()),

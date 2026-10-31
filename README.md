@@ -535,3 +535,12 @@ The remaining major limits are CPU soft-float, per-register operand transfers,
 short K tiles, and the unqualified larger-memory path. No new bitstream has been
 flashed: no KC705 serial device was connected, and the configured Kintex-7 route
 database was unavailable during this run.
+
+## Hardware Ethernet
+
+The Ethernet target implements GMII, ARP, IPv4, ICMP, UDP, packet buffers,
+and host transport for the existing applications. Saved digital GMII checks
+measure a 90 µs 1,268-byte echo and a 4.15 ms fresh banana result. Physical
+Ethernet timing and host-to-board latency remain unqualified. See
+[the Ethernet guide](hardware/kc705_ethernet/README.md) and
+[the mesh capacity study](sidequests/banana/CAPACITY.md).

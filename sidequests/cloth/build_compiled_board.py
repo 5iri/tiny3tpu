@@ -24,6 +24,7 @@ def main():
     p.add_argument('--optimization',choices=('Os','O2','O3'),default='O2')
     p.add_argument('--gemm-policy',choices=('auto','cpu','tpu'),default='auto')
     p.add_argument('--tpu-transport',choices=('mailbox','direct'),default='mailbox')
+    p.add_argument('--io-transport',choices=('uart','udp'),default='uart',help='UDP requires a fresh Ethernet implementation')
     p.add_argument('--affine-policy',choices=('auto','force'),default='auto')
     p.add_argument('--no-fusion',action='store_true')
     p.add_argument('--cpu',choices=('vexriscv','rocket'),default='vexriscv')
@@ -36,6 +37,8 @@ def main():
     if a.cpu=='vexriscv' and clock_mhz!=100:p.error('The retained VexRiscv route requires 100 MHz')
     if a.no_lutram and a.cpu!='rocket':p.error('--no-lutram requires --cpu rocket')
     if a.cpu=='rocket' and a.tpu_transport!='mailbox':p.error('direct TPU requires VexRiscv')
+    if a.io_transport=='udp' and (a.cpu!='vexriscv' or not a.compile_only):
+        p.error('UDP firmware currently requires --cpu vexriscv --compile-only; build fresh Ethernet hardware separately')
     if a.cpu=='vexriscv' and not a.compile_only:
         if out==a.base.resolve():p.error('--out must differ from --base to preserve the reference firmware and route')
         configuration=a.base/'implementation-configuration.json'
@@ -68,7 +71,7 @@ def main():
                else ['-march=rv32im_zicsr_zifencei','-mabi=ilp32'])
     startup=ROOT/('hardware/kc705_rocket/start.S' if a.cpu=='rocket' else 'hardware/synapse32/start.S')
     run(['riscv64-unknown-elf-gcc',*cpu_flags,'-'+a.optimization,f'-DTINY3TPU_DIRECT_TPU={int(a.tpu_transport=="direct")}',f'-DTINY3TPU_CLOCK_HZ={clock_mhz*1000000}',
-         f'-DTINY3TPU_ETHERNET={int('uart'=="udp")}',
+         f'-DTINY3TPU_ETHERNET={int(a.io_transport=="udp")}',
          '-ffp-contract=off','-ffreestanding','-fno-builtin','-nostdlib','-msmall-data-limit=0',
          '-ffunction-sections','-fdata-sections','-Wall','-Wextra','-Werror',
          '-I'+str(ROOT/'include'),'-I'+str(out),'-Wl,--no-relax,--gc-sections',
@@ -81,7 +84,7 @@ def main():
            out/'cloth_program.h',out/'compiled_scene.h',out/'firmware.elf',out/'firmware.hex']
     files += sorted((ROOT/'include').glob('tiny3tpu_*transport.h'))
     manifest={'physics':'StableHLO compiled to on-board RISC-V with compiler-selected affine TPU partitions',
-        'cpu':a.cpu,'clock_hz':clock_mhz*1000000,'tpu_transport':a.tpu_transport,'io_transport':'uart',
+        'cpu':a.cpu,'clock_hz':clock_mhz*1000000,'tpu_transport':a.tpu_transport,'io_transport':a.io_transport,
         'compiler_options':{'affine_policy':a.affine_policy,'gemm_policy':a.gemm_policy,'fusion':not a.no_fusion,'optimization':a.optimization},
         'physics_affine_partitions':len(report['partitions']),'placement':report['placement'],
         'physics_backend_calls_first_step':physics_calls,'camera_backend_calls_per_frame':1,

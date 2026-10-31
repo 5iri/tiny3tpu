@@ -9,7 +9,7 @@ from PIL import Image,ImageDraw
 from protocol import transact
 from build_support import load_expected_modes
 from stream import LatestResults
-from uart_transport import open_transport,LatencyWindow
+from udp_transport import add_transport_arguments,open_transport,LatencyWindow
 ROOT=Path(__file__).resolve().parents[2]
 def banana_image(data,mesh,scale):
  camera=data[1:].reshape(-1,3)/scale
@@ -25,8 +25,9 @@ def banana_image(data,mesh,scale):
 def main():
  p=argparse.ArgumentParser(description=__doc__)
  p.add_argument('--port',default='/dev/cu.usbserial-0001')
+ add_transport_arguments(p)
  p.add_argument('--http-port',type=int,default=8766)
- p.add_argument('--raw-uart','--raw-responses',dest='raw_uart',action='store_true',help='Disable lossless compact banana responses')
+ p.add_argument('--raw-uart','--raw-responses',dest='raw_uart',action='store_true',help='Disable lossless compact banana responses on either transport')
  p.add_argument('--out',type=Path,default=ROOT/'build-showcase/live')
  p.add_argument('--board',type=Path,default=ROOT/'build-showcase/board',help='Build directory for the programmed image')
  p.add_argument('--expected-backend-calls',type=int,nargs=4,metavar=('MLP','ATTENTION','CORDIC','BANANA'),help='Explicit counts for an older image without a build manifest')
@@ -34,7 +35,7 @@ def main():
  manifest_path=a.board/'build-manifest.json'
  if manifest_path.exists():
   _,manifest=load_expected_modes(a.board,{i:0 for i in range(4)})
-  if manifest.get('io_transport','uart')!='uart':p.error('Selected build manifest does not match the requested UART transport')
+  if manifest.get('io_transport','uart')!=('udp' if a.udp else 'uart'):p.error('Selected build manifest does not match the requested UART/UDP transport')
   contracts={int(x['mode']):x for x in manifest['modes']};clock_hz=manifest['clock_hz']
  elif a.expected_backend_calls is not None:
   if min(a.expected_backend_calls)<0:p.error('--expected-backend-calls must be nonnegative')
@@ -56,9 +57,9 @@ def main():
  server=ThreadingHTTPServer(('127.0.0.1',a.http_port),Handler);threading.Thread(target=server.serve_forever,daemon=True).start()
  def acquire(stream):
   samples={i:deque(maxlen=16) for i in range(4)};history=deque(maxlen=16);previous=None;counts={i:0 for i in range(4)};latencies={i:LatencyWindow() for i in range(4)}
-  with open_transport(a.port,stop=stream.stopped) as uart:
-   # Compact coordinates reduce UART wire time.
-   uart.reset_input_buffer();sequence=0;compact_enabled=not a.raw_uart
+  with open_transport(a.port,udp=a.udp,udp_bind_port=a.udp_bind_port,stop=stream.stopped) as uart:
+   # Encoding saves UART wire time but adds CPU work on the faster UDP link.
+   uart.reset_input_buffer();sequence=0;compact_enabled=not a.udp and not a.raw_uart
    while not stream.stopped.is_set():
     mode=(sequence//20)%3 if sequence%20==0 else 3
     rec,data=transact(uart,sequence,mode,stop=stream.stopped,compact=mode==3 and compact_enabled)
