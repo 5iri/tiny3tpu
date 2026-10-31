@@ -1,7 +1,7 @@
 """Independent scalar matrix multiplication and direct edge-function rasterizer."""
 from pathlib import Path
 import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]/'chromatic/tools'))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]/'banana_scene/tools'))
 from assets import data
 
 PHASES = list(range(0, 256, 16))

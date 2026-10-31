@@ -13,7 +13,7 @@ sys.path[:0]=[str(ROOT),str(ROOT/'tests')]
 from tools.jax_stablehlo import export_function
 from tools.program import CompileOptions, KC705_DIRECT, compile_stablehlo
 from test_stablehlo_compiler import Compiled
-from build_support import compile_firmware
+from sidequests.showcase.build_support import compile_firmware
 
 
 def main():
@@ -57,7 +57,7 @@ def main():
                  jax_native_exact_coordinates=int(expected.size),cores=2,array=[4,4],
                  display=[640,480],resident_animation_frames=False,jax_verify_phases=1,animation_hz=30)
     paths=[Path(__file__),Path(__file__).with_name('workload.py'),
-           Path(__file__).with_name('build_support.py'),ROOT/'include/tiny3tpu_hdmi.h',ROOT/'hardware/kc705_hdmi/assets/mesh.json',
+           ROOT/'sidequests/showcase/build_support.py',ROOT/'include/tiny3tpu_hdmi.h',ROOT/'hardware/kc705_hdmi/assets/mesh.json',
            out/'banana_spinner369.mlirbc',out/'banana_spinner369.h',out/'jax_expected.h',out/'jax-coordinates.npy']
     build['workload_sha256']={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
     (out/'build-manifest.json').write_text(json.dumps(build,indent=2)+'\n')

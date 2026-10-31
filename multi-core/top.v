@@ -1,13 +1,13 @@
 `timescale 1ns/1ps
 
 module top #(
-    // Default board contract: two 4x4 cores with a shared host operand aperture.
+    // Default board contract: eight 4x4 cores with a shared host operand aperture.
     // Larger heterogeneous arrays remain available through parameter overrides.
-    parameter  NUM_CORES       = 2,
+    parameter  NUM_CORES       = 8,
     parameter  N               = 4,
     parameter  DW              = 8,
     parameter  CW              = 32,
-    parameter  NUM_BIG_CORES   = 2,
+    parameter  NUM_BIG_CORES   = 8,
     parameter  SMALL_N         = 4,
     parameter  NUM_SMALL_CORES = NUM_CORES - NUM_BIG_CORES,
     parameter  BIG_N           = N,
@@ -20,13 +20,16 @@ module top #(
     input  wire                         clk,
     input  wire                         rst,
 
-    // Host operand aperture. Writes go directly to the selected core scratchpad.
+    // Host operand aperture. Writes go directly to the selected core(s).
     input  wire                         ubuf_wr_en,
     input  wire                         ubuf_wr_sel,  // 0: A bank, 1: B bank
     input  wire [CORE_W-1:0]            ubuf_wr_core,
+    input  wire [NUM_CORES-1:0]         ubuf_wr_mask,
     input  wire [ROW_W-1:0]             ubuf_wr_row,
     input  wire [ROW_W-1:0]             ubuf_wr_col,
     input  wire signed [DW-1:0]         ubuf_wr_data,
+    input  wire [N_MAX-1:0]             ubuf_wr_row_strb = {N_MAX{1'b0}},
+    input  wire [N_MAX*DW-1:0]          ubuf_wr_row_data = {(N_MAX*DW){1'b0}},
 
     input  wire                         start,
     input  wire                         continue_accum,
@@ -52,6 +55,8 @@ module top #(
     reg core_done_seen [0:NUM_CORES-1];
     reg run_continue;
     reg all_done;
+    wire [NUM_CORES-1:0] effective_wr_mask = (|ubuf_wr_mask) ? ubuf_wr_mask :
+                                             ({{(NUM_CORES-1){1'b0}}, 1'b1} << ubuf_wr_core);
     integer i;
 
     generate
@@ -68,12 +73,14 @@ module top #(
                 .continue_accum(core_continue[g_big]),
                 .busy(core_busy[g_big]),
                 .done(core_done[g_big]),
-                .load_en(ubuf_wr_en && !busy && ubuf_wr_core == g_big &&
-                         ubuf_wr_row < BIG_N && ubuf_wr_col < BIG_N),
+                .load_en(ubuf_wr_en && !busy && effective_wr_mask[g_big] &&
+                         ubuf_wr_row < BIG_N && ((|ubuf_wr_row_strb) || ubuf_wr_col < BIG_N)),
                 .load_sel(ubuf_wr_sel),
                 .load_row(ubuf_wr_row[BIG_ROW_W-1:0]),
                 .load_col(ubuf_wr_col[BIG_ROW_W-1:0]),
                 .load_data(ubuf_wr_data),
+                .load_row_strb(ubuf_wr_row_strb[BIG_N-1:0]),
+                .load_row_data(ubuf_wr_row_data[BIG_N*DW-1:0]),
                 .c_rd_en(c_rd_en && (c_rd_core == g_big) &&
                          (c_rd_row < BIG_N) && (c_rd_col < BIG_N)),
                 .c_rd_row(c_rd_row[BIG_ROW_W-1:0]),
@@ -96,12 +103,14 @@ module top #(
                 .continue_accum(core_continue[CORE_IDX]),
                 .busy(core_busy[CORE_IDX]),
                 .done(core_done[CORE_IDX]),
-                .load_en(ubuf_wr_en && !busy && ubuf_wr_core == CORE_IDX &&
-                         ubuf_wr_row < SMALL_N && ubuf_wr_col < SMALL_N),
+                .load_en(ubuf_wr_en && !busy && effective_wr_mask[CORE_IDX] &&
+                         ubuf_wr_row < SMALL_N && ((|ubuf_wr_row_strb) || ubuf_wr_col < SMALL_N)),
                 .load_sel(ubuf_wr_sel),
                 .load_row(ubuf_wr_row[SMALL_ROW_W-1:0]),
                 .load_col(ubuf_wr_col[SMALL_ROW_W-1:0]),
                 .load_data(ubuf_wr_data),
+                .load_row_strb(ubuf_wr_row_strb[SMALL_N-1:0]),
+                .load_row_data(ubuf_wr_row_data[SMALL_N*DW-1:0]),
                 .c_rd_en(c_rd_en && (c_rd_core == CORE_IDX) &&
                          (c_rd_row < SMALL_N) && (c_rd_col < SMALL_N)),
                 .c_rd_row(c_rd_row[SMALL_ROW_W-1:0]),

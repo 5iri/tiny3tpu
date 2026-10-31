@@ -1,8 +1,9 @@
 `timescale 1ns/1ps
-// KC705: PCA9548 channel 5 -> ADV7511, 640x480/60, BT.601 16-bit 4:2:2.
+// KC705: PCA9548 channel 5 -> ADV7511, VGA/720p60, BT.601 16-bit 4:2:2.
 // Register provenance and limitations: ../ADV7511_REGISTERS.md.
 module kc705_hdmi_init #(
     parameter integer CLOCK_HZ = 25200000,
+    parameter integer VIDEO_720P = 0,
     parameter integer I2C_HZ = 100000,
     parameter integer RETRY_LIMIT = 3, // total attempts per I2C transaction
     parameter integer STARTUP_MS = 200,
@@ -52,7 +53,7 @@ module kc705_hdmi_init #(
                 8: setting=16'hf900;
                 9: setting=16'h1501; // SDR 16/20/24-bit 4:2:2, separate sync
                10: setting=16'h1634; // 8 bits/component, style 2, RGB output
-               11: setting=16'h1700; // pass sync polarity, external DE, 4:3
+               11: setting=VIDEO_720P ? 16'h1702 : 16'h1700; // pass sync, external DE, aspect
                12: setting=16'h4808; // right justified; KC705 board bus = {C,Y}
                13: setting=16'hba60; // input clock delay 0 ns
                14: setting=16'hd600; // use physical HPD, no input clock gating
@@ -62,7 +63,7 @@ module kc705_hdmi_init #(
                18: setting=16'h0c00; // I2S inputs disabled
                19: setting=16'haf06; // HDMI; HDCP and frame encryption off
                20: setting=16'h3bc0; // manual x1 repeat; reserved bit 7 stays 1
-               21: setting=16'h3c01; // VIC 1: 640x480, 4:3
+               21: setting=VIDEO_720P ? 16'h3c04 : 16'h3c01; // VIC 4: 720p60; VIC 1: VGA
                // Table 59: BT.601 studio-range YCbCr -> full-range RGB.
                // CSC update mode is held until every coefficient is written.
                22: setting=16'h1a24;
@@ -94,7 +95,7 @@ module kc705_hdmi_init #(
                48: setting=16'h5202;
                49: setting=16'h530d;
                50: setting=16'h5502; // RGB, underscan, no bars/active-format
-               51: setting=16'h5610; // 4:3, RGB has no YCbCr colorimetry code
+               51: setting=VIDEO_720P ? 16'h5620 : 16'h5610; // 16:9/4:3, RGB output
                52: setting=16'h5708; // full-range RGB
                53: setting=16'h5900;
                54: setting=16'h5a00;

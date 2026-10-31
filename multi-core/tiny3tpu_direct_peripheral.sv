@@ -6,13 +6,13 @@
 module tiny3tpu_direct_peripheral (
     input wire clk, input wire rst_n,
     input wire req_valid, output wire req_ready,
-    input wire req_write, input wire [7:0] req_addr,
+    input wire req_write, input wire [9:0] req_addr,
     input wire [31:0] req_wdata, input wire [3:0] req_wstrb,
     output reg resp_valid, input wire resp_ready,
     output reg [31:0] resp_rdata, output reg resp_error
 );
     reg active, writing;
-    reg [7:0] address;
+    reg [9:0] address;
     reg [31:0] data;
     reg [3:0] strobe;
     reg awvalid,wvalid,arvalid;

@@ -14,6 +14,8 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
     if math_mode not in ('libm', 'freestanding'):
         raise ProgramError('math_mode must be libm or freestanding')
     p=program;p.validate();live=p.dce();nodes=p.nodes
+    if any(p.values[i].size==0 for i in live):
+        raise ProgramError('live empty tensor storage is unsupported; empty intermediates must specialize away')
     placement=legalize(p,target,math_mode=math_mode,allow_approximation=allow_approximation,
                       gemm_policy=gemm_policy,specialize_matmuls=specialize_matmuls)
     devices={item['value']:item['device'] for item in placement}
@@ -83,22 +85,26 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
     for vid in p.inputs:allocate(vid,-1)
     for index,n in enumerate(nodes):
         for output in n.outputs:allocate(output,index)
-    declarations=[];constants={};map_cache={};const_names={};bit_constants=set();max_packed=1;max_accum=1
+    declarations=[];constants={};map_cache={};const_names={};bit_constants=set();splat_constants=set();max_packed=1;max_accum=1
     packed_constants={};packed_constant_bytes=0;packed_matmuls=0
     mmio_kernels=[];specialized_matmuls=[];mmio_kernel_cache={}
     for v in p.values:
         if v.id not in live or v.data is None:continue
-        key=(v.dtype,v.data.tobytes())
+        raw_bits=v.data.view(np.uint32).ravel() if v.dtype=='float32' else v.data.ravel()
+        is_splat=v.size>1 and bool(np.all(raw_bits==raw_bits[0]))
+        data_for_emit=v.data.ravel()[:1] if is_splat else v.data.ravel()
+        key=(v.dtype,data_for_emit.tobytes(),is_splat)
         if key not in constants:
             name=f'k{len(constants)}';constants[key]=name
+            if is_splat:splat_constants.add(name)
             typ=ctypes[v.dtype]
             if v.dtype=='float32':
-                if not np.isfinite(v.data).all():
+                if not np.isfinite(data_for_emit).all():
                     typ='uint32_t';bit_constants.add(name)
-                    items=[str(int(x))+'U' for x in v.data.view(np.uint32).ravel()]
-                else:items=[float(x).hex()+'f' for x in v.data.ravel()]
-            else:items=[str(int(x))+('U' if typ=='uint32_t' else '') for x in v.data.ravel()]
-            declarations.append(f'static const {typ} {name}[{v.size}]={{'+','.join(items)+'};')
+                    items=[str(int(x))+'U' for x in data_for_emit.view(np.uint32)]
+                else:items=[float(x).hex()+'f' for x in data_for_emit]
+            else:items=[str(int(x))+('U' if typ=='uint32_t' else '') for x in data_for_emit]
+            declarations.append(f'static const {typ} {name}[{len(items)}]={{'+','.join(items)+'};')
         const_names[v.id]=constants[key]
     def member(v):return 'f' if v.dtype=='float32' else 'u' if v.dtype=='uint32' else 'i'
     scalar_refs={}
@@ -109,8 +115,10 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
             node=views[vid]
             return ref(node.inputs[0],map_expr(node.params['map'],index))
         if v.data is not None:
-            expr=f'{const_names[vid]}[{index}]'
-            return f't3p_f32({expr})' if const_names[vid] in bit_constants else expr
+            cname=const_names[vid]
+            idx='0' if cname in splat_constants else index
+            expr=f'{cname}[{idx}]'
+            return f't3p_f32({expr})' if cname in bit_constants else expr
         return f'w[{offsets[root(vid)]}+({index})].{member(v)}'
     def map_expr(mapping,index='i'):
         a=np.asarray(mapping,dtype=np.int32)
@@ -150,10 +158,13 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
         if dtype=='int8':return f't3p_i8((uint32_t)({expr}))'
         return f'({ctypes[dtype]})({expr})'
     def addition(a,b,dtype):
-        return f'({a}+{b})' if dtype=='float32' else wrap(f'(uint32_t)({a})+(uint32_t)({b})',dtype)
+        if dtype=='float32':return f't3p_fadd({a},{b})' if math_mode=='freestanding' else f'({a}+{b})'
+        return wrap(f'(uint32_t)({a})+(uint32_t)({b})',dtype)
     def combine(a,b,dtype,op):
         if op=='add':return addition(a,b,dtype)
-        if op=='mul':return f'({a}*{b})' if dtype=='float32' else wrap(f'(uint32_t)({a})*(uint32_t)({b})',dtype)
+        if op=='mul':
+            if dtype=='float32':return f't3p_fmul({a},{b})' if math_mode=='freestanding' else f'({a}*{b})'
+            return wrap(f'(uint32_t)({a})*(uint32_t)({b})',dtype)
         if op in ('min','max'):
             return f't3p_{op}({a},{b})' if dtype=='float32' else f'({a}{"<" if op=="min" else ">"}{b}?{a}:{b})'
         if op in ('and','or','xor'):return wrap(f'(uint32_t)({a})'+{'and':'&','or':'|','xor':'^'}[op]+f'(uint32_t)({b})',dtype)
@@ -162,10 +173,17 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
         raise ProgramError(f'unknown reducer {op}')
     def element_expr(n,a):
         out=p.values[n.output]
+        if n.op=='floor':return f't3p_floor({a[0]})'
         ops={'add':'+','add_any':'+','sub':'-','mul':'*','div':'/','lt':'<','le':'<=','gt':'>','ge':'>=','eq':'==','ne':'!='}
-        if n.op in ops:expr=f'({a[0]} {ops[n.op]} {a[1]})'
-        elif n.op=='neg':expr=f'(-{a[0]})'
-        elif n.op=='abs':expr=f'({a[0]}<0?-{a[0]}:{a[0]})'
+        fops={'add':'t3p_fadd','add_any':'t3p_fadd','sub':'t3p_fsub','mul':'t3p_fmul','div':'t3p_div'}
+        fcmp={'lt':'t3p_flt','le':'t3p_fle','gt':'t3p_fgt','ge':'t3p_fge','eq':'t3p_feq','ne':'t3p_fne'}
+        if n.op in fops and out.dtype=='float32' and math_mode=='freestanding':
+            expr=f'{fops[n.op]}({a[0]},{a[1]})'
+        elif n.op in fcmp and p.values[n.inputs[0]].dtype=='float32' and math_mode=='freestanding':
+            expr=f'{fcmp[n.op]}({a[0]},{a[1]})'
+        elif n.op in ops:expr=f'({a[0]} {ops[n.op]} {a[1]})'
+        elif n.op=='neg':expr=f't3p_fneg({a[0]})' if out.dtype=='float32' and math_mode=='freestanding' else f'(-{a[0]})'
+        elif n.op=='abs':expr=f't3p_fabs({a[0]})' if out.dtype=='float32' and math_mode=='freestanding' else f'({a[0]}<0?-{a[0]}:{a[0]})'
         elif n.op=='sqrt':expr=f'{"sqrtf" if math_mode=="libm" else "t3p_sqrt"}({a[0]})'
         elif n.op=='acos':expr=f'{"acosf" if math_mode=="libm" else "t3p_acos"}({a[0]})'
         elif n.op=='atan2':expr=f'{"atan2f" if math_mode=="libm" else "t3p_atan2"}({a[0]},{a[1]})'
@@ -174,17 +192,21 @@ def emit_c(program, path, *, target=CPU, math_mode='libm', allow_approximation=F
         elif n.op=='not':expr=f'(!{a[0]})' if out.dtype=='bool' else wrap(f'~(uint32_t)({a[0]})',out.dtype)
         elif n.op in ('min','max'):
             expr=f't3p_{n.op}({a[0]},{a[1]})' if out.dtype=='float32' else f'({a[0]} {"<" if n.op=="min" else ">"} {a[1]} ? {a[0]} : {a[1]})'
-        elif n.op=='sign':expr=f'({a[0]}>0?1:({a[0]}<0?-1:{a[0]}))'
+        elif n.op=='sign':
+            expr=f'(t3p_fgt({a[0]},0.f)?1.f:(t3p_flt({a[0]},0.f)?-1.f:{a[0]}))' if out.dtype=='float32' and math_mode=='freestanding' else f'({a[0]}>0?1:({a[0]}<0?-1:{a[0]}))'
         elif n.op=='select_n':
             if len(a)!=3:raise ProgramError('select_n supports two cases')
             expr=f'({a[0]}?{a[2]}:{a[1]})'
         elif n.op=='convert_element_type':
             source=p.values[n.inputs[0]]
-            if out.dtype=='bool':expr=f'({a[0]}!=0)'
+            if out.dtype=='bool':expr=f't3p_fne({a[0]},0.f)' if source.dtype=='float32' and math_mode=='freestanding' else f'({a[0]}!=0)'
             elif source.dtype=='float32' and out.dtype!='float32':
                 expr=f't3p_to_{out.dtype}({a[0]})'
+            elif out.dtype=='float32' and source.dtype!='float32' and math_mode=='freestanding':
+                expr=f't3p_i32_to_f32((int32_t)({a[0]}))' if source.dtype in ('int32','int8') else f't3p_u32_to_f32((uint32_t)({a[0]}))'
             else:expr=f'({ctypes[out.dtype]})({a[0]})'
-        elif n.op=='integer_pow' and n.params['exponent']==2:expr=f'({a[0]}*{a[0]})'
+        elif n.op=='integer_pow' and n.params['exponent']==2:
+            expr=f't3p_fmul({a[0]},{a[0]})' if out.dtype=='float32' and math_mode=='freestanding' else f'({a[0]}*{a[0]})'
         else:raise ProgramError(f'C lowering missing for {n.op}')
         if out.dtype!='float32':
             if n.op in ('add','add_any','sub','mul'):

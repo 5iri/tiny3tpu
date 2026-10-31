@@ -218,7 +218,7 @@ static bool print_profile() {
     // Repetition counts reflect matrix calls: one FC per image, six GEMMs per
     // attention block, and one transform per captured frame/request.
     const Workload workloads[] = {
-        {"mnist_fc", 1, 784, 10, 1, 7840, 80},
+        {"mnist_fc", 1, 784, 10, 1, 7840, 320},
         {"attention_block", 8, 8, 8, 6, 3072, 1536},
         {"banana_transform", 204, 3, 3, 1, 2448, 2448},
         {"cloth_camera_transform", 28, 3, 3, 1, 336, 336},

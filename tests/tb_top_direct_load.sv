@@ -1,16 +1,17 @@
 `timescale 1ns/1ps
 module tb_top_direct_load;
     parameter SMALL_N=4;
-    reg clk=0, rst=1, start=0, continuing=0, we=0, sel=0, core=0, ren=0;
+    reg clk=0, rst=1, start=0, continuing=0, we=0, sel=0, ren=0;
+    reg [2:0] core=0;
     reg [1:0] row=0, col=0;
     reg signed [7:0] data=0;
     wire busy,done;
     wire signed [31:0] result;
     integer ticks=0, c,r,k,pass;
     always #5 clk=~clk;
-    top #(.NUM_BIG_CORES(1),.SMALL_N(SMALL_N)) dut(
+    top #(.NUM_BIG_CORES(7),.SMALL_N(SMALL_N)) dut(
         .clk(clk),.rst(rst),.ubuf_wr_en(we),.ubuf_wr_sel(sel),
-        .ubuf_wr_core(core),.ubuf_wr_row(row),.ubuf_wr_col(col),.ubuf_wr_data(data),
+        .ubuf_wr_core(core),.ubuf_wr_mask(8'b0),.ubuf_wr_row(row),.ubuf_wr_col(col),.ubuf_wr_data(data),
         .start(start),.continue_accum(continuing),.busy(busy),.done(done),
         .c_rd_en(ren),.c_rd_core(core),.c_rd_row(row),.c_rd_col(col),.c_rd_data(result));
     always @(posedge clk) if (!rst && busy) ticks=ticks+1;
@@ -37,8 +38,8 @@ module tb_top_direct_load;
         integer cc,rr,kk,dim,want;
         begin
             ren=1;
-            for(cc=0;cc<2;cc=cc+1)for(rr=0;rr<4;rr=rr+1)for(kk=0;kk<4;kk=kk+1)begin
-                core=cc;row=rr;col=kk;dim=cc?SMALL_N:4;
+            for(cc=0;cc<8;cc=cc+1)for(rr=0;rr<4;rr=rr+1)for(kk=0;kk<4;kk=kk+1)begin
+                core=cc;row=rr;col=kk;dim=(cc==7)?SMALL_N:4;
                 // A has value (core+1) and B is identity.
                 want=(rr<dim&&kk<dim)?multiplier*(cc+1):0;
                 #1;if(result!==want)$fatal(1,"C%0d[%0d,%0d]=%0d expected %0d",cc,rr,kk,result,want);
@@ -48,10 +49,10 @@ module tb_top_direct_load;
     endtask
     initial begin
         repeat(3)@(negedge clk);rst=0;
-        for(c=0;c<2;c=c+1)for(r=0;r<4;r=r+1)for(k=0;k<4;k=k+1)begin
+        for(c=0;c<8;c=c+1)for(r=0;r<4;r=r+1)for(k=0;k<4;k=k+1)begin
             // Out-of-range small-core writes must not alias a valid address.
-            load(c,0,r,k,(c&&((r>=SMALL_N)||(k>=SMALL_N)))?99:c+1);
-            load(c,1,r,k,(c&&((r>=SMALL_N)||(k>=SMALL_N)))?99:(r==k));
+            load(c,0,r,k,((c==7)&&((r>=SMALL_N)||(k>=SMALL_N)))?99:c+1);
+            load(c,1,r,k,((c==7)&&((r>=SMALL_N)||(k>=SMALL_N)))?99:(r==k));
         end
         launch(0);check(1);
         launch(1);check(2); // Reuse resident operands without reloading.

@@ -1,15 +1,20 @@
 file(MAKE_DIRECTORY "${BINARY_DIR}")
-if(MMIO)
+if(FPU)
+  set(TOP tiny3tpu_fpu_mmio)
+  set(TEST fpu_mmio_test.cpp)
+  set(RTL "${SOURCE_DIR}/hardware/math/tiny3tpu_fpu_mmio.sv")
+elseif(MMIO)
   set(TOP tiny3tpu_cordic_mmio)
   set(TEST cordic_mmio_test.cpp)
-  set(EXTRA "${SOURCE_DIR}/hardware/math/tiny3tpu_cordic_mmio.sv")
+  set(RTL "${SOURCE_DIR}/hardware/math/tiny3tpu_cordic_exp.sv" "${SOURCE_DIR}/hardware/math/tiny3tpu_cordic_mmio.sv")
 else()
   set(TOP tiny3tpu_cordic_exp)
   set(TEST cordic_exp_test.cpp)
+  set(RTL "${SOURCE_DIR}/hardware/math/tiny3tpu_cordic_exp.sv")
 endif()
 execute_process(COMMAND "${VERILATOR}" --cc --exe --build -j 2 -Wno-fatal
-  --top-module "${TOP}" --Mdir "${BINARY_DIR}" -CFLAGS -std=c++20
-  "${SOURCE_DIR}/hardware/math/tiny3tpu_cordic_exp.sv" ${EXTRA}
+  --top-module "${TOP}" --Mdir "${BINARY_DIR}" -CFLAGS "-std=c++20 -I${SOURCE_DIR}/include"
+  ${RTL}
   "${SOURCE_DIR}/tests/${TEST}" RESULT_VARIABLE result OUTPUT_FILE "${BINARY_DIR}/build.log" ERROR_FILE "${BINARY_DIR}/build.log")
 if(NOT result EQUAL 0)
   file(READ "${BINARY_DIR}/build.log" log)
@@ -17,5 +22,5 @@ if(NOT result EQUAL 0)
 endif()
 execute_process(COMMAND "${BINARY_DIR}/V${TOP}" RESULT_VARIABLE result)
 if(NOT result EQUAL 0)
-  message(FATAL_ERROR "CORDIC check failed: ${result}")
+  message(FATAL_ERROR "CORDIC/FPU check failed: ${result}")
 endif()

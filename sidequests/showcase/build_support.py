@@ -37,7 +37,7 @@ def memory_report(elf):
             'scope': 'Static linker allocation; runtime peak stack is not measured'}
 
 
-def compile_firmware(source, includes, out, optimization='O2', tpu_transport='mailbox', io_transport='uart', clock_hz=100000000, linker_script=None, extra_objects=(), libraries=()):
+def compile_firmware(source, includes, out, optimization='O2', tpu_transport='mailbox', io_transport='uart', clock_hz=100000000, linker_script=None, extra_objects=(), libraries=(), ram_kib=64):
     """Compile RV32IM firmware independently of LiteX, FPGA tools, and prior routes."""
     if optimization not in ('Os', 'O2', 'O3'):
         raise ValueError('optimization must be Os, O2 or O3')
@@ -45,6 +45,8 @@ def compile_firmware(source, includes, out, optimization='O2', tpu_transport='ma
         raise ValueError('tpu_transport must be mailbox or direct')
     if io_transport not in ('uart', 'udp'):
         raise ValueError('io_transport must be uart or udp')
+    if ram_kib not in (64, 128, 256, 512):
+        raise ValueError('ram_kib must be 64, 128, 256 or 512')
     startup = ROOT / 'hardware/synapse32/start.S'
     linker = Path(linker_script) if linker_script else ROOT / 'hardware/synapse32/bringup.ld'
     dependencies = [source, startup, linker, ROOT / 'src/axis_mailbox.c',
@@ -56,7 +58,8 @@ def compile_firmware(source, includes, out, optimization='O2', tpu_transport='ma
                '-DTINY3TPU_DIRECT_TPU=' + str(int(tpu_transport == 'direct')),
                '-DTINY3TPU_ETHERNET=' + str(int(io_transport == 'udp')),
                '-I' + str(ROOT / 'include'), *['-I' + str(path) for path in includes],
-               '-Wl,--no-relax,--gc-sections', '-T' + str(linker), startup, source,
+               f'-Wl,--no-relax,--gc-sections,--defsym=_ram_size={ram_kib * 1024}',
+               '-T' + str(linker), startup, source,
                ROOT / 'src/axis_mailbox.c', ROOT / 'src/mmio_backend.c', *extra_objects, *libraries, '-lgcc',
                '-o', out / 'firmware.elf']
     run_logged(command, out, 'firmware')

@@ -7,8 +7,22 @@ import jax,jax.numpy as jnp
 ROOT=Path(__file__).resolve().parents[2]
 sys.path[:0]=[str(ROOT),str(ROOT/'tests')]
 from tools.jax_stablehlo import export_function
-from tools.program import compile_stablehlo,CompileOptions,KC705
+from tools.program import compile_stablehlo,CompileOptions,KC705,KC705_DIRECT
 from test_stablehlo_compiler import Compiled
+
+def banana_workload(mesh_vertices, vertex_scale):
+ """Build the resident transform for any mesh without changing the demo mesh."""
+ qscale=vertex_scale*127
+ vertices=jnp.array(np.rint(mesh_vertices*vertex_scale),jnp.int8)
+ def banana(x):
+  angle=x[0]+jnp.float32(.06)
+  angle=jnp.where(angle>jnp.float32(2*np.pi),angle-jnp.float32(2*np.pi),angle)
+  c=jnp.cos(angle);s=jnp.sin(angle)
+  matrix=jnp.stack([jnp.stack([c,s*.5,-s*.8660254]),jnp.array([0.,.8660254,.5]),jnp.stack([s,-c*.5,c*.8660254])])*127
+  weights=jnp.where(matrix<0,matrix-.5,matrix+.5).astype(jnp.int8)
+  coordinates=jax.lax.dot_general(vertices,weights,(((1,),(0,)),((),())),preferred_element_type=jnp.int32)+jnp.array([0,0,round(2*qscale)],jnp.int32)
+  return jnp.concatenate((angle[None],coordinates.astype(jnp.float32).reshape(-1)))
+ return banana
 
 def workloads():
  rng=np.random.default_rng(705)
@@ -38,33 +52,24 @@ def workloads():
   return dot(mixed,wo).astype(jnp.float32)/jnp.float32(8)+x
  mesh=np.load(ROOT/'build-banana/render/mesh.npz')
  banana_report=json.loads((ROOT/'build-banana/render/report.json').read_text())
- vertex_scale=banana_report['vertex_scale'];qscale=vertex_scale*127
- vertices=jnp.array(np.rint(mesh['vertices']*vertex_scale),jnp.int8)
- def banana(x):
-  angle=x[0]+jnp.float32(.06)
-  angle=jnp.where(angle>jnp.float32(2*np.pi),angle-jnp.float32(2*np.pi),angle)
-  c=jnp.cos(angle);s=jnp.sin(angle)
-  matrix=jnp.stack([jnp.stack([c,s*.5,-s*.8660254]),jnp.array([0.,.8660254,.5]),jnp.stack([s,-c*.5,c*.8660254])])*127
-  weights=jnp.where(matrix<0,matrix-.5,matrix+.5).astype(jnp.int8)
-  coordinates=dot(vertices,weights)+jnp.array([0,0,round(2*qscale)],jnp.int32)
-  return jnp.concatenate((angle[None],coordinates.astype(jnp.float32).reshape(-1)))
- return [('quantized_mlp',mlp,rng.integers(-8,9,(4,8)).astype(np.float32),'Two synthetic dense layers with ReLU; exact int8 TPU matrix products.'),
+ banana=banana_workload(mesh['vertices'],banana_report['vertex_scale'])
+ return [('quantized_mlp',mlp,rng.integers(-8,9,(4,8)).astype(np.float32),'Two synthetic dense layers with ReLU; exact int8 matrix products placed by compiler policy.'),
          ('attention_block',attention,rng.integers(-8,9,(8,8)).astype(np.float32),'Synthetic causal attention: six int8 matrix products, CPU normalization and stable softmax. Not a pretrained language model.'),
          ('banana',banana,np.zeros(1,np.float32),'Resident banana rotation and camera transform; angle and coordinates calculated on board, host pixels only.')]
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--out',type=Path,default=ROOT/'build-showcase');a=p.parse_args();out=a.out.resolve();out.mkdir(parents=True,exist_ok=True)
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--out',type=Path,default=ROOT/'build-showcase');p.add_argument('--tpu-transport',choices=('mailbox','direct'),default='mailbox');p.add_argument('--gemm-policy',choices=('auto','cpu','tpu'),default='auto');a=p.parse_args();out=a.out.resolve();out.mkdir(parents=True,exist_ok=True)
  records=[]
  for index,(name,fn,data,description) in enumerate(workloads()):
   d=out/name;d.mkdir(exist_ok=True);artifact=export_function(fn,data,output=d/'program.mlirbc');np.save(d/'input.npy',data)
-  options=CompileOptions(gemm_policy='tpu', target=KC705,math_mode='freestanding',allow_approximation=True,affine_offload=False)
+  options=CompileOptions(target=KC705_DIRECT if a.tpu_transport=='direct' else KC705,math_mode='freestanding',allow_approximation=True,affine_offload=False,gemm_policy=a.gemm_policy)
   native=Compiled(artifact,options)
   try:
    status,outputs=native.run(data);assert status==0;expected=np.asarray(jax.jit(fn)(data));np.testing.assert_allclose(outputs[0],expected,rtol=5e-6,atol=5e-6)
    np.save(d/'expected-native.npy',outputs[0]);np.save(d/'expected-jax.npy',expected)
-   report=compile_stablehlo(artifact,d/(name+'.h'),CompileOptions(gemm_policy='tpu', target=KC705,symbol=name,math_mode='freestanding',allow_approximation=True,affine_offload=False))
+   report=compile_stablehlo(artifact,d/(name+'.h'),CompileOptions(target=KC705_DIRECT if a.tpu_transport=='direct' else KC705,symbol=name,math_mode='freestanding',allow_approximation=True,affine_offload=False,gemm_policy=a.gemm_policy))
    (d/'compile-report.json').write_text(json.dumps(report,indent=2)+'\n')
-   record=dict(id=index,name=name,description=description,input_shape=list(data.shape),output_shape=list(outputs[0].shape),workspace_bytes=report['workspace_bytes'],native_backend_calls=native.library.backend_calls(),jax_max_abs_error=float(np.max(np.abs(outputs[0]-expected))),native_passed=True)
+   record=dict(gemm_policy=a.gemm_policy,placement=report['placement'],id=index,name=name,description=description,input_shape=list(data.shape),output_shape=list(outputs[0].shape),workspace_bytes=report['workspace_bytes'],native_backend_calls=native.library.backend_calls(),jax_max_abs_error=float(np.max(np.abs(outputs[0]-expected))),native_passed=True)
    records.append(record);print(json.dumps(record),flush=True)
   finally:native.close()
  (out/'manifest.json').write_text(json.dumps(records,indent=2)+'\n')

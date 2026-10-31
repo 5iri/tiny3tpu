@@ -17,7 +17,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
-CHROMATIC = ROOT / 'hardware/chromatic'
+SCENE_ASSETS = ROOT / 'hardware/banana_scene'
 sys.path.insert(0, str(ROOT / 'tools'))
 from kc705_open_build import validate_route_log
 from kc705_export_bitstream import frame_data_word
@@ -125,9 +125,13 @@ def main():
     parser.add_argument('--tools', type=Path, default=Path.home() / '.apio/packages/openxc7/bin')
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--cpu', action='store_true', help='JAX firmware on VexRiscv and two 4x4 TPUs, driving the HDMI MMIO target')
+    parser.add_argument('--framebuffer', action='store_true', help='CPU-written RGB565 instead of the mesh rasterizer; requires --cpu')
     parser.add_argument('--firmware', type=Path, help='Directory produced by cpu/prepare.py; required with --cpu')
     parser.add_argument('--synapse32-dir', type=Path, default=ROOT.parent/'synapse32')
     args = parser.parse_args()
+    video_720p=False
+    clock_hz=CLOCK_HZ
+    if args.framebuffer and not args.cpu:parser.error('--framebuffer requires --cpu')
     for name in ('out', 'yosys', 'nextpnr', 'chipdb', 'db_root', 'tools'):
         setattr(args, name, getattr(args, name).resolve())
     out = args.out
@@ -146,14 +150,14 @@ def main():
     required = ['kc705_hdmi_top.sv', 'kc705_hdmi_display.sv', 'kc705_hdmi_init.sv']
     if not all((HERE / 'src' / name).is_file() for name in required):
         parser.error('HDMI top/display/init source modules must all be present')
-    sources += [CHROMATIC / 'src' / name for name in
+    sources += [SCENE_ASSETS / 'src' / name for name in
                 ('buttons.sv', 'scene.sv')]
     sources += [ROOT / 'multi-core/tpu_core_wrapper.sv',
                 ROOT / 'systolic_array/rtl/NxN_systolic_array.v', ROOT / 'systolic_array/rtl/pe.v']
-    inputs = sources + [CHROMATIC / 'src/font.vh', HERE / 'constraints/kc705.xdc',
+    inputs = sources + [SCENE_ASSETS / 'src/font.vh', HERE / 'constraints/kc705.xdc',
                         Path(__file__).resolve(), ROOT / 'tools/kc705_open_build.py',
                         ROOT / 'tools/kc705_export_bitstream.py']
-    inputs += [CHROMATIC / 'assets' / name for name in
+    inputs += [SCENE_ASSETS / 'assets' / name for name in
                ('vertices.hex', 'rotations.hex', 'faces.hex', 'mesh.json')]
     if args.cpu:
         inputs += [HERE/'assets/mesh.json', HERE/'assets/faces.hex', HERE/'tools/mesh_assets.py']
@@ -174,11 +178,22 @@ def main():
         for name,expected in firmware_manifest['workload_sha256'].items():
             if digest(name)!=expected:raise ValueError('JAX workload changed: '+name)
             inputs.append(Path(name))
-        if (firmware_manifest['cores'] != 2 or firmware_manifest['clock_hz'] != CLOCK_HZ
-            or firmware_manifest['memory']['ram_bytes'] != 262144
-            or firmware_manifest['vertices'] != len(json.loads((HERE/'assets/mesh.json').read_text())['vertices'])
-            or firmware_manifest['triangles'] != len(json.loads((HERE/'assets/mesh.json').read_text())['faces'])):
+        ram_bytes=firmware_manifest['memory']['ram_bytes']
+        video_720p=args.framebuffer and firmware_manifest.get('display')==[1280,720]
+        clock_hz=74250000 if video_720p else CLOCK_HZ
+        if (firmware_manifest['cores']!=2 or firmware_manifest['clock_hz']!=clock_hz
+            or ram_bytes not in ((262144,1048576,1245184) if args.framebuffer else (262144,))):
             raise ValueError('Firmware/hardware configuration mismatch')
+        if args.framebuffer:
+            if (firmware_manifest.get('framebuffer_abi')!='PFB1' or
+                firmware_manifest.get('display')!=([1280,720] if video_720p else [640,480]) or
+                firmware_manifest.get('framebuffer') not in ([[480,270]] if video_720p else [[160,120],[320,240]]) or
+                firmware_manifest.get('pixel_format')!='RGB565'):
+                raise ValueError('Firmware/framebuffer configuration mismatch')
+        elif (firmware_manifest.get('framebuffer_abi') is not None or
+              firmware_manifest['vertices']!=len(json.loads((HERE/'assets/mesh.json').read_text())['vertices']) or
+              firmware_manifest['triangles']!=len(json.loads((HERE/'assets/mesh.json').read_text())['faces'])):
+            raise ValueError('Firmware/mesh configuration mismatch')
         uart=args.synapse32_dir.resolve()
         extra=[uart/'rtl/core_modules/uart.v',ROOT/'third_party/vexriscv/VexRiscv_Lite.v',
                ROOT/'hardware/kc705_vexriscv/vexriscv_tpu_soc.sv',
@@ -191,16 +206,19 @@ def main():
         header=out/'boot_path.vh'
         header.write_text('`define VEXRISCV_BOOT_HEX '+quote(firmware/'firmware.hex')+'\n')
         boot_header=[header]
-        include_flags+='-I'+os.path.relpath(uart/'rtl/include',CHROMATIC)+' '
+        include_flags+='-I'+os.path.relpath(uart/'rtl/include',SCENE_ASSETS)+' '
     (out / 'kc705.xdc').write_bytes((HERE / 'constraints/kc705.xdc').read_bytes())
     (out / 'clocks.py').write_text('for name, mhz in '+repr([
-        ('clk200', 200.0), ('clk_pixel_unbuf', CLOCK_HZ/1e6), ('clk_pixel', CLOCK_HZ/1e6)])+
+        ('clk200', 200.0), ('clk_pixel_unbuf', clock_hz/1e6), ('clk_pixel', clock_hz/1e6)])+
         ':\n    ctx.addClock(name, mhz)\n')
     script = [
-        # Yosys keeps quotes embedded in -I options; synthesis runs in CHROMATIC.
+        # Yosys keeps quotes embedded in -I options; synthesis runs in SCENE_ASSETS.
         'read_verilog -sv '+include_flags + ' '.join(map(quote, [*boot_header,*sources])),
         'read_verilog -lib +/xilinx/cells_sim.v +/xilinx/cells_xtra.v',
         *(['chparam -set CPU_DRIVEN 1 kc705_hdmi_top'] if args.cpu else []),
+        *(['chparam -set CPU_FRAMEBUFFER 1 kc705_hdmi_top'] if args.framebuffer else []),
+        *(['chparam -set VIDEO_720P 1 kc705_hdmi_top'] if video_720p else []),
+        *([f'chparam -set CPU_BOOT_WORDS {ram_bytes//4} -set FRAME_WIDTH {firmware_manifest["framebuffer"][0]} -set FRAME_HEIGHT {firmware_manifest["framebuffer"][1]} kc705_hdmi_top'] if args.framebuffer else []),
         'hierarchy -check -top kc705_hdmi_top',
         # The current nextpnr cascade repair can move a driver while fixing
         # another pair, leaving an unroutable dedicated RAMB36 cascade. Use
@@ -215,9 +233,9 @@ def main():
         'synth_xilinx -family xc7 -flatten -nowidelut -top kc705_hdmi_top -run map_ffram:',
         'check -assert', 'stat', 'write_json ' + quote(out / 'soc.json')]
     (out / 'synth.ys').write_text('\n'.join(script) + '\n')
-    # Original renderer ROM paths are relative to hardware/chromatic.
+    # Original renderer ROM paths are relative to hardware/banana_scene.
     # Its sources/assets are reused unchanged and hashed above.
-    run(out, 'synth', [args.yosys, '-Q', '-T', '-s', out / 'synth.ys'], cwd=CHROMATIC)
+    run(out, 'synth', [args.yosys, '-Q', '-T', '-s', out / 'synth.ys'], cwd=SCENE_ASSETS)
     netlist = json.loads((out / 'soc.json').read_text())['modules']['kc705_hdmi_top']
     counts = {}
     for cell in netlist['cells'].values():
@@ -226,15 +244,29 @@ def main():
             for port in ('A', 'B'):
                 if cell['parameters'].get('RAM_EXTENSION_' + port, 'NONE') != 'NONE':
                     raise ValueError('Unexpected dedicated BRAM cascade in synthesis')
+    if args.framebuffer:
+        # A successful tool exit must not hide removal of the live display.
+        for signal in ('h_count','v_count','display_valid'):
+            bits=netlist['netnames']['pixel_path.system.display.'+signal]['bits']
+            if not any(isinstance(bit,int) for bit in bits):
+                raise ValueError('Synthesis removed live framebuffer signal: '+signal)
+        display_brams=sum(c['type'] in ('RAMB36E1','RAMB18E1') for n,c in netlist['cells'].items()
+                          if 'pixel_path.system.display.bank' in n)
+        if display_brams==0:raise ValueError('Synthesis removed framebuffer memory')
     report = dict(target='kc705_hdmi', part=PART, cpu=args.cpu, firmware=args.cpu, ddr=False,
                   tpu_cores=2 if args.cpu else 1, tpu_array=[4,4],
-                  vertices=firmware_manifest['vertices'] if args.cpu else 204,
-                  triangles=firmware_manifest['triangles'] if args.cpu else 407,
-                  animation_hz=30 if args.cpu else 60,
-                  clock_hz=CLOCK_HZ, pixel_clock_hz=CLOCK_HZ, raster=[640,480],
-                  totals=[800,525], scanout_hz=60, render_resolution=[640,480], raster_lanes=2,
-                  pll=dict(input_mhz=200, input_divide=10, feedback_multiply=63,
-                           output_divide=50, pfd_mhz=20, vco_mhz=1260),
+                  framebuffer=args.framebuffer,
+                  vertices=0 if args.framebuffer else firmware_manifest['vertices'] if args.cpu else 204,
+                  triangles=0 if args.framebuffer else firmware_manifest['triangles'] if args.cpu else 407,
+                  animation_hz=None if args.framebuffer else 30 if args.cpu else 60,
+                  clock_hz=clock_hz, pixel_clock_hz=clock_hz, raster=[1280,720] if video_720p else [640,480],
+                  totals=[1650,750] if video_720p else [800,525], scanout_hz=60,
+                  video_mode='720p' if video_720p else 'vga',
+                  render_resolution=firmware_manifest['framebuffer'] if args.framebuffer else [640,480],
+                  raster_lanes=0 if args.framebuffer else 2,
+                  pll=dict(primitive='MMCME2_ADV' if video_720p else 'PLLE2_ADV',
+                           input_mhz=200, input_divide=10, feedback_multiply=37.125 if video_720p else 63,
+                           output_divide=10 if video_720p else 50, pfd_mhz=20, vco_mhz=742.5 if video_720p else 1260),
                   forwarded_clock_phase='Inverted ODDR; rising capture half-cycle after data launch',
                   adv7511_setup_ns=1.0, adv7511_hold_ns=0.7,
                   hdmi_io_timing_qualified=False, complete_physical_timing_proven=False,
@@ -245,11 +277,11 @@ def main():
     if 2*counts.get('RAMB36E1',0)+counts.get('RAMB18E1',0)>890:
         raise ValueError('Synthesis exceeds KC705 block RAM capacity')
     write_json(out / 'implementation-manifest.json', report)
-    print('Synthesis passed:', {k: v for k, v in counts.items() if k in ('DSP48E1', 'RAMB36E1', 'RAMB18E1', 'PLLE2_ADV', 'ODDR')})
+    print('Synthesis passed:', {k: v for k, v in counts.items() if k in ('DSP48E1', 'RAMB36E1', 'RAMB18E1', 'PLLE2_ADV', 'MMCME2_ADV', 'ODDR')})
     if args.stage == 'synth':
         return
     run(out, 'route', [args.nextpnr, '--chipdb', args.chipdb, '--xdc', out / 'kc705.xdc',
-                      '--freq', str(CLOCK_HZ/1e6), '--pre-pack', out / 'clocks.py', '--seed', args.seed,
+                      '--freq', str(clock_hz/1e6), '--pre-pack', out / 'clocks.py', '--seed', args.seed,
                       '--json', out / 'soc.json', '--write', out / 'soc_routed.json',
                       '--fasm', out / 'soc.fasm', '--sdf', out / 'soc.sdf'])
     log = (out / 'route.log').read_text()

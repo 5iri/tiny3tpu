@@ -35,26 +35,13 @@ class GemmCostModel:
             raise ValueError('minimum_speedup must be finite and at least one')
 
     def estimate(self, m, k, n):
-        ceil = lambda x, y: (x+y-1)//y
-        schedules = (
-            ('rows', ceil(m,8)*ceil(k,4)*ceil(n,4)),
-            ('k', ceil(m,4)*ceil(k,8)*ceil(n,4)),
-            ('columns', ceil(m,4)*ceil(k,4)*ceil(n,8)),
-        )
-        schedule, launches = min(schedules, key=lambda item:item[1])
-        # Full tile estimate; read only the final retained partials. Short-K
-        # row batches reuse B; column batches similarly reuse A when M<=4.
-        operand_words = 16*launches
-        if schedule == 'rows' and k <= 4:
-            operand_words = 8*launches+8*ceil(n,4)
-        elif schedule == 'columns' and k <= 4 and m <= 4:
-            operand_words = 8*launches+8
-        results = m*n*(2 if schedule == 'k' and k > 4 else 1)
-        transactions = 1+operand_words+2*launches+results
+        traffic = tile_statistics(m, k, n)
+        launches = traffic['launches']
+        transactions = traffic['register_transactions_min']
         cpu = m*k*n*self.cpu_mac_cycles+m*n*self.cpu_output_cycles
         tpu = transactions*self.register_cycles+launches*self.tile_packing_cycles
         return dict(model=self.name, cpu_cycles=cpu, tpu_cycles=tpu,
-                    schedule=schedule, launches=launches,
+                    schedule=traffic['schedule'], launches=launches,
                     minimum_speedup=self.minimum_speedup,
                     profitable=tpu*self.minimum_speedup < cpu)
 
@@ -112,17 +99,8 @@ class AffineCostModel:
             raise ValueError('minimum_speedup must be finite and at least one')
 
     def gemm_cycles(self,m,k,n):
-        row_tiles=math.ceil(m/8)*math.ceil(k/4)
-        k_tiles=math.ceil(m/4)*math.ceil(k/8)
-        row_parallel=row_tiles<=k_tiles
-        launches=min(row_tiles,k_tiles)*math.ceil(n/4)
-        # Retained accumulation and direct result window: read final sums once.
-        # One initial status read, packed rows, launch and completion poll.
-        # Only K<=4 can
-        # retain the complete B tile across all row batches.
-        weights=8*math.ceil(n/4) if k<=4 else 8*launches
-        results=m*n*(1 if row_parallel or k<=4 else 2)
-        return (1+8*launches+weights+2*launches+results)*self.register_cycles
+        traffic=tile_statistics(m,k,n)
+        return traffic['register_transactions_min']*self.register_cycles
 
     def estimate(self,plan,outputs,roots,params):
         # Find work actually eliminated. Shared intermediates retained by a

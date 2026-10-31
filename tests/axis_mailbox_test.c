@@ -204,7 +204,7 @@ int main(void)
     tiny3tpu_mmio lowlevel = {&fake, read32, write32, 4U};
     failures += expect(tiny3tpu_axis_mailbox_init_from_mmio(&mailbox, &lowlevel) == 0,
                        "MMIO callback initializer succeeds");
-    failures += expect(tiny3tpu_axis_mailbox_read32(&mailbox, 0x100, &value) != 0 &&
+    failures += expect(tiny3tpu_axis_mailbox_read32(&mailbox, 0x400, &value) != 0 &&
                        fake.reads == 0 && fake.writes == 0, "wide target offset cannot alias");
     failures += expect(tiny3tpu_axis_mailbox_read32(&mailbox, 0, NULL) != 0 &&
                        fake.reads == 0 && fake.writes == 0, "null output cannot access bus");

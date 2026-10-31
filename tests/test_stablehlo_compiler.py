@@ -151,6 +151,47 @@ assert 'jax' not in sys.modules
         subprocess.run([sys.executable,'-c',script,str(c.path/'input.mlir'),str(c.path/'independent.h')],
                        cwd=ROOT,check=True,capture_output=True)
 
+    def test_empty_intermediates_and_invariant_loop_carries(self):
+        def function(x,n):
+            empty=jnp.zeros((1,0),jnp.float32)
+            def body(_,carry):
+                value,metadata=carry
+                zero=metadata@jnp.zeros((0,),jnp.float32)
+                joined=jnp.concatenate((metadata,jnp.reshape(value,(1,1))),axis=1)
+                return joined[0]+zero+1.,metadata
+            return jax.lax.fori_loop(0,n,body,(x,empty))[0]
+        x=np.array([2.],np.float32)
+        c=self.compile(export_function(function,x,np.int32(20)))
+        for count in (0,1,3,20):
+            status,out=c.run(x,np.int32(count));self.assertEqual(status,0)
+            np.testing.assert_array_equal(out[0],x+count)
+        # Empty reductions return the supplied initializer, even when nonzero.
+        self.check(lambda z:jax.lax.reduce(jnp.zeros((3,0),jnp.float32),z,jax.lax.add,(1,)),[np.float32(7)])
+        with self.assertRaisesRegex(ProgramError,'empty tensor storage'):
+            self.compile(export_function(lambda x:x,np.empty((0,),np.float32)))
+
+    def test_floor_full_binary32_and_bool_comparison(self):
+        rng=np.random.default_rng(81)
+        x=rng.integers(0,2**32,4096,dtype=np.uint32).view(np.float32)
+        x=np.concatenate((x,np.array([0.,-0.,1e-40,-1e-40,.999,-.999,1.01,-1.01,np.inf,-np.inf,np.nan],np.float32)))
+        c=self.compile(export_function(jnp.floor,x),CompileOptions(target=KC705,math_mode='freestanding'))
+        status,out=c.run(x);self.assertEqual(status,0)
+        with np.errstate(invalid='ignore'):want=np.floor(x)
+        mask=~np.isnan(want)
+        np.testing.assert_array_equal(out[0][mask].view(np.uint32),want[mask].view(np.uint32))
+        self.assertTrue(np.isnan(out[0][~mask]).all())
+        mask=np.array([False,True],np.bool_)
+        self.check(lambda x:(x!=True,x==False),[mask])
+
+    def test_constant_model_metadata(self):
+        def metadata(x):
+            a=jnp.array([3,-2,7],jnp.int32)
+            values,indices=jax.lax.sort_key_val(a,jnp.arange(3,dtype=jnp.int32))
+            return x+values[0]+indices[2]+jnp.cumsum(a)[-1]+jnp.remainder(a[0],2)
+        self.check(metadata,[np.int32(11)])
+        with self.assertRaises(ProgramError):
+            self.compile(export_function(jnp.sort,np.array([3,-2,7],np.int32)))
+
     def test_multiple_inputs_outputs_shapes_and_reduction(self):
         x=np.arange(24,dtype=np.float32).reshape(2,3,4)/8
         b=np.array([1,-2,3,4],np.float32)

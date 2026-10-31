@@ -13,13 +13,13 @@ module tiny3tpu_axis_bridge (
     output wire [31:0] m_axis_tdata, output wire [3:0] m_axis_tkeep,
     output wire m_axis_tlast, output wire m_axis_tvalid,
     input wire m_axis_tready,
-    output wire [7:0] m_axi_awaddr, output wire [2:0] m_axi_awprot,
+    output wire [9:0] m_axi_awaddr, output wire [2:0] m_axi_awprot,
     output wire m_axi_awvalid, input wire m_axi_awready,
     output wire [31:0] m_axi_wdata, output wire [3:0] m_axi_wstrb,
     output wire m_axi_wvalid, input wire m_axi_wready,
     input wire [1:0] m_axi_bresp, input wire m_axi_bvalid,
     output wire m_axi_bready,
-    output wire [7:0] m_axi_araddr, output wire [2:0] m_axi_arprot,
+    output wire [9:0] m_axi_araddr, output wire [2:0] m_axi_arprot,
     output wire m_axi_arvalid, input wire m_axi_arready,
     input wire [31:0] m_axi_rdata, input wire [1:0] m_axi_rresp,
     input wire m_axi_rvalid, output wire m_axi_rready
@@ -27,7 +27,7 @@ module tiny3tpu_axis_bridge (
     localparam [3:0] HEADER=0, PAYLOAD=1, DRAIN=2, WRITE=3,
         WRITE_RESP=4, READ_ADDR=5, READ_RESP=6, RESP_CODE=7, RESP_DATA=8;
     reg [3:0] state;
-    reg [7:0] addr;
+    reg [9:0] addr;
     reg [3:0] strb;
     reg write_cmd, bad_header;
     reg [31:0] payload, response_data;
@@ -58,10 +58,11 @@ module tiny3tpu_axis_bridge (
         end else begin
             case (state)
                 HEADER: if (s_axis_tvalid) begin
-                    addr<=s_axis_tdata[7:0]; strb<=s_axis_tdata[15:12];
+                    addr<={s_axis_tdata[10:9], s_axis_tdata[7:0]};
+                    strb<=s_axis_tdata[15:12];
                     write_cmd<=s_axis_tdata[8];
                     bad_header<=s_axis_tkeep!=4'hf ||
-                        s_axis_tdata[31:16]!=0 || s_axis_tdata[11:9]!=0;
+                        s_axis_tdata[31:16]!=0 || s_axis_tdata[11]!=0;
                     response_data<=0; response_code<=2'b10;
                     if (s_axis_tlast) state<=RESP_CODE;
                     else state<=PAYLOAD;

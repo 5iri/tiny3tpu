@@ -5,7 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
-from test import ROOT, REPO, CHROMATIC, reference, run
+from test import ROOT, REPO, SCENE_ASSETS, reference, run
 from reference import rasterize
 
 
@@ -17,8 +17,8 @@ def main():
     sources=[ROOT/'src/kc705_hdmi_renderer.sv',ROOT/'src/kc705_hdmi_ram.sv',
              REPO/'multi-core/tpu_core_wrapper.sv',REPO/'systolic_array/rtl/NxN_systolic_array.v',
              REPO/'systolic_array/rtl/pe.v',Path(__file__).with_name('tb_rotation.sv')]
-    inputs=[ROOT/'assets/mesh_config.vh',*sources,Path(__file__),ROOT/'tools/reference.py',CHROMATIC/'tools/assets.py',
-            *(CHROMATIC/'assets'/name for name in ('mesh.json','vertices.hex','rotations.hex','faces.hex'))]
+    inputs=[ROOT/'assets/mesh_config.vh',*sources,Path(__file__),ROOT/'tools/reference.py',SCENE_ASSETS/'tools/assets.py',
+            *(SCENE_ASSETS/'assets'/name for name in ('mesh.json','vertices.hex','rotations.hex','faces.hex'))]
     coordinates=156672
     if args.cpu_firmware:
         import numpy as np
@@ -40,9 +40,9 @@ def main():
             pfile.write(''.join(f'{v:x}\n' for v in pixels))
     run(['verilator','-I'+str(ROOT/'assets'),'--binary','--timing','--top-module','tb_rotation',
          *(['-GCPU_DRIVEN=1'] if args.cpu_firmware else []),
-         str(CHROMATIC/'verilator.vlt'),'-Wno-TIMESCALEMOD','--Mdir',str(out/'obj'),
-         '-o',str(out/'simulate-rotation'),'-j','4',*(str(p) for p in sources)],out/'compile.log',CHROMATIC)
-    log=run([str(out/'simulate-rotation'),'+OUT_DIR='+str(out)],out/'simulation.log',CHROMATIC)
+         str(SCENE_ASSETS/'verilator.vlt'),'-Wno-TIMESCALEMOD','--Mdir',str(out/'obj'),
+         '-o',str(out/'simulate-rotation'),'-j','4',*(str(p) for p in sources)],out/'compile.log',SCENE_ASSETS)
+    log=run([str(out/'simulate-rotation'),'+OUT_DIR='+str(out)],out/'simulation.log',SCENE_ASSETS)
     assert f'ROTATION_PASS phases=256 coordinates={coordinates} pixels=78643200' in log
     rows=[(int(p),int(c)) for p,c in re.findall(r'ROTATION phase=(\d+) cycles=(\d+)',log)]
     assert [p for p,c in rows]==list(range(256))

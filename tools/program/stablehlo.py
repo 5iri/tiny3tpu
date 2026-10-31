@@ -51,8 +51,8 @@ class Lowering:
         element = str(tensor.element_type)
         types = {'f32': 'float32', 'i32': 'int32', 'ui32': 'uint32',
                  'i8': 'int8', 'ui8': 'uint8', 'i1': 'bool'}
-        if element not in types or any(d <= 0 for d in shape):
-            raise ProgramError(f'backend has no storage lowering for {typ}; requires positive static shapes and supported element types')
+        if element not in types or any(d < 0 for d in shape):
+            raise ProgramError(f'backend has no storage lowering for {typ}; requires nonnegative static shapes and supported element types')
         return shape, types[element]
 
     def ints(self, attr):
@@ -144,13 +144,34 @@ class Lowering:
                 shape, dtype = self.spec(op.results[0].type)
                 data = np.asarray(self.ir.DenseElementsAttr(op.attributes['value'])).reshape(shape)
                 outs = [p.value(shape, dtype, data)]
+            elif name in ('stablehlo.sort','stablehlo.reduce_window','stablehlo.remainder','stablehlo.floor') and all(v.data is not None for v in values):
+                # These pure operations have interpreter semantics but no
+                # runtime implementation. Specialize static model metadata.
+                arrays = self.evaluate(op, [v.data for v in values])
+                outs = [p.value(*self.spec(r.type), a) for r,a in zip(op.results,arrays)]
+                p.folded += 1
             else:
                 if len(op.results) != 1:
                     self.fail(op, 'multi-result operation has no backend lowering')
                 shape, dtype = self.spec(op.results[0].type)
+                # Empty pure tensor results carry shape/type but no elements.
+                # Erase them before storage planning; live empty signatures
+                # and unsupported operations still fail explicitly.
+                empty_ops = {'stablehlo.'+n for n in (
+                    'broadcast_in_dim','reshape','slice','transpose','concatenate',
+                    'dot_general','add','subtract','multiply','divide','negate',
+                    'abs','convert','select','gather','minimum','maximum')}
+                if 0 in shape and name in empty_ops:
+                    env[op.results[0]] = p.value(shape,dtype,np.empty(shape,dtype))
+                    p.folded += 1
+                    continue
                 # Validate operation semantics even when operands happen to be constant.
                 opcode, inputs, params = self.operation(op, ins, shape, dtype)
-                if all(v.data is not None for v in values):
+                if opcode=='index' and p.values[inputs[0]].data is not None:
+                    data=p.values[inputs[0]].data.ravel()[np.asarray(params['map'],dtype=np.int64)].reshape(shape)
+                    outs=[p.value(shape,dtype,data)]
+                    p.folded+=1
+                elif all(v.data is not None for v in values):
                     result = self.evaluate(op, [v.data for v in values])[0]
                     outs = [p.value(shape, dtype, result)]
                     p.folded += 1
@@ -185,6 +206,14 @@ class Lowering:
         terminator = list(body_block.operations)[-1].operation
         invariant = [v == a and outer.values[i].data is not None
                      for v, a, i in zip(terminator.operands, body_block.arguments, carry)]
+        active_carry=[i for i in range(len(carry)) if not invariant[i]]
+        if not active_carry:
+            # Keep one value to represent a runtime loop even when every
+            # carry is invariant (its condition may still be a runtime input).
+            active_carry=[next((i for i,c in enumerate(carry) if outer.values[c].size),0)]
+            invariant[active_carry[0]]=False
+        runtime_slots=active_carry+[len(carry)+i for i,c in enumerate(capture_ids) if outer.values[c].data is None]
+        slot_map={old:new for new,old in enumerate(runtime_slots)}
         regions = []
         bindings = []
         try:
@@ -200,20 +229,24 @@ class Lowering:
                     vid = child.value(value.shape, value.dtype, value.data if constant else None)
                     if not constant:
                         child.inputs.append(vid)
-                        slots.append(slot)
+                        slots.append(slot_map[slot])
                     if slot < len(carry):args.append(vid)
                     else:mapping[captures[slot-len(carry)]] = vid
                 child.outputs = self.block(region.blocks[0], args, mapping)
+                if len(regions)==1:
+                    child.outputs=[child.outputs[i] for i in active_carry]
                 child.validate();child.dce()
                 regions.append(child)
                 bindings.append(slots)
         finally:
             self.plan = outer
-        outs = [outer.value(*self.spec(v.type)) for v in op.results]
-        outer.nodes.append(Node('while', carry+capture_ids, outs[0], {
-            'regions': regions, 'bindings': bindings, 'carry_count': len(carry),
+        outs = [outer.value(*self.spec(op.results[i].type)) for i in active_carry]
+        all_inputs=carry+capture_ids
+        outer.nodes.append(Node('while', [all_inputs[i] for i in runtime_slots], outs[0], {
+            'regions': regions, 'bindings': bindings, 'carry_count': len(active_carry),
             'source': {'op': op.name, 'location': str(op.location)}}, outs[1:]))
-        return outs
+        active_outputs=dict(zip(active_carry,outs))
+        return [active_outputs.get(i,carry[i]) for i in range(len(carry))]
 
     def reducer(self, op):
         block = op.regions[0].blocks[0]
@@ -238,7 +271,7 @@ class Lowering:
         simple = {'add': 'add', 'subtract': 'sub', 'multiply': 'mul', 'divide': 'div',
                   'negate': 'neg', 'abs': 'abs', 'sqrt': 'sqrt', 'atan2': 'atan2',
                   'minimum': 'min', 'maximum': 'max', 'sign': 'sign', 'convert': 'convert_element_type',
-                  'sine':'sin','cosine':'cos','exponential':'exp','and':'and','or':'or','xor':'xor','not':'not'}
+                  'sine':'sin','cosine':'cos','exponential':'exp','floor':'floor','and':'and','or':'or','xor':'xor','not':'not'}
         if op.name.startswith('stablehlo.') and name in simple:
             return simple[name], ins, {}
         if name=='iota':
@@ -247,7 +280,7 @@ class Lowering:
         if name == 'compare':
             direction = self.hlo.ComparisonDirectionAttr(attrs['comparison_direction']).value.lower()
             mode = self.hlo.ComparisonTypeAttr(attrs['compare_type']).value
-            expected = 'FLOAT' if values[0].dtype == 'float32' else 'UNSIGNED' if values[0].dtype.startswith('uint') else 'SIGNED'
+            expected = 'FLOAT' if values[0].dtype == 'float32' else 'UNSIGNED' if values[0].dtype.startswith('uint') or values[0].dtype=='bool' else 'SIGNED'
             if mode != expected:
                 self.fail(op, f'comparison mode {mode} is not supported for {values[0].dtype}')
             return direction, ins, {}
@@ -264,12 +297,17 @@ class Lowering:
             mapping = self.evaluate(op, [source] + [v.data for v in values[1:]], index_result=True)[0]
             return 'index', ins[:1], {'map': mapping.ravel().tolist()}
         if name == 'concatenate':
-            return name, ins, {'axis': self.ir.IntegerAttr(attrs['dimension']).value}
+            nonempty = [i for i in ins if p.values[i].size]
+            if len(nonempty)==1:
+                return 'index',nonempty,{'map':list(range(p.values[nonempty[0]].size))}
+            return name, nonempty, {'axis': self.ir.IntegerAttr(attrs['dimension']).value}
         if name == 'reduce':
             reducer=self.reducer(op)
             if len(ins)!=2 or reducer not in ('add','mul','min','max','and','or','xor'):
                 self.fail(op,'reduction requires a single supported associative reducer')
             axes = self.ints(attrs['dimensions'])
+            if not values[0].size:
+                return 'index',ins[1:],{'map':[0]*int(np.prod(shape))}
             mapping = []
             for index in np.ndindex(values[0].shape):
                 kept = tuple(v for a, v in enumerate(index) if a not in axes)
@@ -307,6 +345,9 @@ class Lowering:
             rf=[d for d in range(len(values[1].shape)) if d not in rb+rc]
             def extent(value,axes):return int(np.prod([value.shape[d] for d in axes]))
             batch=extent(values[0],lb);m=extent(values[0],lf);k=extent(values[0],lc);cols=extent(values[1],rf)
+            if k==0:
+                zero=p.value(shape,dtype,np.zeros(shape,dtype))
+                return 'index',[zero],{'map':list(range(int(np.prod(shape))))}
             matrix_inputs=[]
             for value,perm,dimensions in ((values[0],lb+lf+lc,(m,k)),(values[1],rb+rc+rf,(k,cols))):
                 newshape=(batch,*dimensions) if lb else dimensions
@@ -322,7 +363,7 @@ class Lowering:
 
 
 def compile_stablehlo(source, output, options=None, *, entry='main'):
-    """Compile MLIR text or a StableHLO portable artifact (bytes or Path).
+    """Compile MLIR text or a StableHLO portable artifact.
 
     The source artifact is the public compiler contract. The returned report
     describes lowered operations, memory, precision policy and CPU/TPU placement.

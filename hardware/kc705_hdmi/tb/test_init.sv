@@ -1,5 +1,5 @@
 `timescale 1ns/1ps
-module test_init #(parameter integer CLOCK_HZ=25200000);
+module test_init #(parameter integer VIDEO_720P=0, CLOCK_HZ=VIDEO_720P ? 74250000 : 25200000);
     reg clk=0, reset=1;
     always #(500000000.0/CLOCK_HZ) clk=~clk;
     tri1 scl, sda;
@@ -7,7 +7,7 @@ module test_init #(parameter integer CLOCK_HZ=25200000);
     assign sda=(slave_sda_low || stuck_sda) ? 1'b0 : 1'bz;
     assign scl=slave_scl_low ? 1'b0 : 1'bz;
     wire configured,error,mux_reset_n;
-    kc705_hdmi_init #(.CLOCK_HZ(CLOCK_HZ),.STARTUP_MS(0),.POLL_MS(1),
+    kc705_hdmi_init #(.CLOCK_HZ(CLOCK_HZ),.VIDEO_720P(VIDEO_720P),.STARTUP_MS(0),.POLL_MS(1),
         .STRETCH_TIMEOUT_MS(1),.LOCK_POLL_LIMIT(3)) dut (
         .clk(clk),.reset(reset),.scl(scl),.sda(sda),
         .mux_reset_n(mux_reset_n),.configured(configured),.error(error)
@@ -152,7 +152,7 @@ module test_init #(parameter integer CLOCK_HZ=25200000);
                 $fatal(1,"wrong KC705 16-bit input mapping");
             if(regs['h41]!='h10 || regs['haf]!='h06 || regs['h44]!='h11)
                 $fatal(1,"power, HDMI or no-audio setup wrong");
-            if(regs['h3b]!='hc0 || regs['h3c]!=(1) || regs['h55]!=2 || regs['h56]!=('h10) || regs['h57]!=8)
+            if(regs['h3b]!='hc0 || regs['h3c]!=(VIDEO_720P ? 4 : 1) || regs['h55]!=2 || regs['h56]!=(VIDEO_720P ? 'h20 : 'h10) || regs['h57]!=8)
                 $fatal(1,"wrong mode/RGB AVI settings");
             if(regs['h98]!=3 || regs['h9a]!='he0 || regs['h9c]!='h30 || regs['h9d]!='h61 ||
                regs['ha2]!='ha4 || regs['ha3]!='ha4 || regs['he0]!='hd0 || regs['hf9]!=0)
@@ -163,7 +163,7 @@ module test_init #(parameter integer CLOCK_HZ=25200000);
                !==64'h1cbc04ad1e6e0220) $fatal(1,"CSC green row differs from Table59");
             if({regs['h28],regs['h29],regs['h2a],regs['h2b],regs['h2c],regs['h2d],regs['h2e],regs['h2f]}
                !==64'h1ffe04ad081a1ba9) $fatal(1,"CSC blue row differs from Table59");
-            if(regs['h17]!=(0)) $fatal(1,"input aspect/sync mismatch");
+            if(regs['h17]!=(VIDEO_720P ? 2 : 0)) $fatal(1,"input aspect/sync mismatch");
             if(regs['h4a]!='h80 || regs['hba]!='h60) $fatal(1,"update mode/clock wrong");
             if(regs['ha1]!=0 || regs['h4b]!='h80 || regs['h40]!='h80)
                 $fatal(1,"TMDS or AVMUTE state not restored");

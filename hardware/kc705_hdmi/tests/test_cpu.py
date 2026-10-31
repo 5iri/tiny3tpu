@@ -12,7 +12,7 @@ try:
 except ImportError:
     print('SKIP: NumPy and JAX are required for the CPU/HDMI regression')
     raise SystemExit(77)
-from test import ROOT, REPO, CHROMATIC, run, palette, ycc, decoded_rgb
+from test import ROOT, REPO, SCENE_ASSETS, run, palette, ycc, decoded_rgb
 from reference import rasterize
 
 
@@ -55,20 +55,20 @@ def main():
         'kc705_hdmi_cpu_scene.sv','kc705_hdmi_display.sv','kc705_hdmi_palette.sv',
         'kc705_hdmi_renderer.sv','kc705_hdmi_ram.sv','kc705_hdmi_framebuffer.sv')),
         REPO/'hardware/kc705_vexriscv/vexriscv_tpu_soc.sv',REPO/'third_party/vexriscv/VexRiscv_Lite.v',
-        uart/'rtl/core_modules/uart.v',CHROMATIC/'src/scene.sv',
+        uart/'rtl/core_modules/uart.v',SCENE_ASSETS/'src/scene.sv',
         *(REPO/'multi-core'/name for name in ('tiny3tpu_direct_peripheral.sv','tiny3tpu_axi.sv','top.v','tpu_core_wrapper.sv')),
         REPO/'systolic_array/rtl/NxN_systolic_array.v',REPO/'systolic_array/rtl/pe.v',Path(__file__).with_name('tb_cpu.sv')]
     paths=[*sources,Path(__file__),Path(__file__).with_name('test.py'),ROOT/'tools/reference.py',
-           ROOT/'assets/mesh_config.vh',ROOT/'tools/mesh_assets.py', ROOT/'assets/mesh.json', ROOT/'assets/faces.hex', CHROMATIC/'tools/assets.py',CHROMATIC/'src/font.vh',uart/'rtl/include/memory_map.vh',
-           *(CHROMATIC/'assets'/name for name in ('mesh.json','vertices.hex','rotations.hex','faces.hex')),
+           ROOT/'assets/mesh_config.vh',ROOT/'tools/mesh_assets.py', ROOT/'assets/mesh.json', ROOT/'assets/faces.hex', SCENE_ASSETS/'tools/assets.py',SCENE_ASSETS/'src/font.vh',uart/'rtl/include/memory_map.vh',
+           *(SCENE_ASSETS/'assets'/name for name in ('mesh.json','vertices.hex','rotations.hex','faces.hex')),
            firmware/'firmware.hex',firmware/'build-manifest.json']
     hashes={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
     run(['verilator','-I'+str(ROOT/'assets'),'--binary','--timing','--top-module','tb_cpu','-Wno-fatal',
-         '-I'+str(CHROMATIC/'src'),'-I'+str(uart/'rtl/include'),
+         '-I'+str(SCENE_ASSETS/'src'),'-I'+str(uart/'rtl/include'),
          f'-GBOOT_HEX="{firmware}/firmware.hex"','--Mdir',str(out/'obj'),'-o',str(out/'simulate-cpu'),
          *(['-GPHASES=257'] if args.full_rotation else []),
-         '-j','4',*(str(p) for p in sources)],out/'compile.log',CHROMATIC)
-    log=run([str(out/'simulate-cpu'),'+OUT_DIR='+str(out)],out/'simulation.log',CHROMATIC)
+         '-j','4',*(str(p) for p in sources)],out/'compile.log',SCENE_ASSETS)
+    log=run([str(out/'simulate-cpu'),'+OUT_DIR='+str(out)],out/'simulation.log',SCENE_ASSETS)
     assert 'CPU_HDMI_PASS' in log
     publications=[(int(p),int(c)) for p,c in re.findall(r'PUBLISH phase=(\d+) cycle=(\d+)',log)]
     assert [p for p,c in publications]==[p%256 for p in range(257 if args.full_rotation else 9)]

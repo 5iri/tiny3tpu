@@ -29,7 +29,9 @@ def _compile_schedule(program, path, options=None):
     options = options or CompileOptions()
     p = copy.deepcopy(program)  # Compiling for another target must not mutate source IR.
     p.validate()
-    p.dce()
+    live = p.dce()
+    if any(p.values[i].size==0 for i in live):
+        raise ProgramError('live empty tensor storage is unsupported; empty intermediates must specialize away')
     composed = compose_indices(p) if options.fusion else 0
     if options.affine_policy not in ('auto','force'):
         raise ProgramError('affine_policy must be auto or force')

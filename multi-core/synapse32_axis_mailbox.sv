@@ -62,7 +62,7 @@ module synapse32_axis_mailbox (
 
     wire busy = (state != ST_IDLE);
     wire header_is_valid = (header_stage[31:16] == 16'b0) &&
-                           (header_stage[11:9] == 3'b0);
+                           (header_stage[11] == 1'b0);
     wire cpu_addr_aligned = (cpu_addr[1:0] == 2'b0);
     wire cpu_write_register = (cpu_addr == REG_HEADER) ||
                               (cpu_addr == REG_DATA) ||

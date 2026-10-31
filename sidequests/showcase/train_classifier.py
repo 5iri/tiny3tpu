@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """Train and quantize a small MNIST classifier; export generic StableHLO."""
-import json,hashlib,sys
+import argparse,json,hashlib,sys
 from dataclasses import replace
 from pathlib import Path
 import numpy as np
 import jax,jax.numpy as jnp
 ROOT=Path(__file__).resolve().parents[2];sys.path[:0]=[str(ROOT),str(ROOT/'tests')]
 from tools.jax_stablehlo import export_function
-from tools.program import compile_stablehlo,CompileOptions,KC705
+from tools.program import compile_stablehlo,CompileOptions,KC705,KC705_DIRECT
 from test_stablehlo_compiler import Compiled
-out=ROOT/'build-classifier';out.mkdir(exist_ok=True)
 def main():
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--out',type=Path,default=ROOT/'build-classifier');p.add_argument('--tpu-transport',choices=('mailbox','direct'),default='mailbox');p.add_argument('--gemm-policy',choices=('auto','cpu','tpu'),default='auto');p.add_argument('--compile-only',action='store_true',help='Recompile existing exported artifact and samples; skip training');a=p.parse_args();out=a.out.resolve();out.mkdir(parents=True,exist_ok=True)
+ if a.compile_only:
+  from sidequests.showcase.build_classifier import prepare_headers
+  report,counts=prepare_headers(out,out,a.gemm_policy,a.tpu_transport);print(json.dumps(dict(gemm_policy=a.gemm_policy,backend_calls_per_sample=counts)));return
  data=np.load(out/'mnist.npz');x=data['x_train'].reshape(-1,784).astype(np.float32)/255;y=data['y_train'];xt=data['x_test'].reshape(-1,784).astype(np.float32)/255;yt=data['y_test'];rng=np.random.default_rng(705)
  params=(jnp.zeros((784,10),jnp.float32),jnp.zeros(10,jnp.float32));mom=jax.tree.map(jnp.zeros_like,params);vel=mom
  def loss(p,a,b):return -jnp.mean(jax.nn.log_softmax(a@p[0]+p[1])[jnp.arange(a.shape[0]),b])
@@ -30,7 +33,7 @@ def main():
  def classifier(a):
   z=jax.lax.dot_general(a,jnp.array(qw),(((1,),(0,)),((),())),preferred_element_type=jnp.int32)+jnp.array(qb)
   return z.astype(jnp.float32)/jnp.float32(127*scale)
- artifact=export_function(classifier,qx[:1],output=out/'classifier.mlirbc');opts=CompileOptions(gemm_policy='tpu', target=KC705,symbol='classifier',math_mode='freestanding',allow_approximation=True)
+ artifact=export_function(classifier,qx[:1],output=out/'classifier.mlirbc');opts=CompileOptions(target=KC705_DIRECT if a.tpu_transport=='direct' else KC705,symbol='classifier',math_mode='freestanding',allow_approximation=True,gemm_policy=a.gemm_policy)
  report=compile_stablehlo(artifact,out/'classifier.h',opts);(out/'compile-report.json').write_text(json.dumps(report,indent=2))
  native=Compiled(artifact,replace(opts,symbol="t3p"));expected=[]
  for i in range(20):

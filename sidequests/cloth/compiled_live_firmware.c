@@ -8,12 +8,8 @@
 #include "compiled_scene.h"
 #include "tiny3tpu_axis_mailbox.h"
 #include "tiny3tpu_mmio_backend.h"
-
-#define UART ((volatile uint32_t *)(uintptr_t)0x20000000U)
-#ifndef TINY3TPU_CLOCK_HZ
-#define TINY3TPU_CLOCK_HZ 100000000
-#endif
-#define UART_DIVISOR ((TINY3TPU_CLOCK_HZ + 460800) / 921600 - 1)
+#define TINY3TPU_MAX_RESPONSE_BYTES 1092U
+#include "tiny3tpu_demo_transport.h"
 _Static_assert(T3P_INPUT_0_ELEMENTS == 180 && T3P_OUTPUT_0_ELEMENTS == 180,
                "cloth application requires 30 position/velocity rows");
 static t3p_workspace workspace;
@@ -56,24 +52,27 @@ static int gemm_kernel(void *u,tiny3tpu_mmio_kernel kernel,void *context) {
     if(status!=TINY3TPU_MMIO_KERNEL_UNSUPPORTED)backend_calls++;
     return status;
 }
-static unsigned get_byte(void) {while(!(UART[5]&1)){}return UART[0]&255;}
-static void put_byte(unsigned v) {while(!(UART[5]&32)){}UART[0]=v&255;}
+static unsigned get_byte(void) {return tiny3tpu_demo_get_byte();}
 static uint32_t get_word(void) {
     uint32_t v=0;for(unsigned i=0;i<4;i++)v|=get_byte()<<(8*i);return v;
 }
-static void put_word(uint32_t v) {for(unsigned i=0;i<4;i++)put_byte(v>>(8*i));}
+static void put_word(uint32_t v) {tiny3tpu_demo_put_word(v);}
 static uint32_t cycles(void) {return *(volatile uint32_t *)(uintptr_t)0x20002008U;}
 int main(void) {
-    UART[3]=0x83;UART[0]=UART_DIVISOR&255;UART[1]=UART_DIVISOR>>8;UART[3]=3;UART[2]=7;
+    if(tiny3tpu_demo_init())return 1;
+#if TINY3TPU_DIRECT_TPU
+    tiny3tpu_mmio io={0,rd,wr,1000};
+#else
     tiny3tpu_axis_mailbox mailbox;
     if(tiny3tpu_axis_mailbox_init(&mailbox,0,rd,wr,1000))return 1;
     tiny3tpu_mmio io={&mailbox,tiny3tpu_axis_mailbox_read32,tiny3tpu_axis_mailbox_write32,1000};
+#endif
     tiny3tpu_qgemm_backend backend={&io,gemm,gemm_packed,gemm_kernel};
     const void *inputs[]={state};void *outputs[]={state};
     memcpy(state,initial_state,sizeof(state));
-    const char *banner="CLOTH STABLEHLO CPU+TPU 921600 noddr\n";
-    while(*banner)put_byte((unsigned char)*banner++);
+    tiny3tpu_demo_banner("CLOTH STABLEHLO CPU+TPU 921600 noddr\n");
     for(;;) {
+        tiny3tpu_demo_begin(0x33514c43U,12U);
         uint32_t sync=0;
         while(sync!=0x33514c43U)sync=(sync>>8)|(get_byte()<<24);
         uint32_t sequence=get_word(),command=get_word();
@@ -105,5 +104,6 @@ int main(void) {
         if(!status && (command&512))for(unsigned i=0;i<T3P_OUTPUT_0_ELEMENTS;i++) {
             union {float f;uint32_t u;} value={state[i]};put_word(value.u);
         }
+        tiny3tpu_demo_end();
     }
 }

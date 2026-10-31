@@ -217,6 +217,8 @@ int main(int argc,char **argv){
         if result.returncode:raise RuntimeError((out/f'{name}.log').read_text()[-10000:])
     cpu_flags=(['-march=rv64imafdc_zicsr_zifencei','-mabi=lp64d','-mcmodel=medany'] if args.cpu=='rocket'
                else ['-march=rv32im_zicsr_zifencei','-mabi=ilp32'])
+    if args.tpu_transport=='direct' and not args.legacy_accumulation and not args.legacy_result_reads:
+        cpu_flags.append('-DTINY3TPU_DIRECT_TPU=1')
     startup=ROOT/('hardware/kc705_rocket/start.S' if args.cpu=='rocket' else 'hardware/synapse32/start.S')
     run(['riscv64-unknown-elf-gcc',*cpu_flags,'-'+args.optimization,
          '-ffreestanding','-fno-builtin','-nostdlib','-ffp-contract=off','-msmall-data-limit=0',

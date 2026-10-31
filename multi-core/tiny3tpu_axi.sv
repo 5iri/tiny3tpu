@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-// Fixed FPGA-facing AXI4-Lite wrapper for the two-core 4x4 accelerator.
+// Fixed FPGA-facing AXI4-Lite wrapper for the eight-core 4x4 accelerator.
 //
 // The AXI channels are deliberately handled independently: AW and W may be
 // presented in either order and are committed as one write only after both
@@ -10,7 +10,7 @@ module tiny3tpu_axi (
     input  wire        s_axi_aclk,
     input  wire        s_axi_aresetn,
 
-    input  wire [7:0]  s_axi_awaddr,
+    input  wire [9:0]  s_axi_awaddr,
     input  wire [2:0]  s_axi_awprot,
     input  wire        s_axi_awvalid,
     output wire        s_axi_awready,
@@ -24,7 +24,7 @@ module tiny3tpu_axi (
     output wire        s_axi_bvalid,
     input  wire        s_axi_bready,
 
-    input  wire [7:0]  s_axi_araddr,
+    input  wire [9:0]  s_axi_araddr,
     input  wire [2:0]  s_axi_arprot,
     input  wire        s_axi_arvalid,
     output wire        s_axi_arready,
@@ -37,14 +37,14 @@ module tiny3tpu_axi (
     localparam [1:0] AXI_OKAY   = 2'b00;
     localparam [1:0] AXI_SLVERR = 2'b10;
 
-    localparam [7:0] REG_CTRL        = 8'h00;
-    localparam [7:0] REG_UBUF_CFG    = 8'h04;
-    localparam [7:0] REG_UBUF_DATA   = 8'h08;
-    localparam [7:0] REG_CRD_CFG     = 8'h0c;
-    localparam [7:0] REG_STATUS      = 8'h10;
-    localparam [7:0] REG_CRD_DATA_LO = 8'h14;
-    localparam [7:0] REG_CRD_DATA_HI = 8'h18;
-    localparam [7:0] REG_RESULT_BASE = 8'h80;
+    localparam [9:0] REG_CTRL        = 10'h000;
+    localparam [9:0] REG_UBUF_CFG    = 10'h004;
+    localparam [9:0] REG_UBUF_DATA   = 10'h008;
+    localparam [9:0] REG_CRD_CFG     = 10'h00c;
+    localparam [9:0] REG_STATUS      = 10'h010;
+    localparam [9:0] REG_CRD_DATA_LO = 10'h014;
+    localparam [9:0] REG_CRD_DATA_HI = 10'h018;
+    localparam [9:0] REG_RESULT_BASE = 10'h200;
 
     reg [31:0] ctrl_reg;
     reg [31:0] ubuf_cfg_reg;
@@ -52,14 +52,18 @@ module tiny3tpu_axi (
     reg [31:0] crd_cfg_reg;
     reg [63:0] crd_data_reg;
     reg        done_status;
-    // 0x40 + core*32 + select_b*16 + row*4: four signed bytes,
-    // least significant byte first. B is returned after the final store.
-    reg [2:0] packed_left;
+    // 0x040 + core*32 + select_b*16 + row*4 (and broadcast apertures at
+    // 0x020..0x03c and 0x140..0x1fc): four signed bytes committed in parallel.
+    reg [2:0]  packed_left;
     reg [31:0] packed_data;
-    reg [3:0] packed_strb;
+    reg [3:0]  packed_strb;
+    reg [7:0]  packed_mask;
+    reg [7:0]  top_ubuf_wr_mask;
+    reg [3:0]  top_ubuf_wr_row_strb;
+    reg [31:0] top_ubuf_wr_row_data;
 
     reg        aw_pending;
-    reg [7:0]  awaddr_reg;
+    reg [9:0]  awaddr_reg;
     reg        w_pending;
     reg [31:0] wdata_reg;
     reg [3:0]  wstrb_reg;
@@ -71,7 +75,7 @@ module tiny3tpu_axi (
     reg [1:0]  rresp_reg;
     reg        result_window_pending;
     reg        result_window_lock;
-    reg        result_window_core;
+    reg [2:0]  result_window_core;
     reg [1:0]  result_window_row;
     reg [1:0]  result_window_col;
 
@@ -82,7 +86,7 @@ module tiny3tpu_axi (
     wire       top_busy;
     wire       top_done;
     wire signed [31:0] top_c_rd_data;
-    wire [7:0] window_addr_offset = s_axi_araddr - REG_RESULT_BASE;
+    wire [9:0] window_addr_offset = s_axi_araddr - REG_RESULT_BASE;
     // Only arbitrate writes against a direct read that can actually be
     // accepted now. An unrelated stalled R response must not block writes.
     wire       window_read_request = s_axi_arvalid && !rvalid_reg &&
@@ -115,11 +119,11 @@ module tiny3tpu_axi (
     assign s_axi_rresp   = rresp_reg;
 
     top #(
-        .NUM_CORES(2),
+        .NUM_CORES(8),
         .N(4),
         .DW(8),
         .CW(32),
-        .NUM_BIG_CORES(2),
+        .NUM_BIG_CORES(8),
         .SMALL_N(4),
         .BIG_N(4)
     ) u_top (
@@ -127,16 +131,19 @@ module tiny3tpu_axi (
         .rst(rst),
         .ubuf_wr_en(top_ubuf_wr_en),
         .ubuf_wr_sel(ubuf_cfg_reg[0]),
-        .ubuf_wr_core(ubuf_cfg_reg[8]),
+        .ubuf_wr_core(ubuf_cfg_reg[10:8]),
+        .ubuf_wr_mask(top_ubuf_wr_mask),
         .ubuf_wr_row(ubuf_cfg_reg[17:16]),
         .ubuf_wr_col(ubuf_cfg_reg[25:24]),
         .ubuf_wr_data(ubuf_data_reg[7:0]),
+        .ubuf_wr_row_strb(top_ubuf_wr_row_strb),
+        .ubuf_wr_row_data(top_ubuf_wr_row_data),
         .start(top_start),
         .continue_accum(top_continue_accum),
         .busy(top_busy),
         .done(top_done),
         .c_rd_en(top_c_rd_en),
-        .c_rd_core(result_window_pending ? result_window_core : crd_cfg_reg[8]),
+        .c_rd_core(result_window_pending ? result_window_core : crd_cfg_reg[10:8]),
         .c_rd_row(result_window_pending ? result_window_row : crd_cfg_reg[17:16]),
         .c_rd_col(result_window_pending ? result_window_col : crd_cfg_reg[25:24]),
         .c_rd_data(top_c_rd_data)
@@ -159,7 +166,7 @@ module tiny3tpu_axi (
     endfunction
 
     function is_write_address;
-        input [7:0] address;
+        input [9:0] address;
         begin
             case (address)
                 REG_CTRL,
@@ -172,7 +179,7 @@ module tiny3tpu_axi (
     endfunction
 
     function is_read_address;
-        input [7:0] address;
+        input [9:0] address;
         begin
             case (address)
                 REG_CTRL,
@@ -187,17 +194,97 @@ module tiny3tpu_axi (
         end
     endfunction
 
+    function is_packed_write_address;
+        input [9:0] address;
+        begin
+            is_packed_write_address = (address >= 10'h020) &&
+                                      (address < 10'h200) &&
+                                      (address[1:0] == 2'b00);
+        end
+    endfunction
+
+    function [7:0] decode_packed_mask;
+        input [9:0] address;
+        reg [2:0] core_idx;
+        reg [3:0] group_idx;
+        begin
+            if (address < 10'h040) begin
+                decode_packed_mask = address[4] ? 8'haa : 8'h55;
+            end else if (address < 10'h140) begin
+                core_idx = (address - 10'h040) >> 5;
+                decode_packed_mask = 8'd1 << core_idx;
+            end else begin
+                group_idx = (address - 10'h140) >> 4;
+                case (group_idx)
+                    4'd0:    decode_packed_mask = 8'hff;
+                    4'd1:    decode_packed_mask = 8'hff;
+                    4'd2:    decode_packed_mask = 8'h0f;
+                    4'd3:    decode_packed_mask = 8'hf0;
+                    4'd4:    decode_packed_mask = 8'h11;
+                    4'd5:    decode_packed_mask = 8'h22;
+                    4'd6:    decode_packed_mask = 8'h44;
+                    4'd7:    decode_packed_mask = 8'h88;
+                    4'd8:    decode_packed_mask = 8'h03;
+                    4'd9:    decode_packed_mask = 8'h0c;
+                    4'd10:   decode_packed_mask = 8'h30;
+                    4'd11:   decode_packed_mask = 8'hc0;
+                    default: decode_packed_mask = 8'h00;
+                endcase
+            end
+        end
+    endfunction
+
+    function decode_packed_select_b;
+        input [9:0] address;
+        reg [3:0] group_idx;
+        begin
+            if (address < 10'h040) begin
+                decode_packed_select_b = 1'b1;
+            end else if (address < 10'h140) begin
+                decode_packed_select_b = address[4];
+            end else begin
+                group_idx = (address - 10'h140) >> 4;
+                decode_packed_select_b = (group_idx == 4'd1) ||
+                                         (group_idx >= 4'd4 && group_idx <= 4'd7);
+            end
+        end
+    endfunction
+
+    function [2:0] decode_packed_core;
+        input [9:0] address;
+        reg [3:0] group_idx;
+        begin
+            if (address < 10'h040) begin
+                decode_packed_core = {2'b00, address[4]};
+            end else if (address < 10'h140) begin
+                decode_packed_core = (address - 10'h040) >> 5;
+            end else begin
+                group_idx = (address - 10'h140) >> 4;
+                case (group_idx)
+                    4'd3:    decode_packed_core = 3'd4;
+                    4'd5:    decode_packed_core = 3'd1;
+                    4'd6:    decode_packed_core = 3'd2;
+                    4'd7:    decode_packed_core = 3'd3;
+                    4'd9:    decode_packed_core = 3'd2;
+                    4'd10:   decode_packed_core = 3'd4;
+                    4'd11:   decode_packed_core = 3'd6;
+                    default: decode_packed_core = 3'd0;
+                endcase
+            end
+        end
+    endfunction
+
     function is_result_window_address;
-        input [7:0] address;
+        input [9:0] address;
         begin
             is_result_window_address = (address >= REG_RESULT_BASE) &&
-                                      (address <= 8'hfc) &&
+                                      (address <= 10'h3fc) &&
                                       (address[1:0] == 2'b00);
         end
     endfunction
 
     function [31:0] read_register;
-        input [7:0] address;
+        input [9:0] address;
         begin
             case (address)
                 REG_CTRL:        read_register = ctrl_reg;
@@ -225,12 +312,16 @@ module tiny3tpu_axi (
             crd_cfg_reg   <= 32'b0;
             crd_data_reg  <= 64'b0;
             done_status   <= 1'b0;
-            packed_left <= 0;
-            packed_data <= 0;
-            packed_strb <= 0;
+            packed_left   <= 3'd0;
+            packed_data   <= 32'b0;
+            packed_strb   <= 4'b0;
+            packed_mask   <= 8'b0;
+            top_ubuf_wr_mask <= 8'b0;
+            top_ubuf_wr_row_strb <= 4'b0;
+            top_ubuf_wr_row_data <= 32'b0;
 
             aw_pending <= 1'b0;
-            awaddr_reg <= 8'b0;
+            awaddr_reg <= 10'b0;
             w_pending  <= 1'b0;
             wdata_reg  <= 32'b0;
             wstrb_reg  <= 4'b0;
@@ -242,7 +333,7 @@ module tiny3tpu_axi (
             rresp_reg  <= AXI_OKAY;
             result_window_pending <= 1'b0;
             result_window_lock <= 1'b0;
-            result_window_core <= 1'b0;
+            result_window_core <= 3'b0;
             result_window_row <= 2'b0;
             result_window_col <= 2'b0;
 
@@ -253,6 +344,9 @@ module tiny3tpu_axi (
         end else begin
             // All accelerator-facing controls are one-cycle pulses.
             top_ubuf_wr_en <= 1'b0;
+            top_ubuf_wr_mask <= 8'b0;
+            top_ubuf_wr_row_strb <= 4'b0;
+            top_ubuf_wr_row_data <= 32'b0;
             top_start      <= 1'b0;
             top_continue_accum <= 1'b0;
             top_c_rd_en    <= 1'b0;
@@ -284,6 +378,7 @@ module tiny3tpu_axi (
                     ubuf_cfg_reg[25:24] <= ubuf_cfg_reg[25:24]+1'b1;
                     ubuf_data_reg <= {24'b0,packed_data[7:0]};
                     top_ubuf_wr_en <= packed_strb[0];
+                    top_ubuf_wr_mask <= packed_mask;
                     packed_data <= {8'b0,packed_data[31:8]};
                     packed_strb <= {1'b0,packed_strb[3:1]};
                 end
@@ -293,17 +388,18 @@ module tiny3tpu_axi (
                 w_pending  <= 1'b0;
                 bvalid_reg <= 1'b1;
 
-                if (awaddr_reg[7:6]==2'b01 && awaddr_reg[1:0]==0) begin
+                if (is_packed_write_address(awaddr_reg)) begin
                     bresp_reg <= AXI_SLVERR;
                     if (!top_busy && !top_start) begin
-                        bvalid_reg <= 1'b0;
                         bresp_reg <= AXI_OKAY;
-                        ubuf_cfg_reg <= {14'b0,awaddr_reg[3:2],7'b0,awaddr_reg[5],7'b0,awaddr_reg[4]};
-                        ubuf_data_reg <= {24'b0,wdata_reg[7:0]};
-                        top_ubuf_wr_en <= wstrb_reg[0];
-                        packed_data <= {8'b0,wdata_reg[31:8]};
-                        packed_strb <= {1'b0,wstrb_reg[3:1]};
-                        packed_left <= 4;
+                        ubuf_cfg_reg <= {6'b0, 2'd3, 6'b0, awaddr_reg[3:2], 5'b0,
+                                         decode_packed_core(awaddr_reg),
+                                         7'b0, decode_packed_select_b(awaddr_reg)};
+                        ubuf_data_reg <= {24'b0, wdata_reg[31:24]};
+                        top_ubuf_wr_en <= |wstrb_reg;
+                        top_ubuf_wr_mask <= decode_packed_mask(awaddr_reg);
+                        top_ubuf_wr_row_strb <= wstrb_reg;
+                        top_ubuf_wr_row_data <= wdata_reg;
                     end
                 end else if (is_write_address(awaddr_reg)) begin
                     bresp_reg <= AXI_OKAY;
@@ -324,6 +420,7 @@ module tiny3tpu_axi (
                             end
                             if (wstrb_reg[0] && wdata_reg[1]) begin
                                 top_ubuf_wr_en <= 1'b1;
+                                top_ubuf_wr_mask <= 8'b0;
                             end
                             if (wstrb_reg[0] && wdata_reg[2]) begin
                                 top_c_rd_en <= 1'b1;
@@ -381,7 +478,7 @@ module tiny3tpu_axi (
                         rresp_reg <= AXI_SLVERR;
                         rdata_reg <= 32'b0;
                     end else begin
-                        result_window_core <= window_addr_offset[6];
+                        result_window_core <= window_addr_offset[8:6];
                         result_window_row <= window_addr_offset[5:4];
                         result_window_col <= window_addr_offset[3:2];
                         result_window_pending <= 1'b1;

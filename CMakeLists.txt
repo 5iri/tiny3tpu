@@ -56,6 +56,11 @@ add_executable(tiny3tpu_mmio_backend_test tests/mmio_backend_test.c)
 target_link_libraries(tiny3tpu_mmio_backend_test PRIVATE tiny3tpu_mmio_backend)
 target_compile_options(tiny3tpu_mmio_backend_test PRIVATE -Wall -Wextra -Wpedantic)
 add_test(NAME tiny3tpu_mmio_backend_test COMMAND tiny3tpu_mmio_backend_test)
+
+add_executable(tiny3tpu_uart_coords_test tests/uart_coords_test.c)
+target_include_directories(tiny3tpu_uart_coords_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(tiny3tpu_uart_coords_test PRIVATE -Wall -Wextra -Wpedantic)
+add_test(NAME tiny3tpu_uart_coords_test COMMAND tiny3tpu_uart_coords_test)
 add_executable(tiny3tpu_tests tests/compiler_tests.cpp)
 target_link_libraries(tiny3tpu_tests PRIVATE tiny3tpu_compiler)
 target_compile_options(tiny3tpu_tests PRIVATE -Wall -Wextra -Wpedantic)
@@ -104,6 +109,10 @@ foreach(transport demo_transport demo_uart_transport)
   set_tests_properties(tiny3tpu_${transport}_test PROPERTIES TIMEOUT 30)
 endforeach()
 if(Python3_Interpreter_FOUND)
+  add_test(NAME tiny3tpu_live_stream
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_live_stream.py)
+  add_test(NAME tiny3tpu_program_math
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_program_math.py)
   add_test(NAME kc705_io_export
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_kc705_io_export.py)
   add_test(NAME synapse32_workload_report
@@ -141,6 +150,32 @@ if(TINY3TPU_DDR_PYTHON)
   set_tests_properties(kc705_ddr_only PROPERTIES TIMEOUT 180)
 endif()
 if(TINY3TPU_VERILATOR)
+  if(Python3_Interpreter_FOUND)
+    add_test(NAME kc705_hdmi_display
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tests/test.py
+        --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-display)
+    set_tests_properties(kc705_hdmi_display PROPERTIES TIMEOUT 300)
+    add_test(NAME kc705_hdmi_rotation
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tests/test_rotation.py
+        --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-rotation)
+    set_tests_properties(kc705_hdmi_rotation PROPERTIES TIMEOUT 300)
+    add_test(NAME kc705_hdmi_cpu
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tests/test_cpu.py
+        --prepare --full-rotation --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-cpu)
+    set_tests_properties(kc705_hdmi_cpu PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+    add_test(NAME kc705_hdmi_pixels
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tests/test_pixels.py
+        --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-pixels)
+    set_tests_properties(kc705_hdmi_pixels PROPERTIES TIMEOUT 180)
+    add_test(NAME kc705_hdmi_pixels_720p
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tests/test_pixels.py
+        --video-mode 720p --synth --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-pixels-720p)
+    set_tests_properties(kc705_hdmi_pixels_720p PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+    add_test(NAME kc705_hdmi_pixel_cpu
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tests/test_pixel_cpu.py
+        --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-pixel-cpu)
+    set_tests_properties(kc705_hdmi_pixel_cpu PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+  endif()
   foreach(mode exp mmio)
     add_test(NAME cordic_${mode}
       COMMAND ${CMAKE_COMMAND} -DVERILATOR=${TINY3TPU_VERILATOR}
@@ -150,6 +185,13 @@ if(TINY3TPU_VERILATOR)
         -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_cordic_test.cmake)
     set_tests_properties(cordic_${mode} PROPERTIES TIMEOUT 120)
   endforeach()
+  add_test(NAME fpu_mmio
+    COMMAND ${CMAKE_COMMAND} -DVERILATOR=${TINY3TPU_VERILATOR}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/fpu-mmio
+      -DFPU=ON
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_cordic_test.cmake)
+  set_tests_properties(fpu_mmio PROPERTIES TIMEOUT 120)
   add_test(NAME rocket_axi_bridge
     COMMAND ${CMAKE_COMMAND} -DVERILATOR=${TINY3TPU_VERILATOR}
       -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
@@ -218,6 +260,33 @@ if(Python3_Interpreter_FOUND AND TINY3TPU_IVERILOG AND TINY3TPU_VVP AND TINY3TPU
   set_tests_properties(kc705_uberddr3_pipeline PROPERTIES TIMEOUT 180)
 endif()
 if(TINY3TPU_IVERILOG AND TINY3TPU_VVP)
+  if(Python3_Interpreter_FOUND)
+    add_test(NAME kc705_hdmi_init
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tb/test_init.py
+        --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-init)
+    set_tests_properties(kc705_hdmi_init PROPERTIES TIMEOUT 180)
+    add_test(NAME kc705_hdmi_init_720p
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tb/test_init.py
+        --video-mode 720p --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-init-720p)
+    set_tests_properties(kc705_hdmi_init_720p PROPERTIES TIMEOUT 180)
+    add_test(NAME kc705_hdmi_mmio
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tests/test_mmio.py
+        --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-mmio)
+    set_tests_properties(kc705_hdmi_mmio PROPERTIES TIMEOUT 30)
+  endif()
+  add_test(NAME tiny3tpu_top_direct_load
+    COMMAND ${CMAKE_COMMAND}
+      -DIVERILOG=${TINY3TPU_IVERILOG} -DVVP=${TINY3TPU_VVP}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/top-direct-load
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_top_direct_load.cmake)
+  add_test(NAME tiny3tpu_core_wrapper_rtl
+    COMMAND ${CMAKE_COMMAND}
+      -DIVERILOG=${TINY3TPU_IVERILOG} -DVVP=${TINY3TPU_VVP}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/core-wrapper
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_core_wrapper_test.cmake)
+  set_tests_properties(tiny3tpu_core_wrapper_rtl PROPERTIES TIMEOUT 90)
   add_test(NAME tpu_bounded_counters
     COMMAND ${CMAKE_COMMAND}
       -DIVERILOG=${TINY3TPU_IVERILOG} -DVVP=${TINY3TPU_VVP}
@@ -319,41 +388,4 @@ if(TINY3TPU_SYNAPSE32_DIR)
       -DDRAM_TEST=ON
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_synapse32_cpu_test.cmake)
   set_tests_properties(synapse32_divider_dram PROPERTIES TIMEOUT 240)
-endif()
-
-# Physical display targets. MuJoCo, DDR video and Ethernet experiments are separate.
-if(Python3_Interpreter_FOUND AND TINY3TPU_VERILATOR)
-  foreach(check display rotation cpu)
-    if(check STREQUAL "display")
-      set(hdmi_script test.py)
-      set(hdmi_args "")
-    elseif(check STREQUAL "cpu")
-      set(hdmi_script test_cpu.py)
-      set(hdmi_args --prepare --full-rotation)
-    else()
-      set(hdmi_script test_rotation.py)
-      set(hdmi_args "")
-    endif()
-    add_test(NAME kc705_hdmi_${check}
-      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tests/${hdmi_script}
-        ${hdmi_args} --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-${check})
-    set_tests_properties(kc705_hdmi_${check} PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
-  endforeach()
-endif()
-if(Python3_Interpreter_FOUND AND TINY3TPU_IVERILOG AND TINY3TPU_VVP)
-  add_test(NAME kc705_hdmi_init COMMAND ${Python3_EXECUTABLE}
-    ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tb/test_init.py --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-init)
-  add_test(NAME kc705_hdmi_mmio COMMAND ${Python3_EXECUTABLE}
-    ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tests/test_mmio.py --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-mmio)
-  foreach(check top_direct_load core_wrapper)
-    if(check STREQUAL "core_wrapper")
-      set(check_script run_core_wrapper_test.cmake)
-    else()
-      set(check_script run_top_direct_load.cmake)
-    endif()
-    add_test(NAME tiny3tpu_${check}_rtl COMMAND ${CMAKE_COMMAND}
-      -DIVERILOG=${TINY3TPU_IVERILOG} -DVVP=${TINY3TPU_VVP}
-      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/${check}
-      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/${check_script})
-  endforeach()
 endif()

@@ -57,7 +57,7 @@ inline void record_write(Simulation& s, uint32_t offset, uint32_t value,
         }
     } else if (offset == SIM_REG_CRD_CFG) {
         ++c.result_selectors; c.selector_ticks += ticks;
-    } else if (offset >= 0x40U && offset < 0x80U) {
+    } else if (offset >= 0x20U && offset < 0x200U) {
         ++c.operand_writes; c.operand_ticks += ticks;
     } else {
         ++c.other_writes; c.other_write_ticks += ticks;
@@ -77,7 +77,7 @@ inline void record_read(Simulation& s, uint32_t offset, uint32_t value,
         ++c.result_low_reads; c.result_low_ticks += ticks;
     } else if (offset == SIM_REG_RESULT_HI) {
         ++c.result_high_reads; c.result_high_ticks += ticks;
-    } else if (offset >= 0x80U && offset <= 0xfcU && (offset & 3U) == 0U) {
+    } else if (offset >= 0x200U && offset <= 0x3fcU && (offset & 3U) == 0U) {
         ++c.result_window_reads; c.result_window_ticks += ticks;
     } else {
         ++c.other_reads; c.other_read_ticks += ticks;

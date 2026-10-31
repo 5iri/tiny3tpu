@@ -14,7 +14,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parents[1]
-CHROMATIC = ROOT.parent/'chromatic'
+SCENE_ASSETS = ROOT.parent/'banana_scene'
 sys.path.insert(0, str(ROOT/'tools'))
 from reference import reference
 CPU_MESH=json.loads((ROOT/'assets/mesh.json').read_text())
@@ -30,7 +30,7 @@ BARS = [(63,63,63),(63,63,0),(0,63,63),(0,63,0),
 BAR_WORDS = [(0x80eb,0x80eb),(0x10d2,0x92d2),(0xa6a9,0x10a9),(0x3690,0x2290),
              (0xca6b,0xde6b),(0x5a52,0xf052),(0xf029,0x6e29),(0x8010,0x8010)]
 FONT = {int(code):int(bits,2) for code,bits in re.findall(
-    r"8'd(\d+):glyph=15'b([01]{15})", (CHROMATIC/'src/font.vh').read_text())}
+    r"8'd(\d+):glyph=15'b([01]{15})", (SCENE_ASSETS/'src/font.vh').read_text())}
 
 
 def require(ok, message):
@@ -207,22 +207,22 @@ def main():
             pfile.write(''.join(f'{v:x}\n' for v in pixels))
     sources=[ROOT/'src/kc705_hdmi_cpu_scene.sv',ROOT/'src/kc705_hdmi_display.sv',ROOT/'src/kc705_hdmi_framebuffer.sv',
              ROOT/'src/kc705_hdmi_renderer.sv',ROOT/'src/kc705_hdmi_ram.sv',ROOT/'src/kc705_hdmi_palette.sv',
-             *(CHROMATIC/'src'/name for name in
+             *(SCENE_ASSETS/'src'/name for name in
              ('scene.sv',)),
              REPO/'multi-core/tpu_core_wrapper.sv',REPO/'systolic_array/rtl/NxN_systolic_array.v',
              REPO/'systolic_array/rtl/pe.v',Path(__file__).with_name('tb_display.sv')]
     verilator=shutil.which('verilator')
     if verilator is None: raise RuntimeError('verilator is required')
     run([verilator,'-I'+str(ROOT/'assets'),'--binary','--timing','--top-module','tb_display',
-         str(CHROMATIC/'verilator.vlt'),'-Wno-TIMESCALEMOD',
-         '-I'+str(CHROMATIC/'src'),'--Mdir',str(out/'obj_display'),'-o',str(out/'simulate-display'),
-         '-j','4',*(str(path) for path in sources)],out/'compile.log',CHROMATIC)
-    log=run([str(out/'simulate-display'),'+OUT_DIR='+str(out)],out/'simulation.log',CHROMATIC)
+         str(SCENE_ASSETS/'verilator.vlt'),'-Wno-TIMESCALEMOD',
+         '-I'+str(SCENE_ASSETS/'src'),'--Mdir',str(out/'obj_display'),'-o',str(out/'simulate-display'),
+         '-j','4',*(str(path) for path in sources)],out/'compile.log',SCENE_ASSETS)
+    log=run([str(out/'simulate-display'),'+OUT_DIR='+str(out)],out/'simulation.log',SCENE_ASSETS)
     report=verify_capture(out,images,log)
     report['sha256']={str(path.relative_to(REPO)):hashlib.sha256(path.read_bytes()).hexdigest()
                       for path in [*sources,Path(__file__),ROOT/'assets/mesh_config.vh',ROOT/'tools/reference.py',
-                                   CHROMATIC/'tools/assets.py',CHROMATIC/'src/font.vh',
-                                   *(CHROMATIC/'assets'/name for name in ('mesh.json','vertices.hex','rotations.hex','faces.hex'))]}
+                                   SCENE_ASSETS/'tools/assets.py',SCENE_ASSETS/'src/font.vh',
+                                   *(SCENE_ASSETS/'assets'/name for name in ('mesh.json','vertices.hex','rotations.hex','faces.hex'))]}
     (out/'verification.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({k:v for k,v in report.items() if k not in ('sha256','frames','renderer_frames')},indent=2))
     print(f'HDMI DISPLAY PASS; captures and evidence: {out}')

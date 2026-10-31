@@ -6,7 +6,7 @@ from .cost import AffineCostModel, GemmCostModel, SpecializedGemmCostModel
 
 
 CPU_OPS = frozenset(('add', 'add_any', 'sub', 'mul', 'div', 'neg', 'abs', 'sqrt',
-    'acos', 'atan2', 'sin', 'cos', 'exp', 'min', 'max', 'lt', 'le', 'gt', 'ge', 'eq', 'ne', 'select_n', 'sign',
+    'acos', 'atan2', 'sin', 'cos', 'exp', 'floor', 'min', 'max', 'lt', 'le', 'gt', 'ge', 'eq', 'ne', 'select_n', 'sign',
     'convert_element_type', 'integer_pow', 'index', 'reduce_sum', 'scatter-add',
     'concatenate', 'stack', 'matmul', 'while', 'gather', 'scatter', 'reduce', 'and', 'or', 'xor', 'not'))
 
@@ -155,7 +155,7 @@ def legalize(program, target, *, math_mode='libm', allow_approximation=False, ge
                 require(math_mode != 'freestanding' or allow_approximation,
                         'freestanding math requires allow_approximation')
             binary = ('add', 'add_any', 'sub', 'mul', 'div', 'atan2', 'min', 'max', 'lt', 'le', 'gt', 'ge', 'eq', 'ne','and','or','xor')
-            unary = ('neg', 'abs', 'sqrt', 'acos', 'sin', 'cos', 'exp', 'sign', 'convert_element_type', 'integer_pow','not')
+            unary = ('neg', 'abs', 'sqrt', 'acos', 'sin', 'cos', 'exp', 'floor', 'sign', 'convert_element_type', 'integer_pow','not')
             if n.op in binary + unary + ('select_n',):
                 require(len(args) == (2 if n.op in binary else 3 if n.op == 'select_n' else 1), 'wrong operand count')
                 require(np.broadcast_shapes(*(a.shape for a in args)) == out.shape, 'invalid elementwise broadcast')
@@ -170,6 +170,7 @@ def legalize(program, target, *, math_mode='libm', allow_approximation=False, ge
                 if n.op in ('and','or','xor','not'):require(out.dtype!='float32','bitwise operation requires integer/boolean type')
                 if n.op == 'div':
                     require(out.dtype == 'float32', 'integer division semantics have no lowering')
+                if n.op == 'floor':require(out.dtype=='float32','floor requires float32')
                 if n.op == 'integer_pow':
                     require(n.params.get('exponent') == 2, 'only exponent 2 is currently legalized')
             if n.op in ('index', 'reduce_sum', 'scatter-add'):

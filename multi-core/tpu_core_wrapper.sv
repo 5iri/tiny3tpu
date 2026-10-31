@@ -17,6 +17,8 @@ module tpu_core_wrapper #(
     input  wire [$clog2(N)-1:0]         load_row,
     input  wire [$clog2(N)-1:0]         load_col,
     input  wire signed [DW-1:0]         load_data,
+    input  wire [N-1:0]                 load_row_strb = {N{1'b0}},
+    input  wire [N*DW-1:0]              load_row_data = {(N*DW){1'b0}},
 
     input  wire                         c_rd_en,
     input  wire [$clog2(N)-1:0]         c_rd_row,
@@ -119,7 +121,17 @@ module tpu_core_wrapper #(
             done <= 1'b0;
 
             if (load_en && !busy) begin
-                if (load_sel) begin
+                if (|load_row_strb) begin
+                    for (j = 0; j < N; j++) begin
+                        if (load_row_strb[j]) begin
+                            if (load_sel) begin
+                                b_spm[load_row][j] <= load_row_data[(j*DW) +: DW];
+                            end else begin
+                                a_spm[load_row][j] <= load_row_data[(j*DW) +: DW];
+                            end
+                        end
+                    end
+                end else if (load_sel) begin
                     b_spm[load_row][load_col] <= load_data;
                 end else begin
                     a_spm[load_row][load_col] <= load_data;

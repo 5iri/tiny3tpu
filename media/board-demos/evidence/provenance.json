@@ -1,14 +1,4 @@
 {
-  "chromatic-board.json": {
-    "source": "hardware/chromatic/build/hardware.json",
-    "original_sha256": "deb9ce4782c60aa26cfebf1ad9497bd4e99cd103d185d621452666f192ba1f6c",
-    "publication_changes": "Removed adapter serial/command and replaced workspace prefixes with relative paths; result values unchanged."
-  },
-  "chromatic-rtl.json": {
-    "source": "hardware/chromatic/build/verification.json",
-    "original_sha256": "72091b049eb36d95f0d5211957c73c0a5950ad4844dea1edaef9b7ee2f9955d5",
-    "publication_changes": "Removed adapter serial/command and replaced workspace prefixes with relative paths; result values unchanged."
-  },
   "hdmi-color-board.json": {
     "source": "build-kc705-hdmi/hardware-validation/color-fix-load-report.json",
     "original_sha256": "f507b16a8dac8e35813efef652e092a882ac838d74089fe087f6c1a37c0fb923",

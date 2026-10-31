@@ -34,8 +34,8 @@ module tb_cpu #(parameter BOOT_HEX="", parameter PHASES=9);
         if(dut.soc.direct_tpu.accelerator.accelerator.u_top.core_start[0])core0=core0+1;
         if(dut.soc.direct_tpu.accelerator.accelerator.u_top.core_start[1])core1=core1+1;
         if(dut.soc.direct_tpu.accelerator.resp_valid && dut.soc.direct_tpu.accelerator.resp_ready &&
-           !dut.soc.direct_tpu.accelerator.writing && dut.soc.direct_tpu.accelerator.address[7])begin
-            raw_row=(core0-previous_core0-1)*8+int'(dut.soc.direct_tpu.accelerator.address[6:4]);
+           !dut.soc.direct_tpu.accelerator.writing && dut.soc.direct_tpu.accelerator.address[9])begin
+            raw_row=(core0-previous_core0-1)*32+int'(dut.soc.direct_tpu.accelerator.address[8:4]);
             raw_col=int'(dut.soc.direct_tpu.accelerator.address[3:2]);
             if(raw_row>=`HDMI_VERTICES || raw_row<0 || raw_col>=3)
                 $fatal(1,"Unexpected result read");
@@ -49,7 +49,7 @@ module tb_cpu #(parameter BOOT_HEX="", parameter PHASES=9);
         end
         if(dut.command_start)begin
             if(upload_count!=`HDMI_VERTICES || int'(dut.command_phase)>=FIXTURE_PHASES)$fatal(1,"Incomplete submit");
-            if(core0-previous_core0!=((`HDMI_VERTICES+7)/8) || core1-previous_core1!=((`HDMI_VERTICES+7)/8))
+            if(core0-previous_core0!=((`HDMI_VERTICES+31)/32) || core1-previous_core1!=((`HDMI_VERTICES+31)/32))
                 $fatal(1,"Both TPU cores must execute the configured batches: %0d/%0d",core0-previous_core0,core1-previous_core1);
             previous_core0=core0;previous_core1=core1;
             for(integer i=0;i<`HDMI_VERTICES;i=i+1)

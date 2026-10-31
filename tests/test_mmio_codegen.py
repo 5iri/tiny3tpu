@@ -81,7 +81,8 @@ class MMIOCodegenTests(unittest.TestCase):
     def test_schedules_and_tails(self):
         for shape in [(1,1,1),(4,4,8),(8,4,4),(4,8,4),(5,11,7),(9,9,9),
                       (1,9,1),(1,17,10),(28,3,3),(17,5,9),(8,8,8),(16,32,16),
-                      (4,9,17),(9,5,1),(9,3,9),(1,3,17)]:
+                      (4,9,17),(9,5,1),(9,3,9),(1,3,17),(32,4,4),(4,32,4),
+                      (4,4,32),(8,4,16),(16,4,8),(16,9,8),(8,9,16),(4,40,4)]:
             with self.subTest(shape=shape):
                 c,arrays,a,b = self.compile(*shape)
                 self.check(c,arrays,a,b)

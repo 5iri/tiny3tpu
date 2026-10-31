@@ -26,20 +26,21 @@ static int packed(void *u,const int8_t *a,const int8_t *b,const uint32_t *pa,con
     for(unsigned row=0;row<4;row++){
         uint32_t v=row<3 ? (uint32_t)(uint8_t)b[row*3] |
             ((uint32_t)(uint8_t)b[row*3+1]<<8) | ((uint32_t)(uint8_t)b[row*3+2]<<16) : 0;
-        tpu[0x50/4+row]=v;tpu[0x70/4+row]=v;
+        tpu[0x150/4+row]=v;
     }
-    for(unsigned base=0;base<m;base+=8){
-        for(unsigned row=0;row<4;row++){
-            tpu[0x40/4+row]=base+row<m ? pa[base+row]&0xffffffU : 0;
-            tpu[0x60/4+row]=base+4+row<m ? pa[base+4+row]&0xffffffU : 0;
+    for(unsigned base=0;base<m;base+=32){
+        for(unsigned core=0;core<8;core++){
+            for(unsigned row=0;row<4;row++){
+                tpu[0x40/4+core*8+row]=base+core*4+row<m ? pa[base+core*4+row]&0xffffffU : 0;
+            }
         }
         __asm__ volatile("fence iorw, iorw":::"memory");
         tpu[0]=TINY3TPU_MMIO_CTRL_START;
         unsigned polls=1000;
         while(!(tpu[4]&2U))if(!--polls)return -1;
         __asm__ volatile("fence iorw, iorw":::"memory");
-        for(unsigned row=0;row<8 && base+row<m;row++){
-            volatile uint32_t *result=tpu+0x80/4+(row/4)*16+(row%4)*4;
+        for(unsigned row=0;row<32 && base+row<m;row++){
+            volatile uint32_t *result=tpu+0x200/4+(row/4)*16+(row%4)*4;
             c[(base+row)*3]=(int32_t)result[0];
             c[(base+row)*3+1]=(int32_t)result[1];
             c[(base+row)*3+2]=(int32_t)result[2];

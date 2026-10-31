@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 `default_nettype none
-// Stream transport with the existing two-core 4x4 accelerator.
+// Stream transport with the eight-core 4x4 accelerator.
 module tiny3tpu_axis (
     input wire clk, input wire rst_n,
     input wire [31:0] s_axis_tdata, input wire [3:0] s_axis_tkeep,
@@ -10,7 +10,7 @@ module tiny3tpu_axis (
     output wire m_axis_tlast, output wire m_axis_tvalid,
     input wire m_axis_tready
 );
-    wire [7:0] axi_awaddr;
+    wire [9:0] axi_awaddr;
     wire [2:0] axi_awprot;
     wire axi_awvalid;
     wire axi_awready;
@@ -21,7 +21,7 @@ module tiny3tpu_axis (
     wire [1:0] axi_bresp;
     wire axi_bvalid;
     wire axi_bready;
-    wire [7:0] axi_araddr;
+    wire [9:0] axi_araddr;
     wire [2:0] axi_arprot;
     wire axi_arvalid;
     wire axi_arready;

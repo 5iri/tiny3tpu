@@ -95,9 +95,9 @@ set_property IOSTANDARD LVCMOS25 [get_ports {led[6]}]
 set_property PACKAGE_PIN F16 [get_ports {led[7]}]
 set_property IOSTANDARD LVCMOS25 [get_ports {led[7]}]
 # TIMING SCOPE: supported nextpnr constraints only. clocks.py explicitly
-# constrains both pixel clock nets to25.2MHz and clk200 to200MHz.
+# constrains both pixel clock nets to 25.2/74.25 MHz and clk200 to 200 MHz.
 # ADV7511 hardware guide revD: tSU=1.0ns, tH=0.7ns relative to rising CLK.
-# The forwarded clock is inverted: nominal launch-to-capture =19.84127ns.
+# Forwarded clock inverted: nominal launch-to-capture =19.84127/6.73401ns.
 # This backend does not implement generated-clock/output-delay constraints.
 # Routed output skew, PCB delay, PLL jitter and reset recovery/removal remain
 # outside complete STA. Build/export reports MUST preserve that limitation.
