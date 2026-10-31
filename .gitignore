@@ -170,3 +170,6 @@
 !media/showcase/gifs/README.md
 /tmp/
 !sidequests/cloth/build_compiled_board.py
+
+# Renderer build source is part of the MJX learning target.
+!sidequests/mjx_rl/render/build.py
