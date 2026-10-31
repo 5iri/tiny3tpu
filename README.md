@@ -15,6 +15,7 @@ The project started with a 4×4 array of multiply-and-add units. It now has a sm
 | Demo | Hardware | What was checked |
 | --- | --- | --- |
 | [HDMI banana](#banana-straight-to-hdmi) | KC705 | Board loaded; physical display footage |
+| [Handheld banana](#banana-on-a-handheld) | ModRetro Chromatic | Board loaded; rotation confirmed on its LCD |
 | [UART banana](#banana-through-a-host-viewer) | KC705 | Returned coordinates checked; 105 captured frames |
 | [Digit classifier](#handwritten-digits) | KC705 | All logits checked for the first 20 MNIST test images |
 | [Attention](#a-small-attention-block) | KC705 | All 64 output words checked; board cycles measured |
@@ -33,6 +34,16 @@ The KC705 runs a compiled JAX program on its CPU. Two 4×4 int8 TPU cores transf
 The design runs at 25.2 MHz and refreshes HDMI at 60 Hz. The full-rotation simulation publishes a new image every other refresh: **30 frames per second**. That is a simulated rate, not a measurement taken from the camera clip.
 
 [Source, build steps and controls](hardware/kc705_hdmi/README.md) · [Board load record](media/board-demos/evidence/hdmi-board-load.json) · [Full-rotation check](media/board-demos/evidence/hdmi-rtl.json)
+
+### Banana on a handheld
+
+The ModRetro Chromatic runs a smaller version on its own FPGA. One 4×4 TPU transforms 204 vertices; a hardware renderer draws 407 triangles for the 160×144 LCD. This version has no CPU and needs no host to draw the image.
+
+<img src="media/board-demos/chromatic-banana-rtl.gif" width="480" alt="Simulation preview of the banana rendered by the Chromatic FPGA design">
+
+*RTL preview. The physical board was programmed successfully, and rotation was confirmed on the handheld.*
+
+[Source and controls](hardware/chromatic/README.md) · [Physical board record](media/board-demos/evidence/chromatic-board.json)
 
 ### Banana through a host viewer
 

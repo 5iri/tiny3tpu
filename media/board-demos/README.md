@@ -10,6 +10,7 @@ These files accompany the [main README](../../README.md). Keep the source labels
 | --- | --- |
 | [hdmi-board.mp4](hdmi-board.mp4), [GIF](hdmi-board.gif), [poster](hdmi-board.jpg) | Physical KC705 and HDMI monitor footage from [@lazybanananann's post](https://x.com/lazybanananann/status/2109297764739998109), supplied by the repository owner. Original MP4 retained; GIF converted at 12 fps with a 96-color palette. No crop or generated content. |
 | [hdmi-rtl.png](hdmi-rtl.png) | HDMI bus pixels from the 6,950-triangle RTL simulation. Not a camera image. |
+| [chromatic-banana-rtl.gif](chromatic-banana-rtl.gif), [preview](chromatic-preview.png) | Simulation of the design loaded on the Chromatic. Physical rotation was separately confirmed; these are not LCD captures. |
 | [Banana GIF](../showcase/gifs/banana.gif), [poster](banana-poster.png) | 105 unique frames using coordinates returned by the physical KC705. Host-drawn pixels. |
 | [Classifier GIF](../showcase/gifs/classifier.gif), [poster](classifier-poster.png) | Predictions from the first 20 MNIST test samples on the physical board. Held 0.8 seconds per image for readability. |
 | [Cloth GIF](../showcase/gifs/cloth.gif), [poster](cloth-poster.png) | 51 physical-board samples, after batches of 32 steps. Time-compressed playback; the frames show simulation time and board compute time. |
@@ -36,6 +37,7 @@ ffmpeg -i media/board-demos/hdmi-board.mp4 \
 
 ## Evidence
 
+- [Chromatic physical load and visual confirmation](evidence/chromatic-board.json), plus its separate [RTL check](evidence/chromatic-rtl.json).
 - [HDMI physical load](evidence/hdmi-board-load.json), [color confirmation](evidence/hdmi-color-board.json), [implementation](evidence/hdmi-implementation.json), [export](evidence/hdmi-export.json) and [full-rotation RTL check](evidence/hdmi-rtl.json).
 - [UART banana and attention checks](../showcase/evidence/physical-check.json).
 - [Classifier checks](../showcase/evidence/classifier/physical-check.json), [training report](../showcase/evidence/classifier/training-report.json) and [capture](../showcase/gifs/classifier-capture.json).
