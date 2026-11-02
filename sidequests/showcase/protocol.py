@@ -1,4 +1,4 @@
-"""Demo packet client over UART; no model execution on the host."""
+"""Demo packet client over UART or UDP; no model execution on the host."""
 import struct
 import time
 
@@ -25,6 +25,8 @@ def transact(uart, sequence, mode, repeats=1, *, stop=None, timeout=30, compact=
     start = time.perf_counter(); deadline = time.monotonic() + timeout
     request_bytes = 0; response_bytes_total = 0; legacy_retry = False
     requested_compact = compact
+    transport = getattr(uart, 'transport', 'uart')
+    udp_totals = {}
     def exact(size):
         return read_exact(uart, size, deadline=deadline, stop=stop)
     while True:
@@ -60,6 +62,10 @@ def transact(uart, sequence, mode, repeats=1, *, stop=None, timeout=30, compact=
         got = int(np.bitwise_xor.reduce(data.view(np.uint32))) if words else 0
         if got != checksum:
             raise RuntimeError('Inference response checksum mismatch')
+        if transport == 'udp':
+            uart.assert_consumed()
+            for key in ('udp_request_payload_bytes','udp_response_payload_bytes','udp_response_datagrams','udp_duplicate_datagrams','udp_ignored_transactions'):
+                udp_totals[key] = udp_totals.get(key, 0) + uart.last_metrics.get(key, 0)
         response_bytes = 28 + len(raw); response_bytes_total += response_bytes
         if compact and status == -1 and words == 0 and calls == 0:
             compact = False; legacy_retry = True
@@ -67,10 +73,13 @@ def transact(uart, sequence, mode, repeats=1, *, stop=None, timeout=30, compact=
         roundtrip_ms = (time.perf_counter() - start) * 1000
         record = dict(sequence=seq, mode=mode, status=status, cycles=cycles,
                     compute_ms=cycles / 100000., backend_calls=calls, words=words,
-                    transport='uart', roundtrip_ms=roundtrip_ms,
+                    transport=transport, roundtrip_ms=roundtrip_ms,
                     outside_compute_ms=max(0., roundtrip_ms - cycles / 100000.),
                     response_bytes=response_bytes, transaction_response_bytes=response_bytes_total,
                     request_bytes=request_bytes, compact=encoded_compact,
                     compact_supported=(not legacy_retry) if requested_compact else None)
-        record['uart_wire_min_ms'] = (request_bytes + response_bytes_total) * 10 / uart.baudrate * 1000
+        if transport == 'udp':
+            record.update(udp_totals, transaction=uart.last_metrics['transaction'])
+        else:
+            record['uart_wire_min_ms'] = (request_bytes + response_bytes_total) * 10 / uart.baudrate * 1000
         return record, data

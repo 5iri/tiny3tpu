@@ -111,6 +111,8 @@ endforeach()
 if(Python3_Interpreter_FOUND)
   add_test(NAME tiny3tpu_live_stream
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_live_stream.py)
+  add_test(NAME tiny3tpu_udp_transport
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_udp_transport.py)
   add_test(NAME tiny3tpu_program_math
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_program_math.py)
   add_test(NAME kc705_io_export
@@ -140,6 +142,30 @@ endif()
 find_program(TINY3TPU_IVERILOG iverilog)
 find_program(TINY3TPU_VERILATOR verilator)
 set(TINY3TPU_DDR_PYTHON "" CACHE FILEPATH "Python with pinned LiteDRAM/LiteX 2024.12 for standalone DDR3 tests")
+set(TINY3TPU_ETHERNET_PYTHON "" CACHE FILEPATH "Python with LiteEth/LiteX 2024.12 and Migen 0.9.2 for GMII tests")
+set(TINY3TPU_MJX_PYTHON "" CACHE FILEPATH "Python with sidequests/mjx_rl/requirements.txt for MJX learning and HDMI RTL checks")
+if(TINY3TPU_MJX_PYTHON)
+  if(NOT TINY3TPU_VERILATOR)
+    message(FATAL_ERROR "MJX SoC/HDMI checks require Verilator")
+  endif()
+  add_test(NAME mjx_rl_hdmi
+    COMMAND ${TINY3TPU_MJX_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/sidequests/mjx_rl/verify.py
+      --rtl --out ${CMAKE_CURRENT_BINARY_DIR}/mjx-rl)
+  set_tests_properties(mjx_rl_hdmi PROPERTIES TIMEOUT 1200)
+  add_test(NAME mjx_rl_hdmi_720p
+    COMMAND ${TINY3TPU_MJX_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/sidequests/mjx_rl/render/verify_rtl.py
+      ${CMAKE_CURRENT_BINARY_DIR}/mjx-rl-720p --video-mode 720p)
+  set_tests_properties(mjx_rl_hdmi_720p PROPERTIES TIMEOUT 1200)
+endif()
+if(TINY3TPU_ETHERNET_PYTHON)
+  if(NOT TINY3TPU_VERILATOR)
+    message(FATAL_ERROR "Ethernet GMII tests require Verilator")
+  endif()
+  add_test(NAME kc705_liteeth_gmii
+    COMMAND ${TINY3TPU_ETHERNET_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_ethernet/test.py
+      --test gmii --out ${CMAKE_CURRENT_BINARY_DIR}/liteeth-gmii)
+  set_tests_properties(kc705_liteeth_gmii PROPERTIES TIMEOUT 240)
+endif()
 if(TINY3TPU_DDR_PYTHON)
   if(NOT TINY3TPU_VERILATOR)
     message(FATAL_ERROR "Standalone DDR3 engine tests require Verilator")
@@ -273,7 +299,17 @@ if(TINY3TPU_IVERILOG AND TINY3TPU_VVP)
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_hdmi/tests/test_mmio.py
         --out ${CMAKE_CURRENT_BINARY_DIR}/kc705-hdmi-mmio)
     set_tests_properties(kc705_hdmi_mmio PROPERTIES TIMEOUT 30)
+    add_test(NAME kc705_phy_mdio
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/hardware/kc705_ethernet/test.py
+        --test mdio --out ${CMAKE_CURRENT_BINARY_DIR}/phy-mdio)
+    set_tests_properties(kc705_phy_mdio PROPERTIES TIMEOUT 30)
   endif()
+  add_test(NAME tiny3tpu_udp_peripheral
+    COMMAND ${CMAKE_COMMAND}
+      -DIVERILOG=${TINY3TPU_IVERILOG} -DVVP=${TINY3TPU_VVP}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DBINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/udp-peripheral
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_udp_peripheral.cmake)
   add_test(NAME tiny3tpu_top_direct_load
     COMMAND ${CMAKE_COMMAND}
       -DIVERILOG=${TINY3TPU_IVERILOG} -DVVP=${TINY3TPU_VVP}

@@ -17,7 +17,7 @@ from PIL import Image, ImageDraw, ImageFont
 from protocol import transact
 from build_support import load_expected_modes
 from stream import LatestResults
-from uart_transport import open_transport, LatencyWindow
+from udp_transport import add_transport_arguments, open_transport, LatencyWindow
 
 ROOT = Path(__file__).resolve().parents[2]
 PAGE = b'''<!doctype html><html><meta name="viewport" content="width=device-width"><title>KC705 trained MNIST classifier</title><body style="margin:0;background:#0f1621;color:white;font:18px sans-serif"><img id="frame" style="width:100%;max-width:760px"><p id="status"></p><script>
@@ -54,6 +54,7 @@ def render(rec, data, samples, training, large, small):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--port', default='/dev/cu.usbserial-0001')
+    add_transport_arguments(p)
     p.add_argument('--http-port', type=int, default=8766)
     p.add_argument('--frames', type=int, default=0, help='Verified requests to acquire; zero runs continuously')
     p.add_argument('--board', type=Path, default=ROOT/'build-classifier/board', help='Build directory for the programmed image')
@@ -67,7 +68,7 @@ def main():
     manifest_path = a.board/'build-manifest.json'
     if manifest_path.exists():
         _, manifest = load_expected_modes(a.board, {i:0 for i in range(20)})
-        if manifest.get('io_transport','uart') != 'uart': p.error('Selected build manifest does not match the requested UART transport')
+        if manifest.get('io_transport','uart') != ('udp' if a.udp else 'uart'): p.error('Selected build manifest does not match the requested UART/UDP transport')
         out = Path(manifest.get('artifact_dir', out))
         contracts = {int(x['mode']): x for x in manifest['modes']}; clock_hz = manifest['clock_hz']
         if set(contracts) != set(range(20)): p.error('Classifier build manifest must describe all 20 samples')
@@ -103,7 +104,7 @@ def main():
     threading.Thread(target=server.serve_forever, daemon=True).start()
     def acquire(stream):
         intervals = deque(maxlen=16); previous = None; latencies = LatencyWindow()
-        with open_transport(a.port, stop=stream.stopped) as uart:
+        with open_transport(a.port, udp=a.udp, udp_bind_port=a.udp_bind_port, stop=stream.stopped) as uart:
             uart.reset_input_buffer(); seq = 0
             while not stream.stopped.is_set() and (not a.frames or seq < a.frames):
                 index = seq % 20; rec, data = transact(uart, seq, index, stop=stream.stopped)

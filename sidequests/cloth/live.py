@@ -9,15 +9,17 @@ from PIL import Image,ImageDraw
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT))
 from sidequests.showcase.stream import LatestResults,read_exact,read_magic
-from sidequests.showcase.uart_transport import open_transport,LatencyWindow
+from sidequests.showcase.udp_transport import add_transport_arguments,open_transport,LatencyWindow
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--port',default='/dev/cu.usbserial-0001');p.add_argument('--steps',type=int,default=2);p.add_argument('--frames',type=int,default=0)
+ add_transport_arguments(p)
  p.add_argument('--compiled',action='store_true',help='Use the StableHLO-generated CPU+TPU firmware protocol')
  p.add_argument('--clock-hz',type=int,default=100000000,help='Must match the programmed image')
  a=p.parse_args()
  if not 1<=a.steps<=32:p.error('--steps must be between 1 and 32')
  if a.clock_hz<=0:p.error('--clock-hz must be positive')
  if a.frames<0:p.error('--frames must be nonnegative')
+ if a.udp and not a.compiled:p.error('--udp requires --compiled (CLQ3 Ethernet firmware)')
  cycles_per_ms=a.clock_hz/1000.
  out=ROOT/('build-cloth/compiled-live' if a.compiled else 'build-cloth/live');out.mkdir(parents=True,exist_ok=True)
  faces=np.load(ROOT/'build-cloth/mesh.npz')['faces'];cam=json.loads((ROOT/'build-cloth/camera.json').read_text())
@@ -31,7 +33,7 @@ def main():
  server=ThreadingHTTPServer(('127.0.0.1',8765),Handler);threading.Thread(target=server.serve_forever,daemon=True).start()
  def acquire(stream):
   intervals=deque(maxlen=16);previous=None;seq=0;last_steps=0;latencies=LatencyWindow()
-  with open_transport(a.port,stop=stream.stopped) as uart:
+  with open_transport(a.port,udp=a.udp,udp_bind_port=a.udp_bind_port,stop=stream.stopped) as uart:
    uart.reset_input_buffer()
    while not stream.stopped.is_set() and (not a.frames or seq<a.frames):
     start=time.perf_counter();deadline=time.monotonic()+60;reset=seq==0 or last_steps>=11520
@@ -44,6 +46,7 @@ def main():
     if steps!=(0 if reset else last_steps)+a.steps:raise RuntimeError('Incorrect simulation step count')
     last_steps=steps;raw=exact(count*12);coords=np.frombuffer(raw,dtype='<i4').reshape(count,3)
     if int(np.bitwise_xor.reduce(coords.ravel().view(np.uint32)))!=checksum:raise RuntimeError('Checksum mismatch')
+    if a.udp:uart.assert_consumed()
     camera=coords.astype(np.float64)/cam['qscale']
     if not np.isfinite(camera).all() or (camera[:,2]<=0).any():raise RuntimeError('Invalid camera geometry')
     now=time.perf_counter();roundtrip=(now-start)*1000
@@ -51,7 +54,7 @@ def main():
     previous=now
     if seq==0:(out/'first_coords.bin').write_bytes(raw)
     latencies.observe(roundtrip,(cycles+physics_cycles)/cycles_per_ms)
-    item={'transport':'uart','latency':latencies.summary(),'outside_compute_ms':max(0.,roundtrip-(cycles+physics_cycles)/cycles_per_ms),'connected':True,'sequence':seq,'timestamp':time.time(),'acquisition_fps':len(intervals)/sum(intervals) if intervals else 1000/roundtrip,
+    item={'transport':'udp' if a.udp else 'uart','latency':latencies.summary(),'outside_compute_ms':max(0.,roundtrip-(cycles+physics_cycles)/cycles_per_ms),'connected':True,'sequence':seq,'timestamp':time.time(),'acquisition_fps':len(intervals)/sum(intervals) if intervals else 1000/roundtrip,
      'fpga_compute_ms':cycles/cycles_per_ms,'physics_ms':physics_cycles/cycles_per_ms,'uart_and_host_wait_ms':max(0,roundtrip-(cycles+physics_cycles)/cycles_per_ms),'roundtrip_ms':roundtrip,
      'clock_hz':a.clock_hz,'sim_time':steps/7680,'dt':1/7680,'vertices':count,'verified':True,'verification':'checksum_geometry_and_step_count','simulation_steps':steps,
      'physics_backend_calls':physics_calls,
@@ -59,6 +62,8 @@ def main():
      'message':(('StableHLO physics on KC705 CPU + TPU / host pixels only' if physics_calls else
                  'StableHLO physics on KC705 CPU / physical TPU transforms / host pixels only')
                 if a.compiled else 'On-board RISC-V cloth physics + physical TPU transforms / host pixels only')}
+    if a.udp:
+     item.pop('uart_and_host_wait_ms',None);item.update(uart.last_metrics)
     stream.publish(0,(item,camera));seq+=1
  intervals=deque(maxlen=16);previous=None;displayed=0
  try:

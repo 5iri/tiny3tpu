@@ -17,7 +17,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
-SCENE_ASSETS = ROOT / 'hardware/banana_scene'
+CHROMATIC = ROOT / 'hardware/chromatic'
 sys.path.insert(0, str(ROOT / 'tools'))
 from kc705_open_build import validate_route_log
 from kc705_export_bitstream import frame_data_word
@@ -150,14 +150,14 @@ def main():
     required = ['kc705_hdmi_top.sv', 'kc705_hdmi_display.sv', 'kc705_hdmi_init.sv']
     if not all((HERE / 'src' / name).is_file() for name in required):
         parser.error('HDMI top/display/init source modules must all be present')
-    sources += [SCENE_ASSETS / 'src' / name for name in
+    sources += [CHROMATIC / 'src' / name for name in
                 ('buttons.sv', 'scene.sv')]
     sources += [ROOT / 'multi-core/tpu_core_wrapper.sv',
                 ROOT / 'systolic_array/rtl/NxN_systolic_array.v', ROOT / 'systolic_array/rtl/pe.v']
-    inputs = sources + [SCENE_ASSETS / 'src/font.vh', HERE / 'constraints/kc705.xdc',
+    inputs = sources + [CHROMATIC / 'src/font.vh', HERE / 'constraints/kc705.xdc',
                         Path(__file__).resolve(), ROOT / 'tools/kc705_open_build.py',
                         ROOT / 'tools/kc705_export_bitstream.py']
-    inputs += [SCENE_ASSETS / 'assets' / name for name in
+    inputs += [CHROMATIC / 'assets' / name for name in
                ('vertices.hex', 'rotations.hex', 'faces.hex', 'mesh.json')]
     if args.cpu:
         inputs += [HERE/'assets/mesh.json', HERE/'assets/faces.hex', HERE/'tools/mesh_assets.py']
@@ -206,13 +206,13 @@ def main():
         header=out/'boot_path.vh'
         header.write_text('`define VEXRISCV_BOOT_HEX '+quote(firmware/'firmware.hex')+'\n')
         boot_header=[header]
-        include_flags+='-I'+os.path.relpath(uart/'rtl/include',SCENE_ASSETS)+' '
+        include_flags+='-I'+os.path.relpath(uart/'rtl/include',CHROMATIC)+' '
     (out / 'kc705.xdc').write_bytes((HERE / 'constraints/kc705.xdc').read_bytes())
     (out / 'clocks.py').write_text('for name, mhz in '+repr([
         ('clk200', 200.0), ('clk_pixel_unbuf', clock_hz/1e6), ('clk_pixel', clock_hz/1e6)])+
         ':\n    ctx.addClock(name, mhz)\n')
     script = [
-        # Yosys keeps quotes embedded in -I options; synthesis runs in SCENE_ASSETS.
+        # Yosys keeps quotes embedded in -I options; synthesis runs in CHROMATIC.
         'read_verilog -sv '+include_flags + ' '.join(map(quote, [*boot_header,*sources])),
         'read_verilog -lib +/xilinx/cells_sim.v +/xilinx/cells_xtra.v',
         *(['chparam -set CPU_DRIVEN 1 kc705_hdmi_top'] if args.cpu else []),
@@ -233,9 +233,9 @@ def main():
         'synth_xilinx -family xc7 -flatten -nowidelut -top kc705_hdmi_top -run map_ffram:',
         'check -assert', 'stat', 'write_json ' + quote(out / 'soc.json')]
     (out / 'synth.ys').write_text('\n'.join(script) + '\n')
-    # Original renderer ROM paths are relative to hardware/banana_scene.
+    # Original renderer ROM paths are relative to hardware/chromatic.
     # Its sources/assets are reused unchanged and hashed above.
-    run(out, 'synth', [args.yosys, '-Q', '-T', '-s', out / 'synth.ys'], cwd=SCENE_ASSETS)
+    run(out, 'synth', [args.yosys, '-Q', '-T', '-s', out / 'synth.ys'], cwd=CHROMATIC)
     netlist = json.loads((out / 'soc.json').read_text())['modules']['kc705_hdmi_top']
     counts = {}
     for cell in netlist['cells'].values():

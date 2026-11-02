@@ -74,7 +74,7 @@ The unit check tests protocol errors, backpressure, reset, concurrent upload and
 scanout, and external HDMI pixels. The CPU test executes the actual generated
 program and generic TPU driver, then checks CPU-rendered images on the HDMI bus.
 The small square fixture isolates architecture; it does not claim RL training.
-The [actual MJX training workload](https://github.com/5iri/tiny3tpu/blob/feat/mjx-learning/sidequests/mjx_rl/README.md) uses the same
+The [actual MJX training workload](../../sidequests/mjx_rl/README.md) uses the same
 hardware and framebuffer ABI. Synthesis and RTL checks do not prove physical
 HDMI timing or board operation.
 
