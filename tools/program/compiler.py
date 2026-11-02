@@ -20,13 +20,18 @@ class CompileOptions:
     coefficient_tolerance: float = 0.0
     fusion: bool = True
     affine_policy: str = 'auto'
+    prepack_constants: bool = True
+    specialize_matmuls: bool = True
+    gemm_policy: str = 'auto'
 
 
 def _compile_schedule(program, path, options=None):
     options = options or CompileOptions()
     p = copy.deepcopy(program)  # Compiling for another target must not mutate source IR.
     p.validate()
-    p.dce()
+    live = p.dce()
+    if any(p.values[i].size==0 for i in live):
+        raise ProgramError('live empty tensor storage is unsupported; empty intermediates must specialize away')
     composed = compose_indices(p) if options.fusion else 0
     if options.affine_policy not in ('auto','force'):
         raise ProgramError('affine_policy must be auto or force')
@@ -49,7 +54,10 @@ def _compile_schedule(program, path, options=None):
         partitions = partition_regions(p)
     report = emit_c(p, path, target=options.target, symbol=options.symbol,
                     math_mode=options.math_mode, allow_approximation=options.allow_approximation,
-                    fusion=options.fusion)
+                    fusion=options.fusion, prepack_constants=options.prepack_constants,
+                    specialize_matmuls=options.specialize_matmuls,
+                    gemm_policy=options.gemm_policy)
+    report['gemm_policy'] = options.gemm_policy
     report['composed_index_maps'] = composed
     report['affine_placement_decisions'] = decisions
     report.update(target=options.target.describe(), program=p.summary(), partitions=partitions,

@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
         dut.clk=1; dut.eval();
         if (wr) {
             if (addr == 0x20002000) {
-                if (data || strb!=15 || submits<100 || results!=35) {
+                if (data || strb!=15 || submits<80 || results!=35) {
                     std::cerr << "CPU firmware failed: code=" << data << " submissions=" << submits << '\n';
                     return 3;
                 }

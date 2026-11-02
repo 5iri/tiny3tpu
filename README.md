@@ -1,176 +1,106 @@
 # tiny3tpu
 
-`tiny3tpu` is me trying to make a stupidly small TPU-ish thing do real work on an FPGA and, against reason, it actually does.
+this is my smallest-scale possible setup of creating the entire stack of a computer system from scratch. from the hardware design running to the front-end example running on this, its all written by me and my buddy (language models).
 
-It started with matrix multiplication and MNIST: take a digit, shove it through a tiny hardware stack I built, and get a prediction back. Then the obvious bad idea was to make it run other stuff too. So now there is a compiler, a rotating banana, an attention block, and cloth physics that very clearly lets you know when software floating point is having a bad day.
 
-The point is still the same: make the hardware actually do the work, without pretending this is some giant polished accelerator project.
+the current system looks like this
 
-The two earlier writeups are:
+## hardware 
+- VexRiscv CPU connected to a 8x4x4 systolic array core system, connected via AXI.
+- each systolic core is a int8 MAC input with int32 accumalation width.
 
-- [Tiny TPU in a Week](https://5iri.me/blog/tiny-tpu-week)
-- [Update: tiny tpu is now bigger!](https://5iri.me/blog/tiny-tpu-is-now-bigger)
+that's it. the cpu has a bram connected 64KiB over a 32-bit data bus. containing the entire program and necessary data, workspace, and stack.
 
-## The current pile of parts
+## driver 
+- its a baremetal c driver runs on VexRiscv. its main job is to move the work from cpu ram and start compute and copy results back.
 
-The current board setup is a KC705 with:
+![TPU C driver flow: status checks, matrix tiling, operand loading, computation, polling, and result readback](media/diagrams/tpu-driver-flow.png)
 
-- a VexRiscv RV32IM CPU at **100 MHz**
-- **two 4×4 int8 systolic cores**, with int32 accumulation
-- **64 KiB of on-chip RAM**
-- a multiplier-free hyperbolic **CORDIC for exponential**
-- packed MMIO transport between the CPU and TPU
-- UART at **921600 baud** to get commands in and results out
+## software
 
-The current demo images have no DDR runtime. The board has DDR hardware; getting a working memory path into this system is a separate problem. Having chips on the PCB unfortunately does not make the software's memory budget bigger.
+the application describes the math. our compiler turns that math into C code: some runs on the CPU, and some calls the driver to use the TPU.
 
-The CPU handles state, control flow and scalar operations. The TPU does the matrix products it supports. CORDIC handles exponential when the compiler selects that target. Sine, cosine, square root and division still run on the CPU, and this CPU has no hardware FPU.
+all of this compilation happens on my computer before the program reaches the board.
 
-![Current CPU + TPU + CORDIC system](media/showcase/system-config.png)
+### getting the math into the compiler
 
-[Editable Excalidraw source](media/showcase/system-config.excalidraw).
+there are two ways in:
 
-## The compiler bit
+- **JAX:** export the calculation as StableHLO, a file describing the operations, array shapes, and types. our compiler reads that file.
+- **tinygrad:** read the graph of operations that tinygrad builds from tensor code. we can also load an ONNX model through tinygrad and read the resulting graph.
 
-I do not want a separate handwritten math kernel for every demo. The idea is to give the compiler a tensor program and let the backend figure out what this pile of hardware can do with it.
+this is the tinygrad work here: teaching our compiler to understand tinygrad's description of a calculation. this path goes straight into our compiler without needing StableHLO.
 
-The interface is **StableHLO**. JAX is one way to produce it:
+both paths become the same internal plan. think of it as a recipe: multiply these arrays, add this bias, apply this activation, return this result. it records which values each step needs and what it produces.
+
+for example, tinygrad can describe matrix multiplication as lots of multiplications followed by sums. our frontend recognizes that pattern and turns it back into a matrix multiplication that the TPU can handle. it also recognizes supported convolutions and arranges image patches and filters as matrix products.
+
+### what our compiler does with that plan
+
+the shared compiler and backend turn the recipe into code for this hardware:
+
+1. **check the calculation.** check that the shapes and types make sense and that we have an implementation for each operation. we currently support a subset of operations.
+2. **remove unnecessary work.** calculate things that depend only on constants ahead of time, remove unused calculations, and combine suitable steps. for example, adding a bias and applying an activation can sometimes share one loop instead of storing a whole extra array between them.
+3. **decide where the work runs.** CPU operations become ordinary C code. supported int8 matrix products can run on the CPU or call the TPU driver. `--gemm-policy auto` estimates the cost, including moving the data, and chooses. `cpu` or `tpu` forces the placement of those matrix products.
+4. **plan temporary memory.** work out when each intermediate result is no longer needed so its space can be reused. this matters when the whole program and its data have to fit in 64KiB.
+5. **prepare the TPU work.** constant matrices can be packed into the layout the driver needs ahead of time. for known matrix sizes, the backend can also generate a specialized kernel that schedules tiles across the cores and performs the register accesses.
+6. **write the C.** emit the CPU calculations, accelerator calls, constants, and a workspace type for temporary storage.
+
+for a calculation like `output = image × weights + bias`, the generated program might call the TPU driver for the matrix product, then run a CPU loop to add the bias. a small enough product might stay entirely on the CPU because sending it to the TPU would cost more than doing it directly.
+
+placement is decided when we compile. inputs and loops can still change which steps execute and how often, but the driver does not choose where an operation runs.
+
+### what actually runs on the board
+
+the generated C is built together with the application firmware and driver using a RISC-V compiler and linker. the resulting program is converted into a `.hex` file used to initialize BRAM.
+
+the firmware receives a request and calls the generated program with its inputs, output buffers, temporary workspace, and driver callbacks. the program executes its CPU code and calls the driver whenever it reaches a TPU operation. the firmware then sends the results back.
 
 ```text
-JAX function / another StableHLO producer
-    |
-    | export offline
-    v
-StableHLO
-    |
-    | verify operations, lower them, fuse eligible work,
-    | plan buffers, choose CPU / TPU / CORDIC placement
-    v
-Generated RISC-V code + accelerator calls
-    |
-    v
-KC705 executes the program and keeps its state
-    |
-    | UART results
-    v
-Host generates pixels
+JAX -> StableHLO -----------+
+                           |
+tinygrad tensor graph -----+--> shared plan -> our compiler -> generated C
+          ^                                                       |
+          |                                                       v
+       ONNX model                             + application firmware + driver
+                                                                  |
+                                                                  v
+                                                   RISC-V compiler and linker
+                                                                  |
+                                                                  v
+                                                     firmware -> BRAM -> CPU
+                                                                          |
+                                                                          v
+                                                                    driver -> TPU
 ```
 
-JAX runs on the host while exporting and checking a program. It does **not** run the model or physics step in these live board demos. The host sends commands, receives results, and does the projection, lighting and rasterization needed to put something on screen.
+the frontend code is in [stablehlo.py](tools/program/stablehlo.py) and [tinygrad_frontend.py](tools/program/tinygrad_frontend.py). the shared pipeline starts in [compiler.py](tools/program/compiler.py), placement is checked in [target.py](tools/program/target.py), and [c_backend.py](tools/program/c_backend.py) writes the C.
 
-This is a generic compiler path, but it supports a **subset of StableHLO today**. It does not magically turn arbitrary float math into an int8 graph, and unsupported operations still need backend work. Approximate math and quantized transformations are explicit choices. The banana and cloth are examples, not special compiler passes.
+# decisions
 
-The implementation is in [tools/program](tools/program), with the optional JAX exporter in [tools/jax_stablehlo.py](tools/jax_stablehlo.py).
+## why did i decide to build such a setup?
 
-## Things that actually ran on the board
+from a project aim, i wanted to build a complete system which i could control to see what's the max push i could get out of just the fpga alone (i can definitely push more -- im working towards improving it)
 
-### The banana
 
-The CPU updates its angle. The TPU transforms the mesh into camera coordinates. The host turns those coordinates into pixels. About **29.6 ms of board compute per frame** for the reduced 204-vertex mesh.
+there are many sidequests/research questions i have from this:
 
-This is adapted from the banana rendering example in [SRA-VJTI/jaxsim](https://github.com/SRA-VJTI/jaxsim/blob/c0a097bba1c6db10cac7b359fbac11cfedc48c6b/examples/softras_simple_render.py). 
 
-![Rotating banana, using actual board-returned geometry](media/showcase/gifs/banana.gif)
+- what's the best setup in such a constrained area space?
 
-### A trained digit classifier
+there is no one answer to this. there are many types of possible ways to implement this. i really believe the best (and the most simplest ways to implement something which accelerates matrix math is systolic arrays). combine that with a cpu, and you get a full working system, a way to directly transport between the cpu and tpu-like system and you get a working system.
 
-A small **784 → 10** MNIST classifier, trained offline on 60,000 images and quantized to int8. The quantized model gets **92.78% accuracy on the separate 10,000-image test set**. The float32 version gets 92.85%.
+- what part of the stack really pushes through a performance?
 
-The board does the matrix product, bias, logit scaling and prediction. About **104 ms per image**. The GIF uses the first 20 test images, without picking only the ones that look good. It gets 19 right; the 5 it calls a 6 stays in there because that is what the model actually did.
+all of performance (for a particular workload), can be provided from the custom compiler, the driver and the hardware. none of the overlaying stack matters that much, they have gotten good enough to produce generic code that i can assume they are performant enough for the workloads im aiming for.
 
-All ten returned logits matched the native generated-C reference for each of those 20 physical samples. The full test-set accuracy was measured offline; we did not run all 10,000 images through the board.
+- which stack is the most easiest to push performance?
 
-![Trained MNIST classifier running on the physical KC705](media/showcase/gifs/classifier.gif)
+easiest has to be the hardware scaling. which is kinda obvious if you think about it. the more the hardware scales, the more performance you get. raw hardware scale can improve the easiest to implement.
 
-Training and export: [train_classifier.py](sidequests/showcase/train_classifier.py). Board firmware: [classifier_firmware.c](sidequests/showcase/classifier_firmware.c). The [live viewer](sidequests/showcase/classifier_live.py) checks returned results and draws them, with no host classifier execution.
+but it is also the most expensive. even in the small scale, i can't scale it to more than the current 8x4x4. its very difficult to push further than this because of the raw constraint of the fpga device itself. i might be able to do some floorplanning and shit to push some more compute, but it highly depends on.
 
-### Attention, and why there is now a CORDIC
+on the other hand, it has become easier to work with software performance, give a good loop to an agent, and an idea to iterate towards with, and let it run overnight and you can get pure performance improvement from just the compiler work alone.
 
-An 8-token, 8-feature causal attention block runs normalization, Q/K/V, masking, softmax, projection and a residual. Six int8 matrix products go through the TPU. This uses synthetic weights to check execution; it is not a pretrained language model.
 
-Software exponential was expensive enough to be annoying, so we added a hardware CORDIC and taught the compiler to lower `stablehlo.exponential` to it.
 
-| Same attention fixture | Physical board compute |
-|---|---:|
-| Software exponential | 52.57 ms |
-| CORDIC exponential | 45.92 ms |
-
-That is **14.5% less compute time**, with all 64 checked output words matching the native reference. It is a speedup for the complete attention fixture, not a claim that the whole system suddenly became fast at everything.
-
-The hardware is in [hardware/math](hardware/math). The 40,014-vector RTL test observed at most two float32 ULPs of error and 187 cycles of latency. Approximate math, tested; not a proof of perfect rounding.
-
-### Cloth, where the pain is visible
-
-The compiler generates the physics program. VexRiscv runs the floating-point physics, and the TPU transforms the resulting geometry. In the final capture, physics takes around **150 ms per tiny integration step**. The timestep is **1/7680 of a second**.
-
-So yes, it runs. No, display FPS does not mean the cloth is keeping up with real time. This GIF is deliberately **time-compressed**, with the actual simulation time and measured per-step cost printed on it.
-
-![Physical-board cloth results, with time-compressed playback](media/showcase/gifs/cloth.gif)
-
-The physical regression checked all 180 state words and 84 camera coordinate words against independently executed native generated C for the tested requests. That is a check of this implementation, not a promise of long-run equivalence to the original floating-point JAX trajectory.
-
-The source is in [sidequests/cloth](sidequests/cloth).
-
-### The language model that does not fit
-
-We also checked pretrained TinyStories-1M. Its int8 token embeddings alone would need **3.07 MiB**, roughly **49× the entire RAM in this image**. Other weights, firmware, quantization metadata and working memory are extra.
-
-This is a memory audit. There is no pretrained text generation running on this board. CORDIC does not help you store three megabytes in 64 KiB. A verified larger-memory runtime or weight-streaming path comes first.
-
-The pinned model configuration and measured reports are in [media/showcase/evidence](media/showcase/evidence).
-
-## Running the compiler and checks
-
-Use Python 3.12 or newer for the pinned StableHLO/JAX dependencies:
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -r tools/requirements-stablehlo.txt
-
-cmake -S . -B build -DCMAKE_C_STANDARD=11 -DCMAKE_C_EXTENSIONS=OFF \
-  -DPython3_EXECUTABLE="$PWD/.venv/bin/python"
-cmake --build build -j2
-ctest --test-dir build --output-on-failure
-```
-
-There are native compiler/runtime checks and RTL checks. Verilator runs actual CPU/TPU transport and generated firmware; Icarus covers additional protocol checks, and Yosys covers structural synthesis. Which tests are available depends on the tools installed. The complete configured suite passed **36 checks** when the CORDIC work landed.
-
-Compile an exported StableHLO program into a C header:
-
-```bash
-.venv/bin/python -m tools.program program.mlirbc \
-  --target kc705-cordic \
-  --math-mode freestanding --allow-approximation \
-  -o program.h --report program-report.json
-```
-
-Use `kc705` for an image without the exponential peripheral. Selecting `kc705-cordic` does not conjure hardware into an older bitstream: that image must have been built with `--cordic`.
-
-Board builds use [kc705_open_build.py](tools/kc705_open_build.py), Yosys and nextpnr. [kc705_export_bitstream.py](tools/kc705_export_bitstream.py) checks routed timing and bitstream frame roundtrip. A generated header or a passing host test is not the same thing as a programmed, verified board.
-
-The showcase firmware, export scripts and physical checks live in [sidequests/showcase](sidequests/showcase). The trained weights and demo inputs are checked in under [evidence/classifier](media/showcase/evidence/classifier).
-
-## The earlier MNIST stack is still here
-
-The original cached-model path has model upload, draw-and-infer, blocked logical `16×16` GEMM, and UART/UDP request-response transport. Those larger matrix operations are tiled; they do not mean the current RTL has a physical 16×16 array.
-
-[firmware.c](firmware.c) and [pyfiles](pyfiles) contain that path. It uses a different firmware/protocol from the current no-DDR StableHLO demos. Match the host tool to the image you programmed, or enjoy yelling binary packets into the void.
-
-```bash
-pip install -r requirements.txt
-
-# Raw GEMM over UART or UDP, with the matching older firmware
-python3 pyfiles/uart_matrix_host.py --port /dev/ttyUSB1
-python3 pyfiles/uart_matrix_host.py --udp-host 192.168.1.77
-
-# Cached-model samples and draw-and-infer
-python3 pyfiles/mnist_infer_uart.py --udp-host 192.168.1.77 --count 20
-python3 pyfiles/mnist_draw_uart.py --udp-host 192.168.1.77
-
-# Train/export a model for that path
-python3 pyfiles/train_mnist_hw.py --epochs 8 --export mnist_int8_4layer.json
-```
-
-## What is next
-
-More generic backend math, less CPU overhead getting tiles into the TPU, and a verified memory path so larger models can stop failing the very first storage calculation.

@@ -54,7 +54,8 @@ int main(void)
 #endif
     if (tiny3tpu_axis_mailbox_init(&mailbox, NULL, local_read, local_write, 1000)) return 1;
     /* Error propagation must not poison a successfully retired transaction. */
-    if (!io.read32(io.user, 0xfc, &value)) return 2;
+    /* 0x80..0xfc is the result window; 0x1c remains an invalid register. */
+    if (!io.read32(io.user, 0x1c, &value)) return 2;
     if (tiny3tpu_axis_mailbox_is_poisoned(&mailbox)) return 3;
     for (unsigned i = 0; i < 5 * 11; ++i) a[i] = (int)(i % 17) - 8;
     for (unsigned i = 0; i < 11 * 7; ++i) b[i] = (int)(i % 13) - 6;

@@ -1,0 +1,2178 @@
+{
+  "schema_version": 1,
+  "recorded_date": "2026-10-09",
+  "scope": "Capacity and fresh-update latency for the current four-application 64 KiB VexRiscv image; digital RTL simulation and separate local-host renderer benchmarks. No absolute silicon capacity or measured physical display FPS claim.",
+  "physical_validation": false,
+  "default_mesh_changed": false,
+  "production_firmware_changed": false,
+  "original_mesh_source": {
+    "url": "https://raw.githubusercontent.com/SRA-VJTI/jaxsim/c0a097bba1c6db10cac7b359fbac11cfedc48c6b/examples/sampledata/banana.obj",
+    "local_path": "build-banana-capacity/source/banana.obj",
+    "sha256": "f0f8267c7f7cfc64430cb5f8ee6dfa9b1ec7cac6109a39ad96e89f7a57433098",
+    "commit": "c0a097bba1c6db10cac7b359fbac11cfedc48c6b",
+    "vertices": 7500,
+    "triangles": 15000,
+    "parser_dtype": "float32 vertices; int32 faces",
+    "parser_sha256": "475daed5763835fd7a62d125330df746e776e4e6261edff46b802e55305133d6"
+  },
+  "largest_tested": {
+    "grid": [
+      12,
+      16,
+      13
+    ],
+    "vertices": 590,
+    "triangles": 1181,
+    "quantized_zero_area_triangles": 0,
+    "optimization": "Os",
+    "reply_encoding": "compact",
+    "reply_buffer_bytes": 4096,
+    "static_bytes": 61436,
+    "stack_reserved_bytes": 4096,
+    "remaining_after_stack_bytes": 4,
+    "next_tested_failure": {
+      "grid": [
+        14,
+        15,
+        12
+      ],
+      "vertices": 594,
+      "triangles": 1190,
+      "reason": "Insufficient stack space under real 64 KiB linker limit"
+    }
+  },
+  "bounds": {
+    "raw_message_formula": "32 + 12 * vertices",
+    "compact_message_formula": "44 + 6 * vertices",
+    "max_application_bytes": 4096,
+    "max_raw_vertices_from_protocol": 338,
+    "max_compact_vertices_from_protocol": 675,
+    "ram_limit_bytes": 65536
+  },
+  "build_sweeps": {
+    "sweep": {
+      "report": {
+        "path": "build-banana-capacity/sweep/report.json",
+        "sha256": "af1fd0bdfe8ee76924e27d2bdb7354a0c9acbb3882a27378f75db8ce7f114f6a"
+      },
+      "cases": [
+        {
+          "grid": "6",
+          "vertices": 106,
+          "triangles": 209,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 1304,
+          "compact_response_bytes": 680,
+          "raw_fits_protocol": true,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 2480,
+          "optimization": "O2",
+          "mesh_scale": 201.5321694697442,
+          "mesh_sha256": "69bc4551f2ad71b45b8be4e60c9546a138bed7a1c8b56b7bc708d4ff7adf9fcf",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "b0cb1cb31a4f3ba3279ace5e18af25a0337f7e9510be47b72488c54d6e9f9a17",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147524356,
+            "static_bytes": 40708,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 20732,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "68e6a914c175b51ac82c4a13a04ca396dc7dfbe609c816baba54700b12f26785",
+            "firmware.hex": "ffd2fc70605e9a83d8a9056a77bd0bd111a79dac2cac72b64dcbd133ae3aabda",
+            "firmware.bin": "65b3acca60e182f7d09e422b1866508c840466029b6803dee3bbab12f388cc0e"
+          },
+          "firmware_source_sha256": "1e796078c899fc606d45f81a1df97be81bfaf9924266600151692b44ae9151d8",
+          "board": "build-banana-capacity/sweep/grid-6/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/sweep/grid-6/board/build-manifest.json",
+            "sha256": "19b18cc2b09bbfb8c0366229fe25d65cf0b6e1445d88fe159778487bb8d3cc94"
+          },
+          "simulation": {
+            "passed": true,
+            "scope": "Production CPU/TPU/packet-buffer RTL at the UDP stream boundary; excludes MAC, PHY, ARP and host latency",
+            "report": "build-banana-capacity/sweep/grid-6/udp-sim/report.json",
+            "report_sha256": "1256810a9fc1bd470aee771559f380197580a52c5f80a110b0e228b84e6a0f2e",
+            "requests": 17,
+            "fresh_frames": 6,
+            "formats": {
+              "raw": {
+                "frames": 3,
+                "roundtrip_us_min": 2410.1,
+                "roundtrip_us_max": 2415.34,
+                "roundtrip_us_mean": 2413.5333333333333,
+                "compute_us_mean": 2224.64,
+                "simulated_fps_from_mean": 414.3303041184432,
+                "datagrams": [
+                  1
+                ],
+                "verified_words": [
+                  319
+                ]
+              },
+              "compact": {
+                "frames": 3,
+                "roundtrip_us_min": 3027.98,
+                "roundtrip_us_max": 3029.23,
+                "roundtrip_us_mean": 3028.76,
+                "compute_us_mean": 2226.2333333333336,
+                "simulated_fps_from_mean": 330.16812160752255,
+                "datagrams": [
+                  1
+                ],
+                "verified_words": [
+                  319
+                ]
+              }
+            }
+          }
+        },
+        {
+          "grid": "8",
+          "vertices": 204,
+          "triangles": 407,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 2480,
+          "compact_response_bytes": 1268,
+          "raw_fits_protocol": true,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 2480,
+          "optimization": "O2",
+          "mesh_scale": 198.9527385659464,
+          "mesh_sha256": "c7a29c0ee4cb9fc7e6b00904bbcad5d20444c35897d907ca4e27fb2f046d7233",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "446ab85cac49687025d0946253559ad108d24931f753ffee81f8a8e646e52a05",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147529380,
+            "static_bytes": 45732,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 15708,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "e8d13a2ede3386f631a72c36a2011bd9ce43faf93a469aa0aace050d030a98a1",
+            "firmware.hex": "8328390f1d7567426d1b3b7e52e7cd4baf04ff25ab5df007e7e4ac6615aadb9c",
+            "firmware.bin": "3d7f8d9458752b72b2698e58320fcf5b19339064f52ad1e742bbf65845108fc2"
+          },
+          "firmware_source_sha256": "1e796078c899fc606d45f81a1df97be81bfaf9924266600151692b44ae9151d8",
+          "board": "build-banana-capacity/sweep/grid-8/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/sweep/grid-8/board/build-manifest.json",
+            "sha256": "4c546e3a65e8f12b57e59974f1f0a86b1e0450bfd4485be7ae29aa5448675dfb"
+          },
+          "simulation": {
+            "passed": true,
+            "scope": "Production CPU/TPU/packet-buffer RTL at the UDP stream boundary; excludes MAC, PHY, ARP and host latency",
+            "report": "build-banana-capacity/sweep/grid-8/udp-sim/report.json",
+            "report_sha256": "cf7b9ba447a1aa7b98a8aef4994edb6606d5caa020cb283a2f77f9cf05b93776",
+            "requests": 17,
+            "fresh_frames": 6,
+            "formats": {
+              "raw": {
+                "frames": 3,
+                "roundtrip_us_min": 4136.81,
+                "roundtrip_us_max": 4143.18,
+                "roundtrip_us_mean": 4141.026666666668,
+                "compute_us_mean": 3811.2033333333334,
+                "simulated_fps_from_mean": 241.486008300679,
+                "datagrams": [
+                  2
+                ],
+                "verified_words": [
+                  613
+                ]
+              },
+              "compact": {
+                "frames": 3,
+                "roundtrip_us_min": 5309.33,
+                "roundtrip_us_max": 5311.37,
+                "roundtrip_us_mean": 5310.22,
+                "compute_us_mean": 3812.9133333333334,
+                "simulated_fps_from_mean": 188.31611496322185,
+                "datagrams": [
+                  1
+                ],
+                "verified_words": [
+                  613
+                ]
+              }
+            }
+          }
+        },
+        {
+          "grid": "9",
+          "vertices": 264,
+          "triangles": 530,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 3200,
+          "compact_response_bytes": 1628,
+          "raw_fits_protocol": true,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 3200,
+          "optimization": "O2",
+          "mesh_scale": 193.89542639539778,
+          "mesh_sha256": "c56e6d0ecd48481ec32d56553ccf3573598053ae4856b530c7e1721d2b98d728",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "871fd5650c23350993ed053c6915d8160c11704c4cd8da6c4a9ad7aea1012b16",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147533156,
+            "static_bytes": 49508,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 11932,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "15622021f8c08aed4a19e7f3820e1f13eecd2e132396f2fd5d3af1af4d3f265c",
+            "firmware.hex": "9b6fdeeed240d1eb237f7f8c6dee12f8267297b7ce9d1da6473332de199bb668",
+            "firmware.bin": "5660a98ba53bda1c212e04f38cb37e18de1d7d96e9a3619ab09744ba75e538f5"
+          },
+          "firmware_source_sha256": "1888de58f5c962321ea4f743f6685f759d7643252d2cbf90e490ec417a90b344",
+          "board": "build-banana-capacity/sweep/grid-9/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/sweep/grid-9/board/build-manifest.json",
+            "sha256": "5feae68b2b65b52dfe514e1625e98721532969dd84b7f31004d78ccaba7c36f5"
+          },
+          "simulation": {
+            "passed": true,
+            "scope": "Production CPU/TPU/packet-buffer RTL at the UDP stream boundary; excludes MAC, PHY, ARP and host latency",
+            "report": "build-banana-capacity/sweep/grid-9/udp-sim/report.json",
+            "report_sha256": "09175778ee708af27f1f72292f4dd81e971520b1f2d0b318dbc4226514841ed1",
+            "requests": 17,
+            "fresh_frames": 6,
+            "formats": {
+              "raw": {
+                "frames": 3,
+                "roundtrip_us_min": 5194.67,
+                "roundtrip_us_max": 5201.33,
+                "roundtrip_us_mean": 5199.043333333333,
+                "compute_us_mean": 4782.573333333334,
+                "simulated_fps_from_mean": 192.34307850226293,
+                "datagrams": [
+                  3
+                ],
+                "verified_words": [
+                  793
+                ]
+              },
+              "compact": {
+                "frames": 3,
+                "roundtrip_us_min": 6709.93,
+                "roundtrip_us_max": 6711.38,
+                "roundtrip_us_mean": 6710.736666666667,
+                "compute_us_mean": 4784.516666666666,
+                "simulated_fps_from_mean": 149.01493676054443,
+                "datagrams": [
+                  2
+                ],
+                "verified_words": [
+                  793
+                ]
+              }
+            }
+          }
+        },
+        {
+          "grid": "10",
+          "vertices": 329,
+          "triangles": 653,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 3980,
+          "compact_response_bytes": 2018,
+          "raw_fits_protocol": true,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 3980,
+          "optimization": "O2",
+          "mesh_scale": 197.12885840588388,
+          "mesh_sha256": "dae3bd9c60c06ff458a3d5ccfa81d90a80907ac5cfc389d26b7561bfffd130c7",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "b41581623056a8c49e948d21f0d0b348c51d5003122c0cf7d5884b333b274a08",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147537252,
+            "static_bytes": 53604,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 7836,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "5e6c4a4a8d4a1d42ea911dc49917bce5ca215d1993f2ed6d8eb7c55123cfe600",
+            "firmware.hex": "63780f0836ed637682962bd81a73a2cd834a28e3d7cbcc9872e45cb79ef6e7b7",
+            "firmware.bin": "9ab9cb4327abcf703aecafd2126404e6146a73f73448742fcfc05ce5fe15c013"
+          },
+          "firmware_source_sha256": "e27f80d2b789ea5a83af74438bc4f33ecfa343619ab52756c9ed855abda9c3fb",
+          "board": "build-banana-capacity/sweep/grid-10/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/sweep/grid-10/board/build-manifest.json",
+            "sha256": "3d6f63fdb8d7f1a86d54a385add808e6eacbad52a9b4c22f3ecfb236d9bb9c5a"
+          },
+          "simulation": {
+            "passed": true,
+            "scope": "Production CPU/TPU/packet-buffer RTL at the UDP stream boundary; excludes MAC, PHY, ARP and host latency",
+            "report": "build-banana-capacity/sweep/grid-10/udp-sim/report.json",
+            "report_sha256": "a24cce1ddb7321a2f5f95730a46458468517fa0050abfebad5b9e565d378bf41",
+            "requests": 17,
+            "fresh_frames": 6,
+            "formats": {
+              "raw": {
+                "frames": 3,
+                "roundtrip_us_min": 6339.96,
+                "roundtrip_us_max": 6346.64,
+                "roundtrip_us_mean": 6344.326666666667,
+                "compute_us_mean": 5835.753333333334,
+                "simulated_fps_from_mean": 157.62113972693714,
+                "datagrams": [
+                  3
+                ],
+                "verified_words": [
+                  988
+                ]
+              },
+              "compact": {
+                "frames": 3,
+                "roundtrip_us_min": 8221.74,
+                "roundtrip_us_max": 8225.43,
+                "roundtrip_us_mean": 8223.443333333335,
+                "compute_us_mean": 5837.373333333333,
+                "simulated_fps_from_mean": 121.60356184939559,
+                "datagrams": [
+                  2
+                ],
+                "verified_words": [
+                  988
+                ]
+              }
+            }
+          }
+        },
+        {
+          "grid": "11",
+          "vertices": 392,
+          "triangles": 780,
+          "quantized_zero_area_triangles": 1,
+          "raw_response_bytes": 4736,
+          "compact_response_bytes": 2396,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "O2",
+          "mesh_scale": 192.57981967455518,
+          "mesh_sha256": "7d1230d819c761032a6b1b0dee8ff12bbcdbb338feb5e0b1b013a5d87f7e8ada",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "87f3a7ab5fb6ec6d0ddf5d5740c64c0bbfd7fad4725ed64efba185dc83a4a781",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147540516,
+            "static_bytes": 56868,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 4572,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "5101838d11b196db8a592b04ea6bdacd72a2592675239817ec50b622ca8197c6",
+            "firmware.hex": "fd1837ddba3fa1365b557358e2efc986fc99f0e6ca50477ef7123f3d3b8c1908",
+            "firmware.bin": "e0920890e88d6f77fd1e655eca0d50832fe1408bae70e7765854eeea20a20b5e"
+          },
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "board": "build-banana-capacity/sweep/grid-11/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/sweep/grid-11/board/build-manifest.json",
+            "sha256": "c85ecdae85bc19a45e0fc8d435facd99ded96f334b6902e9e594a1765ae7dbba"
+          },
+          "simulation": {
+            "passed": true,
+            "scope": "Production CPU/TPU/packet-buffer RTL at the UDP stream boundary; excludes MAC, PHY, ARP and host latency",
+            "report": "build-banana-capacity/sweep/grid-11/udp-sim/report.json",
+            "report_sha256": "1258babf4db6ce384395689cf68cc4432b5d2e56fd59450478da805e9c99ab42",
+            "requests": 11,
+            "fresh_frames": 3,
+            "formats": {
+              "compact": {
+                "frames": 3,
+                "roundtrip_us_min": 9682.83,
+                "roundtrip_us_max": 9688.65,
+                "roundtrip_us_mean": 9684.813333333334,
+                "compute_us_mean": 6853.326666666667,
+                "simulated_fps_from_mean": 103.25444235029138,
+                "datagrams": [
+                  2
+                ],
+                "verified_words": [
+                  1177
+                ]
+              }
+            }
+          }
+        },
+        {
+          "grid": "12",
+          "vertices": 466,
+          "triangles": 940,
+          "quantized_zero_area_triangles": 1,
+          "raw_response_bytes": 5624,
+          "compact_response_bytes": 2840,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "O2",
+          "mesh_scale": 194.29722912579533,
+          "mesh_sha256": "f0d87df527c8798c983279eb2f9f2a32f596d86fe6090ba3fab08523058bf266",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "e9354e42d2ae9ea8ad60417fc3274205a46a4335ba30279766f8b0b44fe1d969",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147544292,
+            "static_bytes": 60644,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 796,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "00ac68b7a8b012d560ec9720c00ebee67139f5f4ddaaab2a86b7199dedcfc83c",
+            "firmware.hex": "37e124a86c4d3405ae84f33f89e91f3d5bd62f36846472197afa2ef7c5fefc7f",
+            "firmware.bin": "3c0446fcfb845d44c773fee6fa111a79b39c69721a84c8f1e45caff7b90971df"
+          },
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "board": "build-banana-capacity/sweep/grid-12/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/sweep/grid-12/board/build-manifest.json",
+            "sha256": "1007aacddc456123d4e6d909458306e7ae6a63b9b4adcc459f26b505833eae25"
+          },
+          "simulation": {
+            "passed": true,
+            "scope": "Production CPU/TPU/packet-buffer RTL at the UDP stream boundary; excludes MAC, PHY, ARP and host latency",
+            "report": "build-banana-capacity/sweep/grid-12/udp-sim/report.json",
+            "report_sha256": "e01abbe4d35470244a459de74fc9fb9733c61fd6cbcd5f5754c3de04a136d0ee",
+            "requests": 11,
+            "fresh_frames": 3,
+            "formats": {
+              "compact": {
+                "frames": 3,
+                "roundtrip_us_min": 11406.57,
+                "roundtrip_us_max": 11413.97,
+                "roundtrip_us_mean": 11411.14,
+                "compute_us_mean": 8053.900000000001,
+                "simulated_fps_from_mean": 87.63366324486424,
+                "datagrams": [
+                  3
+                ],
+                "verified_words": [
+                  1399
+                ]
+              }
+            }
+          }
+        },
+        {
+          "grid": "13",
+          "vertices": 568,
+          "triangles": 1139,
+          "quantized_zero_area_triangles": 1,
+          "raw_response_bytes": 6848,
+          "compact_response_bytes": 3452,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "O2",
+          "mesh_scale": 192.5713194545168,
+          "mesh_sha256": "7a141b9a780096c2bae4ce19125874bd747841236ba570339a3f5ce2f43e4fb5",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "7c041b7284e0c97aa240adc432661db10439df30713fe8beaecd1d2b85d84cfe",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": false,
+          "failure": "64 KiB RAM / 4 KiB reserved stack limit",
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "link_failure_log": {
+            "path": "build-banana-capacity/sweep/grid-13/board/firmware.log",
+            "sha256": "8b505940579b9533f9c94fd110b872e99c273ac520bfd174d889130238bba009"
+          }
+        },
+        {
+          "grid": "15",
+          "vertices": 738,
+          "triangles": 1484,
+          "quantized_zero_area_triangles": 1,
+          "raw_response_bytes": 8888,
+          "compact_response_bytes": 4472,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": false,
+          "reply_buffer_bytes": 4096,
+          "optimization": "O2",
+          "mesh_scale": 193.6625345206865,
+          "mesh_sha256": "98fa3add91816ce73d37edcb7cbb84ccbeb16532070112e8abdb6f34484cbdb2",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "744028f21966e657228d4ddd10aeca82051beab02abae687100ec6fe56d5a16a",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": false,
+          "failure": "64 KiB RAM / 4 KiB reserved stack limit",
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "link_failure_log": {
+            "path": "build-banana-capacity/sweep/grid-15/board/firmware.log",
+            "sha256": "5d59038c2eed5f3007e809de47112fe504a2d21939bc7808b92a14b669a34291"
+          }
+        }
+      ]
+    },
+    "boundaries": {
+      "report": {
+        "path": "build-banana-capacity/boundaries/report.json",
+        "sha256": "16536640451d533c6d89aafad03b898540f88f8e76cec3aaabcffd429a64012c"
+      },
+      "cases": [
+        {
+          "grid": "10x9x11",
+          "vertices": 338,
+          "triangles": 675,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 4088,
+          "compact_response_bytes": 2072,
+          "raw_fits_protocol": true,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4088,
+          "optimization": "O2",
+          "mesh_scale": 193.86365209681765,
+          "mesh_sha256": "9c63d1a79a07579e37231c844955a9eb51957e39634889ee2faab8d12ceb3497",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "5c167533072b0d84fbaa8f80b83daa7667a89dea9e7260221e92e9d7d54eef10",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147537820,
+            "static_bytes": 54172,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 7268,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "3b4bf0c708f1b9e4f1978f2ed87d91e885c23c09eb8a5490f720870f8b624df7",
+            "firmware.hex": "57529acae8015e7018d67580c729049a98343d26b5083afac30fcd880362c51f",
+            "firmware.bin": "167f583cd1e5d18a3ff0f7721ed4dc8bcf2103247b9754e8be285c869c2ecabb"
+          },
+          "firmware_source_sha256": "75d85f0d2becc32e99aafbd5e938e14b5ac19ff6b09d8881702830f8d89a7c94",
+          "board": "build-banana-capacity/boundaries/grid-10x9x11/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/boundaries/grid-10x9x11/board/build-manifest.json",
+            "sha256": "7330f341c7611b5e73397826f7839629537a3d59a953885df3155585b560c841"
+          },
+          "simulation": {
+            "passed": true,
+            "scope": "Production CPU/TPU/packet-buffer RTL at the UDP stream boundary; excludes MAC, PHY, ARP and host latency",
+            "report": "build-banana-capacity/boundaries/grid-10x9x11/udp-sim/report.json",
+            "report_sha256": "bd10772ab369bb9d612551279b97f5adbb82b06dfb14ee35a58d70772b9df37b",
+            "requests": 17,
+            "fresh_frames": 6,
+            "formats": {
+              "raw": {
+                "frames": 3,
+                "roundtrip_us_min": 6498.64,
+                "roundtrip_us_max": 6505.17,
+                "roundtrip_us_mean": 6502.886666666668,
+                "compute_us_mean": 5981.673333333333,
+                "simulated_fps_from_mean": 153.777860703913,
+                "datagrams": [
+                  3
+                ],
+                "verified_words": [
+                  1015
+                ]
+              },
+              "compact": {
+                "frames": 3,
+                "roundtrip_us_min": 8430.8,
+                "roundtrip_us_max": 8435.02,
+                "roundtrip_us_mean": 8433.123333333333,
+                "compute_us_mean": 5983.4766666666665,
+                "simulated_fps_from_mean": 118.58002788211722,
+                "datagrams": [
+                  2
+                ],
+                "verified_words": [
+                  1015
+                ]
+              }
+            }
+          }
+        },
+        {
+          "grid": "9x11x11",
+          "vertices": 349,
+          "triangles": 692,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 4220,
+          "compact_response_bytes": 2138,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "O2",
+          "mesh_scale": 192.57981967455518,
+          "mesh_sha256": "bb4218e710d405c4695ae808727ca6f4c8440b072a9f26942608fbe7ea15389d",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "c644851571934b88d12591b57aff0e254e68ad5ab479a5a7ae34a7057e642826",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147538328,
+            "static_bytes": 54680,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 6760,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "67d555dfecc2692d4688db23f00a869c50ea49e5e93ffaea4ade833fc468ff2b",
+            "firmware.hex": "26c1e18526479ba86a7938e154e5bb8accc9fc9db1e4cff95f7024d428e1e85c",
+            "firmware.bin": "234094ca209d624e05fcdc43fa0ffe5be71bc848dccba204c91a18f4794aea0e"
+          },
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "board": "build-banana-capacity/boundaries/grid-9x11x11/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/boundaries/grid-9x11x11/board/build-manifest.json",
+            "sha256": "da3cec590931130b4f3199a28ef92e5b0030c3acda3d8656c8b24c68fce6fc8a"
+          },
+          "simulation": {
+            "passed": true,
+            "scope": "Production CPU/TPU/packet-buffer RTL at the UDP stream boundary; excludes MAC, PHY, ARP and host latency",
+            "report": "build-banana-capacity/boundaries/grid-9x11x11/udp-sim/report.json",
+            "report_sha256": "d83d22f850236c346d696e56b658fa4df3c0d7cd2cb63f51650891a0f637930a",
+            "requests": 11,
+            "fresh_frames": 3,
+            "formats": {
+              "compact": {
+                "frames": 3,
+                "roundtrip_us_min": 8679.12,
+                "roundtrip_us_max": 8685.23,
+                "roundtrip_us_mean": 8683.056666666667,
+                "compute_us_mean": 6156.69,
+                "simulated_fps_from_mean": 115.16681721528938,
+                "datagrams": [
+                  2
+                ],
+                "verified_words": [
+                  1048
+                ]
+              }
+            }
+          }
+        },
+        {
+          "grid": "11x13x12",
+          "vertices": 476,
+          "triangles": 962,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 5744,
+          "compact_response_bytes": 2900,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "O2",
+          "mesh_scale": 193.00502253998815,
+          "mesh_sha256": "ac377f977078fbca31cb7960ad004c21abf92c9fe4eb1da56e3b983d478bb35c",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "67da039592907b5a010ae6e0b58f669dc721906e1b7c9f6e8bdb75ebff1db154",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147544804,
+            "static_bytes": 61156,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 284,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "0312a0429460d628d213ff68e0cf2b42b58e12ced283cf4b2b7d4dcbe8a3adee",
+            "firmware.hex": "10d38aa178d9b1cc469330d94780d51398e81c9444b859ee4e3f475d4378a9cc",
+            "firmware.bin": "a057d039198d9c68be46f5181f3465e9b5120a48b900eb6670419a87c77c6253"
+          },
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "board": "build-banana-capacity/boundaries/grid-11x13x12/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/boundaries/grid-11x13x12/board/build-manifest.json",
+            "sha256": "f992966277485efa1fa5811bc1ea886bd5343284bbb6596009968eb56027861a"
+          },
+          "simulation": {
+            "passed": true,
+            "scope": "Production CPU/TPU/packet-buffer RTL at the UDP stream boundary; excludes MAC, PHY, ARP and host latency",
+            "report": "build-banana-capacity/boundaries/grid-11x13x12/udp-sim/report.json",
+            "report_sha256": "5d8856951bea065f9fda3322155ee957400c393561e2ff4226f0b43177c3d1c9",
+            "requests": 11,
+            "fresh_frames": 3,
+            "formats": {
+              "compact": {
+                "frames": 3,
+                "roundtrip_us_min": 11639.53,
+                "roundtrip_us_max": 11645.55,
+                "roundtrip_us_mean": 11643.533333333335,
+                "compute_us_mean": 8214.966666666667,
+                "simulated_fps_from_mean": 85.88458257230049,
+                "datagrams": [
+                  3
+                ],
+                "verified_words": [
+                  1429
+                ]
+              }
+            }
+          }
+        },
+        {
+          "grid": "14x12x11",
+          "vertices": 480,
+          "triangles": 961,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 5792,
+          "compact_response_bytes": 2924,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "O2",
+          "mesh_scale": 194.1739168678205,
+          "mesh_sha256": "de0c170671e9de6d4f5b9717cf40a920abbe4149236f1e57abeb123b0927f77b",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "6cadbbed6ade4a7f3ae938e48b1bd2a2701f0e1d819e92568e62bffe696954d3",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147545004,
+            "static_bytes": 61356,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 84,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "11d54799792fb40ebdfb60aece902834e2dc273c0d871eeead8f97602dd7cd3a",
+            "firmware.hex": "ae8df9c5e5b360cbc2a7017fa49fe996210a8abb098177f5cc52321075d37386",
+            "firmware.bin": "ddfc44b1a9de48c61a785a81e54b4f771ffa13ea6d39d530a8184f3fd8f8330c"
+          },
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "board": "build-banana-capacity/boundaries/grid-14x12x11/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/boundaries/grid-14x12x11/board/build-manifest.json",
+            "sha256": "a105487dd5465b8f6aeae883dfe33961388f0d253940e14539df19063ac11991"
+          },
+          "simulation": {
+            "passed": true,
+            "scope": "Production CPU/TPU/packet-buffer RTL at the UDP stream boundary; excludes MAC, PHY, ARP and host latency",
+            "report": "build-banana-capacity/boundaries/grid-14x12x11/udp-sim/report.json",
+            "report_sha256": "0531cf7196419a3e9cddbd8f0c2b23532feea5e8c16cc44c9b57c9bfb914cbab",
+            "requests": 11,
+            "fresh_frames": 3,
+            "formats": {
+              "compact": {
+                "frames": 3,
+                "roundtrip_us_min": 11732.72,
+                "roundtrip_us_max": 11739.8,
+                "roundtrip_us_mean": 11737.116666666667,
+                "compute_us_mean": 8280.643333333333,
+                "simulated_fps_from_mean": 85.19980063246652,
+                "datagrams": [
+                  3
+                ],
+                "verified_words": [
+                  1441
+                ]
+              }
+            }
+          }
+        },
+        {
+          "grid": "13x11x12",
+          "vertices": 483,
+          "triangles": 967,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 5828,
+          "compact_response_bytes": 2942,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "O2",
+          "mesh_scale": 192.8732855330647,
+          "mesh_sha256": "1d62485450e2656236ca37450a39ab9fb0d72e88fb1997b56aa161c98b6d633a",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "7f4098f8d32d7e55db7f55906a572c1f52799160faab6466bc38ac66151d0df6",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": false,
+          "failure": "64 KiB RAM / 4 KiB reserved stack limit",
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "link_failure_log": {
+            "path": "build-banana-capacity/boundaries/grid-13x11x12/board/firmware.log",
+            "sha256": "cb5e6011b82ceaacb88efae6647eded21fc89c1f0230d75cf9d5b04be239406e"
+          }
+        }
+      ]
+    },
+    "build-Os": {
+      "report": {
+        "path": "build-banana-capacity/build-Os/report.json",
+        "sha256": "01003ca540034a86d04786ca5575ea58d02502bf4de962e7a2629b689e08cd88"
+      },
+      "cases": [
+        {
+          "grid": "8",
+          "vertices": 204,
+          "triangles": 407,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 2480,
+          "compact_response_bytes": 1268,
+          "raw_fits_protocol": true,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 2480,
+          "optimization": "Os",
+          "mesh_scale": 198.9527385659464,
+          "mesh_sha256": "c7a29c0ee4cb9fc7e6b00904bbcad5d20444c35897d907ca4e27fb2f046d7233",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "446ab85cac49687025d0946253559ad108d24931f753ffee81f8a8e646e52a05",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147523772,
+            "static_bytes": 40124,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 21316,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "b2f0e58f5ac65a1f4d87d748452da8712d7abd354f3b0bdf6b620ea4cc92fde4",
+            "firmware.hex": "772312ed90b023e693a03b2d2793017e82ee0a4d689482b6c941bc37e8a64617",
+            "firmware.bin": "3eb11116f09412ec74c23db54f51e0399d5f8e70329edc900549a06d5cffe1a0"
+          },
+          "firmware_source_sha256": "1e796078c899fc606d45f81a1df97be81bfaf9924266600151692b44ae9151d8",
+          "board": "build-banana-capacity/build-Os/grid-8/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/build-Os/grid-8/board/build-manifest.json",
+            "sha256": "97002631e41a9630fbd67273e421bff8f37a0c032506065731f960c62746716d"
+          }
+        },
+        {
+          "grid": "10",
+          "vertices": 329,
+          "triangles": 653,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 3980,
+          "compact_response_bytes": 2018,
+          "raw_fits_protocol": true,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 3980,
+          "optimization": "Os",
+          "mesh_scale": 197.12885840588388,
+          "mesh_sha256": "dae3bd9c60c06ff458a3d5ccfa81d90a80907ac5cfc389d26b7561bfffd130c7",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "b41581623056a8c49e948d21f0d0b348c51d5003122c0cf7d5884b333b274a08",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147531652,
+            "static_bytes": 48004,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 13436,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "486c71b7ab53da087fba4828ba67a4c08bd80af7118fd4b80e1f43396fdb31de",
+            "firmware.hex": "bbe1a1ce826592c3e064653210b60047535337644f45b568d7a1372c4ed05176",
+            "firmware.bin": "c53295156331a56fe268921bb6517844f86b0560802bc714b6f3f1b107fa4825"
+          },
+          "firmware_source_sha256": "e27f80d2b789ea5a83af74438bc4f33ecfa343619ab52756c9ed855abda9c3fb",
+          "board": "build-banana-capacity/build-Os/grid-10/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/build-Os/grid-10/board/build-manifest.json",
+            "sha256": "b09e8eb33e98f64521a031fc2fa3e2609fb3f277a4907249523179707aefd9b8"
+          }
+        },
+        {
+          "grid": "12",
+          "vertices": 466,
+          "triangles": 940,
+          "quantized_zero_area_triangles": 1,
+          "raw_response_bytes": 5624,
+          "compact_response_bytes": 2840,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "Os",
+          "mesh_scale": 194.29722912579533,
+          "mesh_sha256": "f0d87df527c8798c983279eb2f9f2a32f596d86fe6090ba3fab08523058bf266",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "e9354e42d2ae9ea8ad60417fc3274205a46a4335ba30279766f8b0b44fe1d969",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147538756,
+            "static_bytes": 55108,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 6332,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "b475a09947658f2b6a9d6bddb319ffc3159dc2c55dd51eb54d73e8929c96d842",
+            "firmware.hex": "93f7432b8726e0f71011c3026dce99d8edfb7e469be129047a5769c76c12eb10",
+            "firmware.bin": "f6d86ea37dc1ca86bdfcbf8b0e6145e48020fa9b662a3bc52991f04da16bc66a"
+          },
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "board": "build-banana-capacity/build-Os/grid-12/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/build-Os/grid-12/board/build-manifest.json",
+            "sha256": "fcb5e1d5b46ca4760f023be7f82060d7ec6750380ece9f649078319fdbdd7b06"
+          }
+        },
+        {
+          "grid": "13",
+          "vertices": 568,
+          "triangles": 1139,
+          "quantized_zero_area_triangles": 1,
+          "raw_response_bytes": 6848,
+          "compact_response_bytes": 3452,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "Os",
+          "mesh_scale": 192.5713194545168,
+          "mesh_sha256": "7a141b9a780096c2bae4ce19125874bd747841236ba570339a3f5ce2f43e4fb5",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "7c041b7284e0c97aa240adc432661db10439df30713fe8beaecd1d2b85d84cfe",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147543956,
+            "static_bytes": 60308,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 1132,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "2d78ea10a2569d3f68f163278391a9f92b956080daa37f0162e4382c514b67d2",
+            "firmware.hex": "42d2dc8e2912bdad36159171dc1fed6391d19f03d26336514e2a7c3d1b018ed7",
+            "firmware.bin": "f7c1d75925b8adb60b7e57b8a78b8e588cef89166a7ff174fa4aefb93d054047"
+          },
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "board": "build-banana-capacity/build-Os/grid-13/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/build-Os/grid-13/board/build-manifest.json",
+            "sha256": "8b8ff8b3fbeb16f10747462d22a6117180400714f9e9784733625ecb31022c0c"
+          }
+        },
+        {
+          "grid": "14",
+          "vertices": 638,
+          "triangles": 1274,
+          "quantized_zero_area_triangles": 1,
+          "raw_response_bytes": 7688,
+          "compact_response_bytes": 3872,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "Os",
+          "mesh_scale": 193.09593735446475,
+          "mesh_sha256": "707c763273fb516ee3bd6b89b190586ed03125d1bab201d67da2e82c3fedce92",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "06bf9a884d25afbfba1ed180b32c57636de28401ab679f275dd6dbdd238fb2c7",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": false,
+          "failure": "64 KiB RAM / 4 KiB reserved stack limit",
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "link_failure_log": {
+            "path": "build-banana-capacity/build-Os/grid-14/board/firmware.log",
+            "sha256": "65e10c4e31289b79e730503438a607199671cb105c688e174af3b08a00c6d393"
+          }
+        },
+        {
+          "grid": "15",
+          "vertices": 738,
+          "triangles": 1484,
+          "quantized_zero_area_triangles": 1,
+          "raw_response_bytes": 8888,
+          "compact_response_bytes": 4472,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": false,
+          "reply_buffer_bytes": 4096,
+          "optimization": "Os",
+          "mesh_scale": 193.6625345206865,
+          "mesh_sha256": "98fa3add91816ce73d37edcb7cbb84ccbeb16532070112e8abdb6f34484cbdb2",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "744028f21966e657228d4ddd10aeca82051beab02abae687100ec6fe56d5a16a",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": false,
+          "failure": "64 KiB RAM / 4 KiB reserved stack limit",
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "link_failure_log": {
+            "path": "build-banana-capacity/build-Os/grid-15/board/firmware.log",
+            "sha256": "3c1effc08f566843a07fe0c6d8be741c31a2976d6310a737de415f60c19c7436"
+          }
+        }
+      ]
+    },
+    "build-O3": {
+      "report": {
+        "path": "build-banana-capacity/build-O3/report.json",
+        "sha256": "9887c83973cd5b0f4be83d7cc7c7f856b0af6d823272065534a86a1b93920326"
+      },
+      "cases": [
+        {
+          "grid": "8",
+          "vertices": 204,
+          "triangles": 407,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 2480,
+          "compact_response_bytes": 1268,
+          "raw_fits_protocol": true,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 2480,
+          "optimization": "O3",
+          "mesh_scale": 198.9527385659464,
+          "mesh_sha256": "c7a29c0ee4cb9fc7e6b00904bbcad5d20444c35897d907ca4e27fb2f046d7233",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "446ab85cac49687025d0946253559ad108d24931f753ffee81f8a8e646e52a05",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147536340,
+            "static_bytes": 52692,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 8748,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "8a04a04026389d50f70790a32f81cd06b9a24ca84b113a11fee8e08056bed8f5",
+            "firmware.hex": "3e6714b5c68a3de034fea68669167805dfbaeecf84d48fd610985109cb398010",
+            "firmware.bin": "f938aa3941711bad45aee57f3df3769836a7a1b1fc85c3e7a7ee9c0c051b0e10"
+          },
+          "firmware_source_sha256": "1e796078c899fc606d45f81a1df97be81bfaf9924266600151692b44ae9151d8",
+          "board": "build-banana-capacity/build-O3/grid-8/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/build-O3/grid-8/board/build-manifest.json",
+            "sha256": "3c627e77391936b6f416b3527d10fb38eceae66b0be0eed5bf175d1807a1f912"
+          }
+        },
+        {
+          "grid": "10",
+          "vertices": 329,
+          "triangles": 653,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 3980,
+          "compact_response_bytes": 2018,
+          "raw_fits_protocol": true,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 3980,
+          "optimization": "O3",
+          "mesh_scale": 197.12885840588388,
+          "mesh_sha256": "dae3bd9c60c06ff458a3d5ccfa81d90a80907ac5cfc389d26b7561bfffd130c7",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "b41581623056a8c49e948d21f0d0b348c51d5003122c0cf7d5884b333b274a08",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147544212,
+            "static_bytes": 60564,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 876,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "ee32f46f5bc33c694fc920fe6b67987836e04a3354e9ad1ca3845c4825f17ffa",
+            "firmware.hex": "55eced5003451f42cf6bb125fea8386a4d70e3090fa494345cea9c7018278d60",
+            "firmware.bin": "df72d156c3b4dd8e929ad6915d5d9b72ed90f9de15b7926f0a416903d2adbe20"
+          },
+          "firmware_source_sha256": "e27f80d2b789ea5a83af74438bc4f33ecfa343619ab52756c9ed855abda9c3fb",
+          "board": "build-banana-capacity/build-O3/grid-10/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/build-O3/grid-10/board/build-manifest.json",
+            "sha256": "511e1164f491b6774cc0140c7db5a3f23f3e79b3163828cf46fed8f587971278"
+          }
+        },
+        {
+          "grid": "12",
+          "vertices": 466,
+          "triangles": 940,
+          "quantized_zero_area_triangles": 1,
+          "raw_response_bytes": 5624,
+          "compact_response_bytes": 2840,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "O3",
+          "mesh_scale": 194.29722912579533,
+          "mesh_sha256": "f0d87df527c8798c983279eb2f9f2a32f596d86fe6090ba3fab08523058bf266",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "e9354e42d2ae9ea8ad60417fc3274205a46a4335ba30279766f8b0b44fe1d969",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": false,
+          "failure": "64 KiB RAM / 4 KiB reserved stack limit",
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "link_failure_log": {
+            "path": "build-banana-capacity/build-O3/grid-12/board/firmware.log",
+            "sha256": "8a97057cd82d913884d37e76fb1ec9c1a1f69668d667c6c4c7c5200408aa26de"
+          }
+        },
+        {
+          "grid": "13",
+          "vertices": 568,
+          "triangles": 1139,
+          "quantized_zero_area_triangles": 1,
+          "raw_response_bytes": 6848,
+          "compact_response_bytes": 3452,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "O3",
+          "mesh_scale": 192.5713194545168,
+          "mesh_sha256": "7a141b9a780096c2bae4ce19125874bd747841236ba570339a3f5ce2f43e4fb5",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "7c041b7284e0c97aa240adc432661db10439df30713fe8beaecd1d2b85d84cfe",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": false,
+          "failure": "64 KiB RAM / 4 KiB reserved stack limit",
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "link_failure_log": {
+            "path": "build-banana-capacity/build-O3/grid-13/board/firmware.log",
+            "sha256": "b7681c115936e6b64948e574c4152e5495dbd01975eb5bf322b724179757e076"
+          }
+        },
+        {
+          "grid": "14",
+          "vertices": 638,
+          "triangles": 1274,
+          "quantized_zero_area_triangles": 1,
+          "raw_response_bytes": 7688,
+          "compact_response_bytes": 3872,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "O3",
+          "mesh_scale": 193.09593735446475,
+          "mesh_sha256": "707c763273fb516ee3bd6b89b190586ed03125d1bab201d67da2e82c3fedce92",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "06bf9a884d25afbfba1ed180b32c57636de28401ab679f275dd6dbdd238fb2c7",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": false,
+          "failure": "64 KiB RAM / 4 KiB reserved stack limit",
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "link_failure_log": {
+            "path": "build-banana-capacity/build-O3/grid-14/board/firmware.log",
+            "sha256": "ac8fd52ad9956f2a93a26c7814fc94c334abd827cb36c80cf72855d6d9e30c3d"
+          }
+        },
+        {
+          "grid": "15",
+          "vertices": 738,
+          "triangles": 1484,
+          "quantized_zero_area_triangles": 1,
+          "raw_response_bytes": 8888,
+          "compact_response_bytes": 4472,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": false,
+          "reply_buffer_bytes": 4096,
+          "optimization": "O3",
+          "mesh_scale": 193.6625345206865,
+          "mesh_sha256": "98fa3add91816ce73d37edcb7cbb84ccbeb16532070112e8abdb6f34484cbdb2",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "744028f21966e657228d4ddd10aeca82051beab02abae687100ec6fe56d5a16a",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": false,
+          "failure": "64 KiB RAM / 4 KiB reserved stack limit",
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "link_failure_log": {
+            "path": "build-banana-capacity/build-O3/grid-15/board/firmware.log",
+            "sha256": "80736573b47433b735cb1c7e35ca43868392b8614be9c18816830561a60612bf"
+          }
+        }
+      ]
+    },
+    "Os-boundaries": {
+      "report": {
+        "path": "build-banana-capacity/Os-boundaries/report.json",
+        "sha256": "8d2535f4ad6a874ae94343e3e88a76ceb15b0c204a6ec1352a26f6a28c5e1b47"
+      },
+      "cases": [
+        {
+          "grid": "15x12x13",
+          "vertices": 582,
+          "triangles": 1174,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 7016,
+          "compact_response_bytes": 3536,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "Os",
+          "mesh_scale": 194.28702211994965,
+          "mesh_sha256": "59033eefc91d8cf3111e7e0cdbebced47b8462a2fc964fa3874bacd45bbbe7bb",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "27da231dbbf0bfad3f76b527ddd4e249fb9295b2be04e3cebe10daba69b77b1a",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147544676,
+            "static_bytes": 61028,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 412,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "60a6ab22ec8c60d669dcf275d84fc5429b997a130d3cceb87d56b547729410b7",
+            "firmware.hex": "621cec6028105bb3ab71edf159d476f14a80ff982a3f93bc0f921531527c20cb",
+            "firmware.bin": "8fbaa539df3a356fdfaf7d0423d3a8d2db07dafaabe1829a7a3f5ceb2f4bde31"
+          },
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "board": "build-banana-capacity/Os-boundaries/grid-15x12x13/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/Os-boundaries/grid-15x12x13/board/build-manifest.json",
+            "sha256": "3a492679d9fc64f9e9a19d7cddb2c78db90396635997cf9e0f7868ceed8565d3"
+          }
+        },
+        {
+          "grid": "12x16x13",
+          "vertices": 590,
+          "triangles": 1181,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 7112,
+          "compact_response_bytes": 3584,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "Os",
+          "mesh_scale": 192.2094812346983,
+          "mesh_sha256": "d04a9385808ceb768423eec42debee4e8f76cf5a9a64948084728685eaa1d080",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "f5ba69076951fd3a25a09be07842afeac0cc51ab59430d1862cde6c15c33444f",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": true,
+          "memory": {
+            "ram_bytes": 65536,
+            "static_end": 2147545084,
+            "static_bytes": 61436,
+            "stack_reserved_bytes": 4096,
+            "remaining_after_stack_bytes": 4,
+            "scope": "Static linker allocation; runtime peak stack is not measured"
+          },
+          "firmware_sha256": {
+            "firmware.elf": "5a964dab37b4c262b971c0b276628a98fb13847b80579bbbe07d23832da66df1",
+            "firmware.hex": "961dc27830ae49808987c5edc52c00eada85376853df412f360b73e550459bb1",
+            "firmware.bin": "41cc5936f066a9063c6e70a528e77b5c976204efcdca70fc976465acb25c24e2"
+          },
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "board": "build-banana-capacity/Os-boundaries/grid-12x16x13/board",
+          "manifest": {
+            "path": "/Users/siriboi/github/tiny3tpu/build-banana-capacity/Os-boundaries/grid-12x16x13/board/build-manifest.json",
+            "sha256": "c2077c39a64e89e018e6844f15b452dff6b888ff0524930b148ff32d27ca4e94"
+          }
+        },
+        {
+          "grid": "14x15x12",
+          "vertices": 594,
+          "triangles": 1190,
+          "quantized_zero_area_triangles": 0,
+          "raw_response_bytes": 7160,
+          "compact_response_bytes": 3608,
+          "raw_fits_protocol": false,
+          "compact_fits_protocol": true,
+          "reply_buffer_bytes": 4096,
+          "optimization": "Os",
+          "mesh_scale": 193.55973658586112,
+          "mesh_sha256": "b9aca8c53c55de08d93f7585fdacdf7a6fc724f14106ac3246c5f1f2e099eed4",
+          "native_jax_passed": true,
+          "native_backend_calls": 0,
+          "artifact_sha256": "4e0789aeb6b0ffe5c32a1efcd237bf416dd06d32d32e80e17dbedc1340b8e94c",
+          "firmware_patch": "Only TINY3TPU_MAX_RESPONSE_BYTES changed; all four application modes retained",
+          "build_passed": false,
+          "failure": "64 KiB RAM / 4 KiB reserved stack limit",
+          "firmware_source_sha256": "96c78c4e69601afb6b50138f525d15c1f709a51d28efddcdfc873ea757dd29e1",
+          "link_failure_log": {
+            "path": "build-banana-capacity/Os-boundaries/grid-14x15x12/board/firmware.log",
+            "sha256": "cef2947c7790ae2f55e9dfc2a9ed59aa8513d3e75439fd1a9df895f208f1e1ce"
+          }
+        }
+      ]
+    }
+  },
+  "full_digital_gmii": {
+    "O2407-full-mac": {
+      "passed": true,
+      "requests": 11,
+      "clock_hz": 100000000,
+      "with_mac": true,
+      "scope": "Production CPU/TPU firmware plus two actual LiteEth MAC/ARP/IPv4/UDP nodes over digital GMII; 100 MHz system and 125 MHz Ethernet clocks simulated at 1 ns resolution; excludes analog PHY, cable, OS and Python socket latency",
+      "firmware_sha256": "e8d13a2ede3386f631a72c36a2011bd9ce43faf93a469aa0aace050d030a98a1",
+      "mac_errors": {
+        "board_crc": 0,
+        "host_crc": 0,
+        "board_preamble": 0,
+        "host_preamble": 0
+      },
+      "report": {
+        "path": "build-banana-capacity/O2407-full-mac/report.json",
+        "sha256": "ebd9499bb7ab4399d1742bc38f9c3a7459e8d299f5dc0d7492f46c8699916828"
+      },
+      "fresh_frames": 3,
+      "roundtrip_us": {
+        "min": 4143.76,
+        "mean": 4147.803333333333,
+        "max": 4149.87
+      },
+      "compute_us_mean": 3811.0066666666667,
+      "fresh_updates_per_second_from_mean": 241.09146929981412,
+      "verified_output_words": 1839,
+      "vertices": [
+        204
+      ],
+      "response_bytes": [
+        2480
+      ],
+      "datagrams": [
+        2
+      ],
+      "compact_fallbacks": 0,
+      "backend_calls": [
+        0
+      ],
+      "source_sha256": {
+        "tests/vexriscv_udp_test_top.sv": "fa101553f3beaf593681a0d6374cee0651656e3adcc40b9d2c1bddced6680f0c",
+        "hardware/kc705_vexriscv/tiny3tpu_udp_peripheral.sv": "19a28928945a13c84b0438f66ebbe654d10b64e4a0c6af3aac970d1a5c15559a",
+        "hardware/kc705_vexriscv/vexriscv_tpu_soc.sv": "872ad0219d5e683bd5adedfc39841d89919e3c90b2a7b05cdc8bca7a5b875b4b",
+        "third_party/vexriscv/VexRiscv_Lite.v": "90e0b8f5912df2532d12bc766b110a632c1b85dd82b8aecd431d715c25f4cbbe",
+        "../synapse32/rtl/core_modules/uart.v": "1fcff923cce212e9ba99924edeedf2fafd47896c312431398fbc717e56b03828",
+        "hardware/math/tiny3tpu_cordic_exp.sv": "8823032751f6681060b1dd23f0ee8586c52f90e3e77340a5149d9b69e6a085cd",
+        "hardware/math/tiny3tpu_cordic_mmio.sv": "ee46c3aad6cb85925e9141ba8b8e61c7bf8a9e0a5042e170d4ef115272c570d4",
+        "multi-core/synapse32_tpu_peripheral.sv": "e8b3ebbef65fc57e0216060133d56d7a7047e3f43689c828e172e3c7fed227f8",
+        "multi-core/synapse32_axis_mailbox.sv": "21f7b27b0da09dcff9146066fc30e92828dfcab6dd262ae015e80d3049ce4b6b",
+        "multi-core/tiny3tpu_axis.sv": "7068dfcaddf4da84d4654d7a6d9574a0cb11922dd1833235539a730fa5164b1f",
+        "multi-core/tiny3tpu_axis_bridge.sv": "9ba6a1d30cf22358c7a8f75b2460b081917f73239834b30af76e989cff6934cb",
+        "multi-core/tiny3tpu_axi.sv": "6435ae488fe54a64f732cf0dc620a65b95c49f08ed31067b9797df1172c330f7",
+        "multi-core/top.v": "e8c010fa050fc64ff4d6e532a30416e99392ab2a6ae22350c9ea571bf889c767",
+        "multi-core/tpu_core_wrapper.sv": "8bacd7dbce1193879ee7d9f0ab0151cb203a2a827771c6d274b32a673e047d0a",
+        "multi-core/tiny3tpu_direct_peripheral.sv": "927ccbce7689fa41cbdf35a1960b23829cad2b8d9ce53aeda477d18d5eba7d67",
+        "systolic_array/rtl/NxN_systolic_array.v": "3d34466234240425d431a77e85ceb3551e537f885176d45d0d96e4e9599bd0c6",
+        "systolic_array/rtl/pe.v": "d102d469baa26a3ce5859aafb391b5cb0c91d7b48b651bbce1c93b12a65f1547",
+        "build-banana-capacity/O2407-full-mac/liteeth/kc705_liteeth_udp.v": "7c7045677e1b19e3d6c936f9847ef08578f0fa4bbf8bab8f45200daf136ca901",
+        "build-banana-capacity/sweep/grid-8/board/firmware.elf": "e8d13a2ede3386f631a72c36a2011bd9ce43faf93a469aa0aace050d030a98a1",
+        "build-banana-capacity/sweep/grid-8/board/firmware.hex": "8328390f1d7567426d1b3b7e52e7cd4baf04ff25ab5df007e7e4ac6615aadb9c",
+        "build-banana-capacity/O2407-full-mac/check.cpp": "98c789abc071f183cbf5460d75b3961016f6170f12e24165ccf82b5c989623fe",
+        "build-banana-capacity/O2407-full-mac/requests.h": "40307293a1546a0b4df7c051ef494bd8efa4fb8f8b7b12e0af0e240205787ab3",
+        "tests/test_udp_soc.py": "819e75345fd42ae51f9ad3b76c0d886ba49f6927017dfc7e303d3eee4e44768c",
+        "hardware/kc705_ethernet/generate.py": "5364a50a9c68a0880d269fc745e0105c7b9651c4a17b05d6eaf3b9cf1af251f1",
+        "build-banana-capacity/O2407-full-mac/liteeth/liteeth-manifest.json": "25d6a458bc1672e6e38ba3f9c433a62a8843931006c4ff2df1e826faa8a078f6"
+      }
+    },
+    "Os407-full-mac": {
+      "passed": true,
+      "requests": 11,
+      "clock_hz": 100000000,
+      "with_mac": true,
+      "scope": "Production CPU/TPU firmware plus two actual LiteEth MAC/ARP/IPv4/UDP nodes over digital GMII; 100 MHz system and 125 MHz Ethernet clocks simulated at 1 ns resolution; excludes analog PHY, cable, OS and Python socket latency",
+      "firmware_sha256": "b2f0e58f5ac65a1f4d87d748452da8712d7abd354f3b0bdf6b620ea4cc92fde4",
+      "mac_errors": {
+        "board_crc": 0,
+        "host_crc": 0,
+        "board_preamble": 0,
+        "host_preamble": 0
+      },
+      "report": {
+        "path": "build-banana-capacity/Os407-full-mac/report.json",
+        "sha256": "d38ee6310a7963ea7468b0330ee56edd5b71802e01cb1c8817cfca6195b586db"
+      },
+      "fresh_frames": 3,
+      "roundtrip_us": {
+        "min": 3477.0,
+        "mean": 3481.246666666667,
+        "max": 3483.4
+      },
+      "compute_us_mean": 3011.3533333333335,
+      "fresh_updates_per_second_from_mean": 287.25341687939374,
+      "verified_output_words": 1839,
+      "vertices": [
+        204
+      ],
+      "response_bytes": [
+        2480
+      ],
+      "datagrams": [
+        2
+      ],
+      "compact_fallbacks": 0,
+      "backend_calls": [
+        0
+      ],
+      "source_sha256": {
+        "tests/vexriscv_udp_test_top.sv": "fa101553f3beaf593681a0d6374cee0651656e3adcc40b9d2c1bddced6680f0c",
+        "hardware/kc705_vexriscv/tiny3tpu_udp_peripheral.sv": "19a28928945a13c84b0438f66ebbe654d10b64e4a0c6af3aac970d1a5c15559a",
+        "hardware/kc705_vexriscv/vexriscv_tpu_soc.sv": "872ad0219d5e683bd5adedfc39841d89919e3c90b2a7b05cdc8bca7a5b875b4b",
+        "third_party/vexriscv/VexRiscv_Lite.v": "90e0b8f5912df2532d12bc766b110a632c1b85dd82b8aecd431d715c25f4cbbe",
+        "../synapse32/rtl/core_modules/uart.v": "1fcff923cce212e9ba99924edeedf2fafd47896c312431398fbc717e56b03828",
+        "hardware/math/tiny3tpu_cordic_exp.sv": "8823032751f6681060b1dd23f0ee8586c52f90e3e77340a5149d9b69e6a085cd",
+        "hardware/math/tiny3tpu_cordic_mmio.sv": "ee46c3aad6cb85925e9141ba8b8e61c7bf8a9e0a5042e170d4ef115272c570d4",
+        "multi-core/synapse32_tpu_peripheral.sv": "e8b3ebbef65fc57e0216060133d56d7a7047e3f43689c828e172e3c7fed227f8",
+        "multi-core/synapse32_axis_mailbox.sv": "21f7b27b0da09dcff9146066fc30e92828dfcab6dd262ae015e80d3049ce4b6b",
+        "multi-core/tiny3tpu_axis.sv": "7068dfcaddf4da84d4654d7a6d9574a0cb11922dd1833235539a730fa5164b1f",
+        "multi-core/tiny3tpu_axis_bridge.sv": "9ba6a1d30cf22358c7a8f75b2460b081917f73239834b30af76e989cff6934cb",
+        "multi-core/tiny3tpu_axi.sv": "6435ae488fe54a64f732cf0dc620a65b95c49f08ed31067b9797df1172c330f7",
+        "multi-core/top.v": "e8c010fa050fc64ff4d6e532a30416e99392ab2a6ae22350c9ea571bf889c767",
+        "multi-core/tpu_core_wrapper.sv": "8bacd7dbce1193879ee7d9f0ab0151cb203a2a827771c6d274b32a673e047d0a",
+        "multi-core/tiny3tpu_direct_peripheral.sv": "927ccbce7689fa41cbdf35a1960b23829cad2b8d9ce53aeda477d18d5eba7d67",
+        "systolic_array/rtl/NxN_systolic_array.v": "3d34466234240425d431a77e85ceb3551e537f885176d45d0d96e4e9599bd0c6",
+        "systolic_array/rtl/pe.v": "d102d469baa26a3ce5859aafb391b5cb0c91d7b48b651bbce1c93b12a65f1547",
+        "build-banana-capacity/Os407-full-mac/liteeth/kc705_liteeth_udp.v": "0eb1b2f55c0527028513d7224cf5a19ea3ec1671b511011f4658ae5e59908b73",
+        "build-banana-capacity/build-Os/grid-8/board/firmware.elf": "b2f0e58f5ac65a1f4d87d748452da8712d7abd354f3b0bdf6b620ea4cc92fde4",
+        "build-banana-capacity/build-Os/grid-8/board/firmware.hex": "772312ed90b023e693a03b2d2793017e82ee0a4d689482b6c941bc37e8a64617",
+        "build-banana-capacity/Os407-full-mac/check.cpp": "98c789abc071f183cbf5460d75b3961016f6170f12e24165ccf82b5c989623fe",
+        "build-banana-capacity/Os407-full-mac/requests.h": "40307293a1546a0b4df7c051ef494bd8efa4fb8f8b7b12e0af0e240205787ab3",
+        "tests/test_udp_soc.py": "819e75345fd42ae51f9ad3b76c0d886ba49f6927017dfc7e303d3eee4e44768c",
+        "hardware/kc705_ethernet/generate.py": "5364a50a9c68a0880d269fc745e0105c7b9651c4a17b05d6eaf3b9cf1af251f1",
+        "build-banana-capacity/Os407-full-mac/liteeth/liteeth-manifest.json": "8f7d8d52aa96b038e694f515e213ca0c7338f14f1e994c56d8007999e301b6e5"
+      }
+    },
+    "O3407-full-mac": {
+      "passed": true,
+      "requests": 11,
+      "clock_hz": 100000000,
+      "with_mac": true,
+      "scope": "Production CPU/TPU firmware plus two actual LiteEth MAC/ARP/IPv4/UDP nodes over digital GMII; 100 MHz system and 125 MHz Ethernet clocks simulated at 1 ns resolution; excludes analog PHY, cable, OS and Python socket latency",
+      "firmware_sha256": "8a04a04026389d50f70790a32f81cd06b9a24ca84b113a11fee8e08056bed8f5",
+      "mac_errors": {
+        "board_crc": 0,
+        "host_crc": 0,
+        "board_preamble": 0,
+        "host_preamble": 0
+      },
+      "report": {
+        "path": "build-banana-capacity/O3407-full-mac/report.json",
+        "sha256": "181b38ed8ac2117b15bc6fe3529ee27d72a740e8c7110a9ad7c36567da69afa9"
+      },
+      "fresh_frames": 3,
+      "roundtrip_us": {
+        "min": 3121.4,
+        "mean": 3123.89,
+        "max": 3125.39
+      },
+      "compute_us_mean": 2809.423333333333,
+      "fresh_updates_per_second_from_mean": 320.1137043877986,
+      "verified_output_words": 1839,
+      "vertices": [
+        204
+      ],
+      "response_bytes": [
+        2480
+      ],
+      "datagrams": [
+        2
+      ],
+      "compact_fallbacks": 0,
+      "backend_calls": [
+        0
+      ],
+      "source_sha256": {
+        "tests/vexriscv_udp_test_top.sv": "fa101553f3beaf593681a0d6374cee0651656e3adcc40b9d2c1bddced6680f0c",
+        "hardware/kc705_vexriscv/tiny3tpu_udp_peripheral.sv": "19a28928945a13c84b0438f66ebbe654d10b64e4a0c6af3aac970d1a5c15559a",
+        "hardware/kc705_vexriscv/vexriscv_tpu_soc.sv": "872ad0219d5e683bd5adedfc39841d89919e3c90b2a7b05cdc8bca7a5b875b4b",
+        "third_party/vexriscv/VexRiscv_Lite.v": "90e0b8f5912df2532d12bc766b110a632c1b85dd82b8aecd431d715c25f4cbbe",
+        "../synapse32/rtl/core_modules/uart.v": "1fcff923cce212e9ba99924edeedf2fafd47896c312431398fbc717e56b03828",
+        "hardware/math/tiny3tpu_cordic_exp.sv": "8823032751f6681060b1dd23f0ee8586c52f90e3e77340a5149d9b69e6a085cd",
+        "hardware/math/tiny3tpu_cordic_mmio.sv": "ee46c3aad6cb85925e9141ba8b8e61c7bf8a9e0a5042e170d4ef115272c570d4",
+        "multi-core/synapse32_tpu_peripheral.sv": "e8b3ebbef65fc57e0216060133d56d7a7047e3f43689c828e172e3c7fed227f8",
+        "multi-core/synapse32_axis_mailbox.sv": "21f7b27b0da09dcff9146066fc30e92828dfcab6dd262ae015e80d3049ce4b6b",
+        "multi-core/tiny3tpu_axis.sv": "7068dfcaddf4da84d4654d7a6d9574a0cb11922dd1833235539a730fa5164b1f",
+        "multi-core/tiny3tpu_axis_bridge.sv": "9ba6a1d30cf22358c7a8f75b2460b081917f73239834b30af76e989cff6934cb",
+        "multi-core/tiny3tpu_axi.sv": "6435ae488fe54a64f732cf0dc620a65b95c49f08ed31067b9797df1172c330f7",
+        "multi-core/top.v": "e8c010fa050fc64ff4d6e532a30416e99392ab2a6ae22350c9ea571bf889c767",
+        "multi-core/tpu_core_wrapper.sv": "8bacd7dbce1193879ee7d9f0ab0151cb203a2a827771c6d274b32a673e047d0a",
+        "multi-core/tiny3tpu_direct_peripheral.sv": "927ccbce7689fa41cbdf35a1960b23829cad2b8d9ce53aeda477d18d5eba7d67",
+        "systolic_array/rtl/NxN_systolic_array.v": "3d34466234240425d431a77e85ceb3551e537f885176d45d0d96e4e9599bd0c6",
+        "systolic_array/rtl/pe.v": "d102d469baa26a3ce5859aafb391b5cb0c91d7b48b651bbce1c93b12a65f1547",
+        "build-banana-capacity/O3407-full-mac/liteeth/kc705_liteeth_udp.v": "0eb1b2f55c0527028513d7224cf5a19ea3ec1671b511011f4658ae5e59908b73",
+        "build-banana-capacity/build-O3/grid-8/board/firmware.elf": "8a04a04026389d50f70790a32f81cd06b9a24ca84b113a11fee8e08056bed8f5",
+        "build-banana-capacity/build-O3/grid-8/board/firmware.hex": "3e6714b5c68a3de034fea68669167805dfbaeecf84d48fd610985109cb398010",
+        "build-banana-capacity/O3407-full-mac/check.cpp": "98c789abc071f183cbf5460d75b3961016f6170f12e24165ccf82b5c989623fe",
+        "build-banana-capacity/O3407-full-mac/requests.h": "40307293a1546a0b4df7c051ef494bd8efa4fb8f8b7b12e0af0e240205787ab3",
+        "tests/test_udp_soc.py": "819e75345fd42ae51f9ad3b76c0d886ba49f6927017dfc7e303d3eee4e44768c",
+        "hardware/kc705_ethernet/generate.py": "5364a50a9c68a0880d269fc745e0105c7b9651c4a17b05d6eaf3b9cf1af251f1",
+        "build-banana-capacity/O3407-full-mac/liteeth/liteeth-manifest.json": "8f7d8d52aa96b038e694f515e213ca0c7338f14f1e994c56d8007999e301b6e5"
+      }
+    },
+    "raw338-full-mac": {
+      "passed": true,
+      "requests": 11,
+      "clock_hz": 100000000,
+      "with_mac": true,
+      "scope": "Production CPU/TPU firmware plus two actual LiteEth MAC/ARP/IPv4/UDP nodes over digital GMII; 100 MHz system and 125 MHz Ethernet clocks simulated at 1 ns resolution; excludes analog PHY, cable, OS and Python socket latency",
+      "firmware_sha256": "3b4bf0c708f1b9e4f1978f2ed87d91e885c23c09eb8a5490f720870f8b624df7",
+      "mac_errors": {
+        "board_crc": 0,
+        "host_crc": 0,
+        "board_preamble": 0,
+        "host_preamble": 0
+      },
+      "report": {
+        "path": "build-banana-capacity/raw338-full-mac/report.json",
+        "sha256": "bf38590d3db1545c82145d9932ac37f6fa5fbd800e32669de5bd9fa028212533"
+      },
+      "fresh_frames": 3,
+      "roundtrip_us": {
+        "min": 6503.31,
+        "mean": 6507.240000000001,
+        "max": 6509.27
+      },
+      "compute_us_mean": 5981.343333333333,
+      "fresh_updates_per_second_from_mean": 153.67498355677674,
+      "verified_output_words": 3045,
+      "vertices": [
+        338
+      ],
+      "response_bytes": [
+        4088
+      ],
+      "datagrams": [
+        3
+      ],
+      "compact_fallbacks": 0,
+      "backend_calls": [
+        0
+      ],
+      "source_sha256": {
+        "tests/vexriscv_udp_test_top.sv": "fa101553f3beaf593681a0d6374cee0651656e3adcc40b9d2c1bddced6680f0c",
+        "hardware/kc705_vexriscv/tiny3tpu_udp_peripheral.sv": "19a28928945a13c84b0438f66ebbe654d10b64e4a0c6af3aac970d1a5c15559a",
+        "hardware/kc705_vexriscv/vexriscv_tpu_soc.sv": "872ad0219d5e683bd5adedfc39841d89919e3c90b2a7b05cdc8bca7a5b875b4b",
+        "third_party/vexriscv/VexRiscv_Lite.v": "90e0b8f5912df2532d12bc766b110a632c1b85dd82b8aecd431d715c25f4cbbe",
+        "../synapse32/rtl/core_modules/uart.v": "1fcff923cce212e9ba99924edeedf2fafd47896c312431398fbc717e56b03828",
+        "hardware/math/tiny3tpu_cordic_exp.sv": "8823032751f6681060b1dd23f0ee8586c52f90e3e77340a5149d9b69e6a085cd",
+        "hardware/math/tiny3tpu_cordic_mmio.sv": "ee46c3aad6cb85925e9141ba8b8e61c7bf8a9e0a5042e170d4ef115272c570d4",
+        "multi-core/synapse32_tpu_peripheral.sv": "e8b3ebbef65fc57e0216060133d56d7a7047e3f43689c828e172e3c7fed227f8",
+        "multi-core/synapse32_axis_mailbox.sv": "21f7b27b0da09dcff9146066fc30e92828dfcab6dd262ae015e80d3049ce4b6b",
+        "multi-core/tiny3tpu_axis.sv": "7068dfcaddf4da84d4654d7a6d9574a0cb11922dd1833235539a730fa5164b1f",
+        "multi-core/tiny3tpu_axis_bridge.sv": "9ba6a1d30cf22358c7a8f75b2460b081917f73239834b30af76e989cff6934cb",
+        "multi-core/tiny3tpu_axi.sv": "6435ae488fe54a64f732cf0dc620a65b95c49f08ed31067b9797df1172c330f7",
+        "multi-core/top.v": "e8c010fa050fc64ff4d6e532a30416e99392ab2a6ae22350c9ea571bf889c767",
+        "multi-core/tpu_core_wrapper.sv": "8bacd7dbce1193879ee7d9f0ab0151cb203a2a827771c6d274b32a673e047d0a",
+        "multi-core/tiny3tpu_direct_peripheral.sv": "927ccbce7689fa41cbdf35a1960b23829cad2b8d9ce53aeda477d18d5eba7d67",
+        "systolic_array/rtl/NxN_systolic_array.v": "3d34466234240425d431a77e85ceb3551e537f885176d45d0d96e4e9599bd0c6",
+        "systolic_array/rtl/pe.v": "d102d469baa26a3ce5859aafb391b5cb0c91d7b48b651bbce1c93b12a65f1547",
+        "build-banana-capacity/raw338-full-mac/liteeth/kc705_liteeth_udp.v": "6cf2465fe4a58876f680b4b30d8fb0121ca361ccdaafe7b3c7d7b283726d71be",
+        "build-banana-capacity/boundaries/grid-10x9x11/board/firmware.elf": "3b4bf0c708f1b9e4f1978f2ed87d91e885c23c09eb8a5490f720870f8b624df7",
+        "build-banana-capacity/boundaries/grid-10x9x11/board/firmware.hex": "57529acae8015e7018d67580c729049a98343d26b5083afac30fcd880362c51f",
+        "build-banana-capacity/raw338-full-mac/check.cpp": "98c789abc071f183cbf5460d75b3961016f6170f12e24165ccf82b5c989623fe",
+        "build-banana-capacity/raw338-full-mac/requests.h": "40307293a1546a0b4df7c051ef494bd8efa4fb8f8b7b12e0af0e240205787ab3",
+        "tests/test_udp_soc.py": "819e75345fd42ae51f9ad3b76c0d886ba49f6927017dfc7e303d3eee4e44768c",
+        "hardware/kc705_ethernet/generate.py": "5364a50a9c68a0880d269fc745e0105c7b9651c4a17b05d6eaf3b9cf1af251f1",
+        "build-banana-capacity/raw338-full-mac/liteeth/liteeth-manifest.json": "a4dff37ca283efbfa0e554f933298a9111f463ebcf0026d9d3a54f334add6ff1"
+      }
+    },
+    "O2-962-full-mac": {
+      "passed": true,
+      "requests": 11,
+      "clock_hz": 100000000,
+      "with_mac": true,
+      "scope": "Production CPU/TPU firmware plus two actual LiteEth MAC/ARP/IPv4/UDP nodes over digital GMII; 100 MHz system and 125 MHz Ethernet clocks simulated at 1 ns resolution; excludes analog PHY, cable, OS and Python socket latency",
+      "firmware_sha256": "0312a0429460d628d213ff68e0cf2b42b58e12ced283cf4b2b7d4dcbe8a3adee",
+      "mac_errors": {
+        "board_crc": 0,
+        "host_crc": 0,
+        "board_preamble": 0,
+        "host_preamble": 0
+      },
+      "report": {
+        "path": "build-banana-capacity/O2-962-full-mac/report.json",
+        "sha256": "3cc91ca4210215558501bc9289ffbc47343497e2badbdead79f2d5b124a0fa57"
+      },
+      "fresh_frames": 3,
+      "roundtrip_us": {
+        "min": 11644.43,
+        "mean": 11648.516666666666,
+        "max": 11650.58
+      },
+      "compute_us_mean": 8214.966666666667,
+      "fresh_updates_per_second_from_mean": 85.84784042603422,
+      "verified_output_words": 4287,
+      "vertices": [
+        476
+      ],
+      "response_bytes": [
+        2900
+      ],
+      "datagrams": [
+        3
+      ],
+      "compact_fallbacks": 0,
+      "backend_calls": [
+        0
+      ],
+      "source_sha256": {
+        "tests/vexriscv_udp_test_top.sv": "fa101553f3beaf593681a0d6374cee0651656e3adcc40b9d2c1bddced6680f0c",
+        "hardware/kc705_vexriscv/tiny3tpu_udp_peripheral.sv": "19a28928945a13c84b0438f66ebbe654d10b64e4a0c6af3aac970d1a5c15559a",
+        "hardware/kc705_vexriscv/vexriscv_tpu_soc.sv": "872ad0219d5e683bd5adedfc39841d89919e3c90b2a7b05cdc8bca7a5b875b4b",
+        "third_party/vexriscv/VexRiscv_Lite.v": "90e0b8f5912df2532d12bc766b110a632c1b85dd82b8aecd431d715c25f4cbbe",
+        "../synapse32/rtl/core_modules/uart.v": "1fcff923cce212e9ba99924edeedf2fafd47896c312431398fbc717e56b03828",
+        "hardware/math/tiny3tpu_cordic_exp.sv": "8823032751f6681060b1dd23f0ee8586c52f90e3e77340a5149d9b69e6a085cd",
+        "hardware/math/tiny3tpu_cordic_mmio.sv": "ee46c3aad6cb85925e9141ba8b8e61c7bf8a9e0a5042e170d4ef115272c570d4",
+        "multi-core/synapse32_tpu_peripheral.sv": "e8b3ebbef65fc57e0216060133d56d7a7047e3f43689c828e172e3c7fed227f8",
+        "multi-core/synapse32_axis_mailbox.sv": "21f7b27b0da09dcff9146066fc30e92828dfcab6dd262ae015e80d3049ce4b6b",
+        "multi-core/tiny3tpu_axis.sv": "7068dfcaddf4da84d4654d7a6d9574a0cb11922dd1833235539a730fa5164b1f",
+        "multi-core/tiny3tpu_axis_bridge.sv": "9ba6a1d30cf22358c7a8f75b2460b081917f73239834b30af76e989cff6934cb",
+        "multi-core/tiny3tpu_axi.sv": "6435ae488fe54a64f732cf0dc620a65b95c49f08ed31067b9797df1172c330f7",
+        "multi-core/top.v": "e8c010fa050fc64ff4d6e532a30416e99392ab2a6ae22350c9ea571bf889c767",
+        "multi-core/tpu_core_wrapper.sv": "8bacd7dbce1193879ee7d9f0ab0151cb203a2a827771c6d274b32a673e047d0a",
+        "multi-core/tiny3tpu_direct_peripheral.sv": "927ccbce7689fa41cbdf35a1960b23829cad2b8d9ce53aeda477d18d5eba7d67",
+        "systolic_array/rtl/NxN_systolic_array.v": "3d34466234240425d431a77e85ceb3551e537f885176d45d0d96e4e9599bd0c6",
+        "systolic_array/rtl/pe.v": "d102d469baa26a3ce5859aafb391b5cb0c91d7b48b651bbce1c93b12a65f1547",
+        "build-banana-capacity/O2-962-full-mac/liteeth/kc705_liteeth_udp.v": "292e889cde42a9222dbf66738d2dfcf901645233a525ff932a5c8692dc3c9f1f",
+        "build-banana-capacity/boundaries/grid-11x13x12/board/firmware.elf": "0312a0429460d628d213ff68e0cf2b42b58e12ced283cf4b2b7d4dcbe8a3adee",
+        "build-banana-capacity/boundaries/grid-11x13x12/board/firmware.hex": "10d38aa178d9b1cc469330d94780d51398e81c9444b859ee4e3f475d4378a9cc",
+        "build-banana-capacity/O2-962-full-mac/check.cpp": "98c789abc071f183cbf5460d75b3961016f6170f12e24165ccf82b5c989623fe",
+        "build-banana-capacity/O2-962-full-mac/requests.h": "e60db549e00a7c1740d37d2c93e86bf454a45aa1eec4d3fa5e46de97c140bed8",
+        "tests/test_udp_soc.py": "819e75345fd42ae51f9ad3b76c0d886ba49f6927017dfc7e303d3eee4e44768c",
+        "hardware/kc705_ethernet/generate.py": "5364a50a9c68a0880d269fc745e0105c7b9651c4a17b05d6eaf3b9cf1af251f1",
+        "build-banana-capacity/O2-962-full-mac/liteeth/liteeth-manifest.json": "1be89da08f9a583ccd725c0286f5d98759ad49d6538713091b5f527e89aaf685"
+      }
+    },
+    "Os590-full-mac": {
+      "passed": true,
+      "requests": 11,
+      "clock_hz": 100000000,
+      "with_mac": true,
+      "scope": "Production CPU/TPU firmware plus two actual LiteEth MAC/ARP/IPv4/UDP nodes over digital GMII; 100 MHz system and 125 MHz Ethernet clocks simulated at 1 ns resolution; excludes analog PHY, cable, OS and Python socket latency",
+      "firmware_sha256": "5a964dab37b4c262b971c0b276628a98fb13847b80579bbbe07d23832da66df1",
+      "mac_errors": {
+        "board_crc": 0,
+        "host_crc": 0,
+        "board_preamble": 0,
+        "host_preamble": 0
+      },
+      "report": {
+        "path": "build-banana-capacity/Os590-full-mac/report.json",
+        "sha256": "9ab842550fa17b3926046ff0906fe88324ea876cb02abe8aace2a97f8223ad67"
+      },
+      "fresh_frames": 3,
+      "roundtrip_us": {
+        "min": 14522.74,
+        "mean": 14527.546666666667,
+        "max": 14530.99
+      },
+      "compute_us_mean": 7764.863333333334,
+      "fresh_updates_per_second_from_mean": 68.83474704607156,
+      "verified_output_words": 5313,
+      "vertices": [
+        590
+      ],
+      "response_bytes": [
+        3584
+      ],
+      "datagrams": [
+        3
+      ],
+      "compact_fallbacks": 0,
+      "backend_calls": [
+        0
+      ],
+      "source_sha256": {
+        "tests/vexriscv_udp_test_top.sv": "fa101553f3beaf593681a0d6374cee0651656e3adcc40b9d2c1bddced6680f0c",
+        "hardware/kc705_vexriscv/tiny3tpu_udp_peripheral.sv": "19a28928945a13c84b0438f66ebbe654d10b64e4a0c6af3aac970d1a5c15559a",
+        "hardware/kc705_vexriscv/vexriscv_tpu_soc.sv": "872ad0219d5e683bd5adedfc39841d89919e3c90b2a7b05cdc8bca7a5b875b4b",
+        "third_party/vexriscv/VexRiscv_Lite.v": "90e0b8f5912df2532d12bc766b110a632c1b85dd82b8aecd431d715c25f4cbbe",
+        "../synapse32/rtl/core_modules/uart.v": "1fcff923cce212e9ba99924edeedf2fafd47896c312431398fbc717e56b03828",
+        "hardware/math/tiny3tpu_cordic_exp.sv": "8823032751f6681060b1dd23f0ee8586c52f90e3e77340a5149d9b69e6a085cd",
+        "hardware/math/tiny3tpu_cordic_mmio.sv": "ee46c3aad6cb85925e9141ba8b8e61c7bf8a9e0a5042e170d4ef115272c570d4",
+        "multi-core/synapse32_tpu_peripheral.sv": "e8b3ebbef65fc57e0216060133d56d7a7047e3f43689c828e172e3c7fed227f8",
+        "multi-core/synapse32_axis_mailbox.sv": "21f7b27b0da09dcff9146066fc30e92828dfcab6dd262ae015e80d3049ce4b6b",
+        "multi-core/tiny3tpu_axis.sv": "7068dfcaddf4da84d4654d7a6d9574a0cb11922dd1833235539a730fa5164b1f",
+        "multi-core/tiny3tpu_axis_bridge.sv": "9ba6a1d30cf22358c7a8f75b2460b081917f73239834b30af76e989cff6934cb",
+        "multi-core/tiny3tpu_axi.sv": "6435ae488fe54a64f732cf0dc620a65b95c49f08ed31067b9797df1172c330f7",
+        "multi-core/top.v": "e8c010fa050fc64ff4d6e532a30416e99392ab2a6ae22350c9ea571bf889c767",
+        "multi-core/tpu_core_wrapper.sv": "8bacd7dbce1193879ee7d9f0ab0151cb203a2a827771c6d274b32a673e047d0a",
+        "multi-core/tiny3tpu_direct_peripheral.sv": "927ccbce7689fa41cbdf35a1960b23829cad2b8d9ce53aeda477d18d5eba7d67",
+        "systolic_array/rtl/NxN_systolic_array.v": "3d34466234240425d431a77e85ceb3551e537f885176d45d0d96e4e9599bd0c6",
+        "systolic_array/rtl/pe.v": "d102d469baa26a3ce5859aafb391b5cb0c91d7b48b651bbce1c93b12a65f1547",
+        "build-banana-capacity/Os590-full-mac/liteeth/kc705_liteeth_udp.v": "9bb6647f8a4462f155eb506d3259ab46b1fb977ec417bef66d3b258756624c80",
+        "build-banana-capacity/Os-boundaries/grid-12x16x13/board/firmware.elf": "5a964dab37b4c262b971c0b276628a98fb13847b80579bbbe07d23832da66df1",
+        "build-banana-capacity/Os-boundaries/grid-12x16x13/board/firmware.hex": "961dc27830ae49808987c5edc52c00eada85376853df412f360b73e550459bb1",
+        "build-banana-capacity/Os590-full-mac/check.cpp": "98c789abc071f183cbf5460d75b3961016f6170f12e24165ccf82b5c989623fe",
+        "build-banana-capacity/Os590-full-mac/requests.h": "e60db549e00a7c1740d37d2c93e86bf454a45aa1eec4d3fa5e46de97c140bed8",
+        "tests/test_udp_soc.py": "819e75345fd42ae51f9ad3b76c0d886ba49f6927017dfc7e303d3eee4e44768c",
+        "hardware/kc705_ethernet/generate.py": "5364a50a9c68a0880d269fc745e0105c7b9651c4a17b05d6eaf3b9cf1af251f1",
+        "build-banana-capacity/Os590-full-mac/liteeth/liteeth-manifest.json": "8b7e01780f0949d72931f0eec6dbad7e7e6f3efc95973fa3fe982b0140e60f6c"
+      }
+    }
+  },
+  "full_rotation": {
+    "passed": true,
+    "requests": 225,
+    "clock_hz": 100000000,
+    "with_mac": false,
+    "scope": "Production CPU/TPU/packet-buffer RTL at the UDP stream boundary; excludes MAC, PHY, ARP and host latency",
+    "firmware_sha256": "5a964dab37b4c262b971c0b276628a98fb13847b80579bbbe07d23832da66df1",
+    "mac_errors": null,
+    "report": {
+      "path": "build-banana-capacity/Os590-rotation/report.json",
+      "sha256": "105fcb800ab59471fa583ec367c3eef0d4b78fcf00c3e9e3fd8d4d38771a3e14"
+    },
+    "fresh_frames": 110,
+    "roundtrip_us": {
+      "min": 14522.09,
+      "mean": 14723.257818181819,
+      "max": 14838.92
+    },
+    "compute_us_mean": 7938.062818181818,
+    "fresh_updates_per_second_from_mean": 67.91975066585437,
+    "verified_output_words": 194810,
+    "vertices": [
+      590
+    ],
+    "response_bytes": [
+      3584
+    ],
+    "datagrams": [
+      3
+    ],
+    "compact_fallbacks": 0,
+    "backend_calls": [
+      0
+    ],
+    "source_sha256": {
+      "tests/vexriscv_udp_test_top.sv": "fa101553f3beaf593681a0d6374cee0651656e3adcc40b9d2c1bddced6680f0c",
+      "hardware/kc705_vexriscv/tiny3tpu_udp_peripheral.sv": "19a28928945a13c84b0438f66ebbe654d10b64e4a0c6af3aac970d1a5c15559a",
+      "hardware/kc705_vexriscv/vexriscv_tpu_soc.sv": "872ad0219d5e683bd5adedfc39841d89919e3c90b2a7b05cdc8bca7a5b875b4b",
+      "third_party/vexriscv/VexRiscv_Lite.v": "90e0b8f5912df2532d12bc766b110a632c1b85dd82b8aecd431d715c25f4cbbe",
+      "../synapse32/rtl/core_modules/uart.v": "1fcff923cce212e9ba99924edeedf2fafd47896c312431398fbc717e56b03828",
+      "hardware/math/tiny3tpu_cordic_exp.sv": "8823032751f6681060b1dd23f0ee8586c52f90e3e77340a5149d9b69e6a085cd",
+      "hardware/math/tiny3tpu_cordic_mmio.sv": "ee46c3aad6cb85925e9141ba8b8e61c7bf8a9e0a5042e170d4ef115272c570d4",
+      "multi-core/synapse32_tpu_peripheral.sv": "e8b3ebbef65fc57e0216060133d56d7a7047e3f43689c828e172e3c7fed227f8",
+      "multi-core/synapse32_axis_mailbox.sv": "21f7b27b0da09dcff9146066fc30e92828dfcab6dd262ae015e80d3049ce4b6b",
+      "multi-core/tiny3tpu_axis.sv": "7068dfcaddf4da84d4654d7a6d9574a0cb11922dd1833235539a730fa5164b1f",
+      "multi-core/tiny3tpu_axis_bridge.sv": "9ba6a1d30cf22358c7a8f75b2460b081917f73239834b30af76e989cff6934cb",
+      "multi-core/tiny3tpu_axi.sv": "6435ae488fe54a64f732cf0dc620a65b95c49f08ed31067b9797df1172c330f7",
+      "multi-core/top.v": "e8c010fa050fc64ff4d6e532a30416e99392ab2a6ae22350c9ea571bf889c767",
+      "multi-core/tpu_core_wrapper.sv": "8bacd7dbce1193879ee7d9f0ab0151cb203a2a827771c6d274b32a673e047d0a",
+      "multi-core/tiny3tpu_direct_peripheral.sv": "927ccbce7689fa41cbdf35a1960b23829cad2b8d9ce53aeda477d18d5eba7d67",
+      "systolic_array/rtl/NxN_systolic_array.v": "3d34466234240425d431a77e85ceb3551e537f885176d45d0d96e4e9599bd0c6",
+      "systolic_array/rtl/pe.v": "d102d469baa26a3ce5859aafb391b5cb0c91d7b48b651bbce1c93b12a65f1547",
+      "build-banana-capacity/Os-boundaries/grid-12x16x13/board/firmware.elf": "5a964dab37b4c262b971c0b276628a98fb13847b80579bbbe07d23832da66df1",
+      "build-banana-capacity/Os-boundaries/grid-12x16x13/board/firmware.hex": "961dc27830ae49808987c5edc52c00eada85376853df412f360b73e550459bb1",
+      "build-banana-capacity/Os590-rotation/check.cpp": "53e55645fc521e458a79a714214195a75693d6d9e09f40f87844627c32906069",
+      "build-banana-capacity/Os590-rotation/requests.h": "61e8507fb5e984d9ab1b91695b56bcf1551f076516490af60c74aa7514781ac6",
+      "tests/test_udp_soc.py": "819e75345fd42ae51f9ad3b76c0d886ba49f6927017dfc7e303d3eee4e44768c"
+    },
+    "angle_wraps": 1,
+    "first_angle": 0.05999999865889549,
+    "last_angle": 0.3168094754219055,
+    "independent_jax": {
+      "passed": true,
+      "scope": "Every fresh RTL reply decoded and compared to independent JAX execution; JAX angle advances from its own preceding output. Original exporter tolerance rtol=atol=5e-6.",
+      "frames": 110,
+      "bit_exact_frames": 110,
+      "angle_wraps": 1,
+      "max_abs_error": 0.0,
+      "sha256": {
+        "build-banana-capacity/Os-boundaries/grid-12x16x13/mesh.npz": "d04a9385808ceb768423eec42debee4e8f76cf5a9a64948084728685eaa1d080",
+        "build-banana-capacity/Os-boundaries/grid-12x16x13/mesh.json": "c3b083c2eb36a069394cdf28f0fd86a02abe6c221ab3625f6a27e757a247e278",
+        "build-banana-capacity/Os590-rotation/report.json": "105fcb800ab59471fa583ec367c3eef0d4b78fcf00c3e9e3fd8d4d38771a3e14",
+        "/Users/siriboi/github/tiny3tpu/tests/check_banana_capacity_jax.py": "44ae391d1da03285212227525367d49651397ed8797d46992374123b585aed2d",
+        "/Users/siriboi/github/tiny3tpu/sidequests/showcase/prepare.py": "86dd1331ce7882373801f48c8e6b123e93f24c077ce4ad5c0c02363c8f36f806"
+      },
+      "report": {
+        "path": "build-banana-capacity/Os590-rotation/jax-comparison.json",
+        "sha256": "68c3ec6ad4040a9006c7a4dd63a8db4238a35ee35119cbf22a3d646fc7a88240"
+      }
+    }
+  },
+  "host_renderer": {
+    "loaded-boundaries": {
+      "schema_version": 1,
+      "scope": "Local Apple M4 host render+PNG+base64 wall time only. Unmodified production banana_image; synthetic quantized camera fixtures. Excludes FPGA/RTL work, I/O, validation, JSON/file/HTTP/browser work.",
+      "load_note": "Concurrent FPGA RTL simulations and up to four compiler workers; background load can inflate tails",
+      "environment": {
+        "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.3.34.2)]",
+        "pillow": "12.3.0",
+        "numpy": "2.5.3",
+        "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+        "cpu": "Apple M4",
+        "loadavg_start": [
+          7.6513671875,
+          4.94580078125,
+          4.216796875
+        ],
+        "loadavg_end": [
+          8.03759765625,
+          5.11279296875,
+          4.2841796875
+        ]
+      },
+      "method": {
+        "samples_per_mesh": 240,
+        "warmups_per_mesh": 6,
+        "image_size": [
+          512,
+          512
+        ],
+        "poses": "one full rotation, interleaving three cases",
+        "timer": "time.perf_counter_ns",
+        "png_validation": "all images decoded outside timing; RGB 512x512",
+        "gc": "unchanged"
+      },
+      "cases": [
+        {
+          "name": "grid-8x8x8",
+          "grid": [
+            8,
+            8,
+            8
+          ],
+          "vertices": 204,
+          "triangles": 407,
+          "render_png_base64_ms": {
+            "min": 7.478084,
+            "p50": 7.968979,
+            "p95": 11.567337499999974,
+            "max": 46.571583
+          },
+          "png_bytes": {
+            "min": 5380.0,
+            "p50": 7372.5,
+            "p95": 8150.2,
+            "max": 8532.0
+          },
+          "mesh_sha256": "c7a29c0ee4cb9fc7e6b00904bbcad5d20444c35897d907ca4e27fb2f046d7233"
+        },
+        {
+          "name": "grid-10x9x11",
+          "grid": [
+            10,
+            9,
+            11
+          ],
+          "vertices": 338,
+          "triangles": 675,
+          "render_png_base64_ms": {
+            "min": 11.598333,
+            "p50": 12.294687499999998,
+            "p95": 18.067585399999967,
+            "max": 71.7205
+          },
+          "png_bytes": {
+            "min": 6107.0,
+            "p50": 8509.5,
+            "p95": 9235.9,
+            "max": 9537.0
+          },
+          "mesh_sha256": "9c63d1a79a07579e37231c844955a9eb51957e39634889ee2faab8d12ceb3497"
+        },
+        {
+          "name": "grid-11x13x12",
+          "grid": [
+            11,
+            13,
+            12
+          ],
+          "vertices": 476,
+          "triangles": 962,
+          "render_png_base64_ms": {
+            "min": 15.974333,
+            "p50": 16.850853999999998,
+            "p95": 24.004090199999983,
+            "max": 83.427875
+          },
+          "png_bytes": {
+            "min": 6966.0,
+            "p50": 9186.0,
+            "p95": 10138.149999999998,
+            "max": 10627.0
+          },
+          "mesh_sha256": "ac377f977078fbca31cb7960ad004c21abf92c9fe4eb1da56e3b983d478bb35c"
+        }
+      ],
+      "source_sha256": {
+        "build-banana-capacity/source/banana.obj": "f0f8267c7f7cfc64430cb5f8ee6dfa9b1ec7cac6109a39ad96e89f7a57433098",
+        "sidequests/showcase/live.py": "4dfa25ef000bf8c3ea3d56fd07603b4dd9c1adbda277f519b581d635d91b840c",
+        "build-banana-capacity/host-render/bench_boundaries.py": "bd5841ac8afa5fa162ba7dfb4ea706c7f2ca7a4c09e3e9bc443b799b2ce55e69",
+        "build-banana-capacity/host-render/bench_render.py": "50606f6fe807bdf91a26a1c910a5502d895b29445e4ec583550270dc59e2e559"
+      },
+      "report": {
+        "path": "build-banana-capacity/host-render/loaded-boundaries.json",
+        "sha256": "36071beb8d54296f500acde56bdef4aed977d273e90423fe578329b3395fe060"
+      }
+    },
+    "repeat-boundaries": {
+      "schema_version": 1,
+      "scope": "Local Apple M4 host render+PNG+base64 wall time only. Unmodified production banana_image; synthetic quantized camera fixtures. Excludes FPGA/RTL work, I/O, validation, JSON/file/HTTP/browser work.",
+      "load_note": "Repeat after compiler/simulator workers no longer appeared among active CPU consumers; desktop and Spotlight background load remains; not an isolated idle machine",
+      "environment": {
+        "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.3.34.2)]",
+        "pillow": "12.3.0",
+        "numpy": "2.5.3",
+        "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+        "cpu": "Apple M4",
+        "loadavg_start": [
+          6.810546875,
+          5.0419921875,
+          4.28076171875
+        ],
+        "loadavg_end": [
+          6.6416015625,
+          5.0888671875,
+          4.31005859375
+        ]
+      },
+      "method": {
+        "samples_per_mesh": 240,
+        "warmups_per_mesh": 6,
+        "image_size": [
+          512,
+          512
+        ],
+        "poses": "one full rotation, interleaving three cases",
+        "timer": "time.perf_counter_ns",
+        "png_validation": "all images decoded outside timing; RGB 512x512",
+        "gc": "unchanged"
+      },
+      "cases": [
+        {
+          "name": "grid-8x8x8",
+          "grid": [
+            8,
+            8,
+            8
+          ],
+          "vertices": 204,
+          "triangles": 407,
+          "render_png_base64_ms": {
+            "min": 7.405042,
+            "p50": 7.8850415,
+            "p95": 13.537808649999997,
+            "max": 295.467625
+          },
+          "png_bytes": {
+            "min": 5380.0,
+            "p50": 7372.5,
+            "p95": 8150.2,
+            "max": 8532.0
+          },
+          "mesh_sha256": "c7a29c0ee4cb9fc7e6b00904bbcad5d20444c35897d907ca4e27fb2f046d7233"
+        },
+        {
+          "name": "grid-10x9x11",
+          "grid": [
+            10,
+            9,
+            11
+          ],
+          "vertices": 338,
+          "triangles": 675,
+          "render_png_base64_ms": {
+            "min": 11.524458,
+            "p50": 12.091520500000001,
+            "p95": 23.05797354999997,
+            "max": 121.816083
+          },
+          "png_bytes": {
+            "min": 6107.0,
+            "p50": 8509.5,
+            "p95": 9235.9,
+            "max": 9537.0
+          },
+          "mesh_sha256": "9c63d1a79a07579e37231c844955a9eb51957e39634889ee2faab8d12ceb3497"
+        },
+        {
+          "name": "grid-11x13x12",
+          "grid": [
+            11,
+            13,
+            12
+          ],
+          "vertices": 476,
+          "triangles": 962,
+          "render_png_base64_ms": {
+            "min": 15.858458,
+            "p50": 16.6246255,
+            "p95": 31.872760449999983,
+            "max": 124.999208
+          },
+          "png_bytes": {
+            "min": 6966.0,
+            "p50": 9186.0,
+            "p95": 10138.149999999998,
+            "max": 10627.0
+          },
+          "mesh_sha256": "ac377f977078fbca31cb7960ad004c21abf92c9fe4eb1da56e3b983d478bb35c"
+        }
+      ],
+      "source_sha256": {
+        "build-banana-capacity/source/banana.obj": "f0f8267c7f7cfc64430cb5f8ee6dfa9b1ec7cac6109a39ad96e89f7a57433098",
+        "sidequests/showcase/live.py": "4dfa25ef000bf8c3ea3d56fd07603b4dd9c1adbda277f519b581d635d91b840c",
+        "build-banana-capacity/host-render/bench_boundaries.py": "bd5841ac8afa5fa162ba7dfb4ea706c7f2ca7a4c09e3e9bc443b799b2ce55e69",
+        "build-banana-capacity/host-render/bench_render.py": "50606f6fe807bdf91a26a1c910a5502d895b29445e4ec583550270dc59e2e559"
+      },
+      "report": {
+        "path": "build-banana-capacity/host-render/repeat-boundaries.json",
+        "sha256": "2e4b6ddb3247c4376d847a5191113cd50a1f8b827aeb24629fdad38e331e0542"
+      }
+    },
+    "max1181": {
+      "schema_version": 1,
+      "scope": "Measured local Apple M4 host render+PNG+base64 wall time only, calling the unmodified production banana_image. Excludes input preparation, FPGA/RTL compute, I/O, protocol validation, JSON/file/HTTP/browser work.",
+      "input_scope": "Exact built Os-boundaries/grid-12x16x13/mesh.npz and mesh.json scale. Synthetic quantized camera fixtures over one full rotation, using the same preparation as prior host benchmarks; not captured FPGA or RTL inference outputs.",
+      "load_note": "Other RTL simulation jobs and desktop background work running concurrently; loaded-host timings, not an isolated idle machine.",
+      "environment": {
+        "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.3.34.2)]",
+        "pillow": "12.3.0",
+        "numpy": "2.5.3",
+        "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+        "cpu": "Apple M4",
+        "loadavg_start": [
+          5.5341796875,
+          5.36328125,
+          5.265625
+        ],
+        "loadavg_end": [
+          5.5712890625,
+          5.37353515625,
+          5.26953125
+        ]
+      },
+      "method": {
+        "samples_per_mesh": 240,
+        "warmups_per_mesh": 6,
+        "image_size": [
+          512,
+          512
+        ],
+        "poses": "one evenly spaced full rotation, this mesh only",
+        "timer": "time.perf_counter_ns",
+        "gc": "unchanged",
+        "png_validation": "all images decoded outside timing; RGB 512x512"
+      },
+      "mesh": {
+        "grid": "12x16x13",
+        "vertices": 590,
+        "triangles": 1181,
+        "quantized_zero_area_triangles": 0,
+        "raw_response_bytes": 7112,
+        "compact_response_bytes": 3584,
+        "raw_fits_protocol": false,
+        "compact_fits_protocol": true,
+        "reply_buffer_bytes": 4096,
+        "optimization": "Os",
+        "mesh_scale": 192.2094812346983
+      },
+      "cases": [
+        {
+          "name": "grid-12x16x13-Os",
+          "grid": [
+            12,
+            16,
+            13
+          ],
+          "vertices": 590,
+          "triangles": 1181,
+          "quantized_zero_area_triangles": 0,
+          "render_png_base64_ms": {
+            "min": 19.470542,
+            "p50": 20.008937500000002,
+            "p95": 20.3325417,
+            "max": 20.629416
+          },
+          "png_bytes": {
+            "min": 7290.0,
+            "p50": 9645.5,
+            "p95": 10707.25,
+            "max": 11174.0
+          },
+          "mesh_sha256": "d04a9385808ceb768423eec42debee4e8f76cf5a9a64948084728685eaa1d080"
+        }
+      ],
+      "source_sha256": {
+        "build-banana-capacity/Os-boundaries/grid-12x16x13/mesh.npz": "d04a9385808ceb768423eec42debee4e8f76cf5a9a64948084728685eaa1d080",
+        "build-banana-capacity/Os-boundaries/grid-12x16x13/mesh.json": "c3b083c2eb36a069394cdf28f0fd86a02abe6c221ab3625f6a27e757a247e278",
+        "sidequests/showcase/live.py": "4dfa25ef000bf8c3ea3d56fd07603b4dd9c1adbda277f519b581d635d91b840c",
+        "build-banana-capacity/host-render/bench_max1181.py": "423f586180af532d22d450a70e7a41ad4ead85a9dce31e17de53774a735f5de0",
+        "build-banana-capacity/host-render/bench_render.py": "50606f6fe807bdf91a26a1c910a5502d895b29445e4ec583550270dc59e2e559"
+      },
+      "report": {
+        "path": "build-banana-capacity/host-render/max1181.json",
+        "sha256": "0cbf79ea82171279435ce52605c9838528cb12a5e7b38692414e9b45b7cef0be"
+      }
+    }
+  },
+  "baseline_regression": {
+    "default_udp": {
+      "path": "build-banana-capacity/default-regression/report.json",
+      "sha256": "5cd0d7fb0340ff363e0f913f3ff6171a18ae6c268f1062361786a3e8f8e528c2"
+    },
+    "original_firmware_hex": {
+      "path": "build-ethernet/showcase/firmware.hex",
+      "sha256": "8328390f1d7567426d1b3b7e52e7cd4baf04ff25ab5df007e7e4ac6615aadb9c"
+    },
+    "rebuilt_baseline_hex": {
+      "path": "build-banana-capacity/sweep/grid-8/board/firmware.hex",
+      "sha256": "8328390f1d7567426d1b3b7e52e7cd4baf04ff25ab5df007e7e4ac6615aadb9c"
+    },
+    "baseline_hex_identical": true
+  },
+  "source_sha256": {
+    "tests/profile_banana_capacity.py": "2dba51048f0f180a45da99191ebe33ce90506f1860105fb0d5fbb7b316d46eb0",
+    "tests/check_banana_capacity_jax.py": "44ae391d1da03285212227525367d49651397ed8797d46992374123b585aed2d",
+    "tests/test_udp_soc.py": "819e75345fd42ae51f9ad3b76c0d886ba49f6927017dfc7e303d3eee4e44768c",
+    "tests/vexriscv_udp_test_top.sv": "fa101553f3beaf593681a0d6374cee0651656e3adcc40b9d2c1bddced6680f0c",
+    "sidequests/showcase/prepare.py": "86dd1331ce7882373801f48c8e6b123e93f24c077ce4ad5c0c02363c8f36f806",
+    "sidequests/showcase/firmware.c": "1e796078c899fc606d45f81a1df97be81bfaf9924266600151692b44ae9151d8",
+    "sidequests/showcase/live.py": "4dfa25ef000bf8c3ea3d56fd07603b4dd9c1adbda277f519b581d635d91b840c",
+    "sidequests/showcase/protocol.py": "fd78ae3545e7e6e7091d3fb70700cac39803d962675fda23471b00897f1b26e1",
+    "sidequests/banana/render.py": "e0f75319242502993ce6c13679a675d7c14ed3fc66a0db69afd552ce7f46426f",
+    "include/tiny3tpu_demo_transport.h": "67ad899a513a043dcc5c9ddbbb15275e8467c373329a0a11cc398ef4ed47133b",
+    "hardware/synapse32/bringup.ld": "1bbfa48ad6dae1621df5de481c6191832b72f08efc6dea7a91190f5c2178c6cf"
+  },
+  "caveats": [
+    "Largest tested family/configuration, not the absolute maximum of the FPGA.",
+    "The highest-capacity image has only 4 bytes spare beyond its reserved 4 KiB stack; peak stack usage was not measured.",
+    "Meshes above 338 vertices were tested with compact replies; the experiment does not add general raw support for them.",
+    "All four application modes are retained; larger-image runtime sweeps exercise banana and transport specifically.",
+    "The existing viewer still fixes mesh/scale and caps replies at 613 words; it was not switched to any experimental mesh.",
+    "Rates are reciprocal mean fresh-request latency, not measured display throughput; host/physical-link costs are separate.",
+    "Automatic placement selects CPU banana computation with zero TPU backend calls.",
+    "More triangles retain INT8 geometry precision; some denser reduced meshes contain quantization-degenerate faces. The selected maximum has none."
+  ]
+}

@@ -6,7 +6,7 @@ module tb_tiny3tpu_axis_bridge;
     reg in_last=0, in_valid=0; wire in_ready;
     wire [31:0] out_data; wire [3:0] out_keep;
     wire out_last, out_valid; reg out_ready=0;
-    wire [7:0] awaddr;
+    wire [9:0] awaddr;
     wire [2:0] awprot;
     wire awvalid;
     reg awready;
@@ -17,7 +17,7 @@ module tb_tiny3tpu_axis_bridge;
     reg [1:0] bresp;
     reg bvalid;
     wire bready;
-    wire [7:0] araddr;
+    wire [9:0] araddr;
     wire [2:0] arprot;
     wire arvalid;
     reg arready;
@@ -58,7 +58,7 @@ module tb_tiny3tpu_axis_bridge;
     reg [31:0] saved_out, saved_w;
     reg saved_last;
     reg [3:0] saved_strb;
-    reg [7:0] saved_aw, saved_ar;
+    reg [9:0] saved_aw, saved_ar;
     always @(posedge clk) begin
         if (!rst_n) begin
             prev_out_stall<=0; prev_aw_stall<=0; prev_w_stall<=0; prev_ar_stall<=0;
@@ -102,7 +102,7 @@ module tb_tiny3tpu_axis_bridge;
 
     // Slave with no added address/data delay. Responses are asserted on the
     // first falling edge after the request and held until their handshake.
-    task fast_write(input [7:0] address, input [31:0] data, input [3:0] strb);
+    task fast_write(input [9:0] address, input [31:0] data, input [3:0] strb);
         begin
             @(negedge clk); awready=1; wready=1;
             @(posedge clk); while (!(awvalid && wvalid)) @(posedge clk);
@@ -113,7 +113,7 @@ module tb_tiny3tpu_axis_bridge;
         end
     endtask
 
-    task fast_read(input [7:0] address, input [31:0] data);
+    task fast_read(input [9:0] address, input [31:0] data);
         begin
             @(negedge clk); arready=1;
             @(posedge clk); while (!arvalid) @(posedge clk);
@@ -321,7 +321,7 @@ module tb_tiny3tpu_axis_bridge;
         // Short, reserved-bit, sparse-keep, and overlong malformed packets.
         send_beat(32'hf100,15,1); receive_response(2,0);
         send_beat(32'h10000,15,0); send_beat(0,15,1); receive_response(2,0);
-        send_beat(32'h200,15,0); send_beat(0,15,1); receive_response(2,0);
+        send_beat(32'h800,15,0); send_beat(0,15,1); receive_response(2,0);
         send_beat(0,7,0); send_beat(0,15,1); receive_response(2,0);
         send_beat(0,15,0); send_beat(0,7,1); receive_response(2,0);
         send_beat(0,15,0); send_beat(0,15,0); send_beat(0,15,1); receive_response(2,0);

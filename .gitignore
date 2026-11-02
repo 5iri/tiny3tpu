@@ -158,3 +158,26 @@
 /sidequests/physics/README.md
 /sidequests/showcase/CLASSIFIER.md
 /sidequests/showcase/README.md
+# Firmware build entry points and shared reproducibility metadata.
+!sidequests/showcase/build_support.py
+!sidequests/showcase/build_classifier.py
+!sidequests/cloth/build_compiled_board.py
+!hardware/kc705_hdmi/build.py
+
+# Local Synapse32 experiments; retain tools required by builds and tests.
+/tools/synapse32_*.py
+!/tools/synapse32_analyze_timing_graph.py
+!/tools/synapse32_apply_bram_timing.py
+!/tools/synapse32_audit_timing_coverage.py
+!/tools/synapse32_check_soc_timing.py
+!/tools/synapse32_cpu_preg_dsp_model.py
+!/tools/synapse32_kc705_grade2_limits.py
+!/tools/synapse32_lutram_timing_model.py
+!/tools/synapse32_missing_cell_arcs.py
+!/tools/synapse32_mixed_primitive_guidance_normalize.py
+!/tools/synapse32_offset_structure_audit_v3.py
+!/tools/synapse32_primitive_guidance_normalize.py
+!/tools/synapse32_registered_dsp_model.py
+!/tools/synapse32_system_profile.py
+!/tools/synapse32_timing_report.py
+!/tools/synapse32_workload_report.py

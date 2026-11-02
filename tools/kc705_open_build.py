@@ -12,6 +12,7 @@ import subprocess
 import sys
 import re
 import json
+import ipaddress
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -55,6 +56,15 @@ def main():
     parser.add_argument("--firmware-include", type=Path,
                         help="Additional include directory for custom no-DDR firmware")
     parser.add_argument("--yosys", default=str(Path.home() / ".apio/packages/oss-cad-suite/bin/yosys"))
+    parser.add_argument("--gemm-policy", choices=("auto", "cpu", "tpu"),
+                        help="Validate the policy of precompiled --firmware-include headers; this stage does not compile StableHLO")
+    parser.add_argument("--optimization", choices=("Os", "O2", "O3"), default="O2",
+                        help="Firmware optimization; linker reserves at least 4 KiB stack")
+    parser.add_argument("--tpu-transport", choices=("mailbox", "direct"), default="mailbox",
+                        help="Direct mode requires matching freshly synthesized no-DDR VexRiscv hardware")
+    parser.add_argument("--ethernet", action="store_true", help="Hardware Gigabit GMII/ARP/IPv4/UDP with packet buffers; requires VexRiscv --no-ddr")
+    parser.add_argument("--ethernet-ip", default="192.168.1.50", help="Static board IPv4 address")
+    parser.add_argument("--ethernet-mac", default="02:00:00:00:70:51", help="Unicast board MAC address")
     parser.add_argument("--gcc", default="riscv64-unknown-elf-gcc")
     parser.add_argument("--objcopy", default="riscv64-unknown-elf-objcopy")
     parser.add_argument("--nextpnr", help="Router executable; VexRiscv defaults to the locally qualified DSP timing build")
@@ -62,6 +72,7 @@ def main():
     parser.add_argument("--seed", type=int, default=None,
                         help="nextpnr placer/router seed; omit for the router default")
     parser.add_argument("--cordic", action="store_true", help="Enable the generic exponential CORDIC in the VexRiscv no-DDR image")
+    parser.add_argument("--ram-kib", type=int, choices=(64, 128, 256, 512), default=64, help="On-chip boot RAM size in KiB for VexRiscv no-DDR builds")
     parser.add_argument("--lut6", action="store_true",
                         help="Limit synthesis to LUT6; avoid long chains through dedicated LUT7/8 muxes")
     parser.add_argument("--ddr-stress", action="store_true",
@@ -95,11 +106,43 @@ def main():
                         help="Experimental board-RTL overlay (named file replacement, "
                              "upstream stays unchanged); default build uses production sources")
     args = parser.parse_args()
+    if args.ethernet and (args.cpu != 'vexriscv-lite' or not args.no_ddr or not args.firmware_source):
+        parser.error('--ethernet requires --cpu vexriscv-lite --no-ddr and Ethernet-aware --firmware-source')
+    try:
+        ethernet_ip = int(ipaddress.IPv4Address(args.ethernet_ip))
+        octets = args.ethernet_mac.split(':')
+        if len(octets) != 6 or any(len(x) != 2 for x in octets):raise ValueError('MAC must contain six two-digit octets')
+        ethernet_mac = int(''.join(octets), 16)
+        if ethernet_mac == 0 or int(octets[0],16)&1:raise ValueError('MAC must be nonzero unicast')
+    except ValueError as error:
+        parser.error(str(error))
     if args.cordic and (args.cpu != "vexriscv-lite" or not args.no_ddr):
         parser.error("--cordic currently requires --cpu vexriscv-lite --no-ddr")
+    if args.ram_kib != 64 and (args.cpu != "vexriscv-lite" or not args.no_ddr):
+        parser.error("--ram-kib > 64 requires --cpu vexriscv-lite --no-ddr")
     if (args.firmware_source or args.firmware_include) and not args.no_ddr:
         parser.error("custom firmware requires --no-ddr")
+    header_policies = set()
+    if args.firmware_include:
+        for report_path in args.firmware_include.glob("*report.json"):
+            report = json.loads(report_path.read_text())
+            if "gemm_policy" in report:
+                header_policies.add(report["gemm_policy"])
+        manifest_path = args.firmware_include / "build-manifest.json"
+        if not manifest_path.exists():
+            manifest_path = args.firmware_include / "application-manifest.json"
+        if manifest_path.exists():
+            header_manifest = json.loads(manifest_path.read_text())
+            declared_transport = header_manifest.get("tpu_transport", "mailbox")
+            if declared_transport != args.tpu_transport:
+                parser.error("--tpu-transport disagrees with the generated firmware header manifest")
+            if header_manifest.get('io_transport','uart') != ('udp' if args.ethernet else 'uart'):
+                parser.error('--ethernet disagrees with the generated firmware I/O transport')
+    if args.gemm_policy is not None and header_policies != {args.gemm_policy}:
+        parser.error("--gemm-policy must match generated header reports; first rebuild headers with that policy")
     vex = args.cpu == "vexriscv-lite"
+    if args.tpu_transport == "direct" and not (vex and args.no_ddr and args.firmware_source):
+        parser.error("--tpu-transport direct requires VexRiscv --no-ddr and direct-aware --firmware-source")
     if args.ddr_stress and (args.no_ddr or not vex):
         parser.error("--ddr-stress requires the VexRiscv DDR build")
     if args.ddr_cdc and (args.no_ddr or not vex):
@@ -175,6 +218,9 @@ def main():
         "\n".join("{}=={}".format(k, v) for k, v in versions.items()) + "\n")
     if versions["litedram"] != "2024.12" or versions["litex"] != "2024.12":
         parser.error("This build is qualified only for LiteDRAM/LiteX 2024.12")
+    if args.ethernet:
+        run([sys.executable, ROOT/'hardware/kc705_ethernet/generate.py',
+             '--out', build/'ethernet'], 'generate-ethernet')
     if not args.no_ddr:
         dram_config = ROOT / "hardware" / ("kc705_vexriscv" if vex else "synapse32") / "kc705_litedram.yml"
         generator = [ROOT / "tools/kc705_litedram_gen.py"] if vex else ["-m", "litedram.gen"]
@@ -250,14 +296,21 @@ def main():
     if not args.no_ddr and args.ddr_io == "dci":
         lines += ["set_property DCI_CASCADE {32 34} [get_iobanks 33]"]
     (build / "kc705.xdc").write_text("\n".join(lines) + "\n")
+    if args.ethernet:
+        run([sys.executable, ROOT/'hardware/kc705_ethernet/constraints.py',
+             '--out', build/'ethernet'], 'ethernet-constraints')
+        with (build/'kc705.xdc').open('a') as xdc:
+            xdc.write((build/'ethernet/gmii-pins.xdc').read_text())
     if args.stage == "generate":
         return
 
     import litex
     software = Path(litex.__file__).resolve().parent / "soc/software"
     firmware = ROOT / "hardware/synapse32"
-    cflags = [args.gcc, "-march=rv32im_zicsr_zifencei" if vex else "-march=rv32i_zicsr_zifencei", "-mabi=ilp32", "-Os",
-              "-ffreestanding", "-fno-builtin", "-ffunction-sections", "-fdata-sections",
+    cflags = [args.gcc, "-march=rv32im_zicsr_zifencei" if vex else "-march=rv32i_zicsr_zifencei", "-mabi=ilp32", "-" + args.optimization,
+              "-DTINY3TPU_DIRECT_TPU=" + str(int(args.tpu_transport == "direct")),
+              "-DTINY3TPU_ETHERNET=" + str(int(args.ethernet)),
+              "-ffp-contract=off", "-ffreestanding", "-fno-builtin", "-ffunction-sections", "-fdata-sections",
               "-nostdlib", "-msmall-data-limit=0", "-Wall", "-Wextra"]
     if args.ddr_stress:
         cflags += ["-DTINY3TPU_DDR_STRESS", ROOT / "hardware/kc705_vexriscv/ddr_stress.c"]
@@ -272,7 +325,8 @@ def main():
         # Match the board PLL: Synapse32 40 MHz, VexRiscv 100 MHz.
         cflags += ["-DCONFIG_CLOCK_FREQUENCY={}UL".format(100000000 if vex else 40000000),
                    "-I" + str(ROOT / "include"), "-I" + str(firmware),
-                   "-Wl,--no-relax,--gc-sections", "-T" + str(firmware / "bringup.ld"),
+                   f"-Wl,--no-relax,--gc-sections,--defsym=_ram_size={args.ram_kib * 1024}",
+                   "-T" + str(firmware / "bringup.ld"),
                    firmware / "start.S", (args.firmware_source.resolve() if args.firmware_source else firmware / "noddr_selftest.c"),
                    ROOT / "src/axis_mailbox.c", ROOT / "src/mmio_backend.c",
                    "-lgcc", "-o", build / "firmware.elf"]
@@ -292,6 +346,12 @@ def main():
                    ROOT / "src/axis_mailbox.c", ROOT / "src/mmio_backend.c",
                    "-lgcc", "-o", build / "firmware.elf"]
     run(cflags, "firmware")
+    (build / "firmware-build.json").write_text(json.dumps({
+        "optimization": args.optimization, "gemm_policies": sorted(header_policies), "tpu_transport": args.tpu_transport,
+        "io_transport": "udp" if args.ethernet else "uart",
+        "cpu": args.cpu, "clock_hz": 100000000 if vex else 40000000,
+        "stack_reserved_bytes": 4096, "command": list(map(str, cflags)),
+        "scope": "Firmware build only; no physical validation implied"}, indent=2) + "\n")
     run([args.objcopy, "-O", "verilog", "--verilog-data-width=4", "--change-addresses=-0x80000000",
          build / "firmware.elf", build / "firmware.hex"], "image")
     if args.stage == "firmware":
@@ -307,10 +367,18 @@ def main():
     sources += [firmware / (name + ".sv") for name in board_blocks]
     if vex:
         top = "kc705_vexriscv_noddr_top" if args.no_ddr else "kc705_vexriscv_top"
+        board_top = ROOT / "hardware/kc705_vexriscv" / (top + ".sv")
+        if args.ethernet:
+            top = 'kc705_vexriscv_ethernet_top'
+            board_top = ROOT/'hardware/kc705_ethernet'/ (top+'.sv')
         sources = [cpu / "rtl/core_modules/uart.v",
                    ROOT / "third_party/vexriscv/VexRiscv_Lite.v",
                    ROOT / "hardware/kc705_vexriscv/vexriscv_tpu_soc.sv",
-                   ROOT / "hardware/kc705_vexriscv" / (top + ".sv")]
+                   board_top]
+        if args.ethernet:
+            sources += [ROOT/'hardware/kc705_vexriscv/tiny3tpu_udp_peripheral.sv',
+                        ROOT/'hardware/kc705_ethernet/kc705_phy_mdio.sv',
+                        build/'ethernet/kc705_liteeth_udp.v']
         if args.cordic:
             sources += [ROOT / "hardware/math/tiny3tpu_cordic_exp.sv", ROOT / "hardware/math/tiny3tpu_cordic_mmio.sv"]
         if not args.no_ddr:
@@ -330,7 +398,7 @@ def main():
     sources += [ROOT / "multi-core" / name for name in (
         "synapse32_tpu_peripheral.sv", "synapse32_axis_mailbox.sv",
         "tiny3tpu_axis.sv", "tiny3tpu_axis_bridge.sv", "tiny3tpu_axi.sv",
-        "top.v", "tpu_core_wrapper.sv")]
+        "top.v", "tpu_core_wrapper.sv", "tiny3tpu_direct_peripheral.sv")]
     sources += [ROOT / "systolic_array/rtl/NxN_systolic_array.v", ROOT / "systolic_array/rtl/pe.v"]
     if not args.no_ddr:
         sources += [build / "litedram/gateware/kc705_dram.v"]
@@ -354,6 +422,9 @@ def main():
                   cpu / "rtl/include", boot_header, " ".join(map(str, sources))),
               "read_verilog -lib +/xilinx/cells_sim.v +/xilinx/cells_xtra.v",
               *(["chparam -set ENABLE_CORDIC 1 {}".format(top)] if args.cordic else []),
+              *(["chparam -set DIRECT_TPU 1 {}".format(top)] if args.tpu_transport == "direct" else []),
+              *(["chparam -set BOOT_WORDS {} {}".format(args.ram_kib * 256, top)] if args.ram_kib != 64 else []),
+              *([f'chparam -set LOCAL_IP {ethernet_ip} -set LOCAL_MAC {ethernet_mac} {top}'] if args.ethernet else []),
               "hierarchy -check -top {}".format(top),
               "synth_xilinx -family xc7 -flatten {} -top {} -json {}".format(
                   "-nowidelut" if args.lut6 else "", top, quote(build / "soc.json")),
@@ -362,6 +433,8 @@ def main():
     run([args.yosys, "-Q", "-T", "-m", "slang", "-s", build / "synth.ys"], "synth")
     if args.stage == "synth":
         return
+    if args.ethernet:
+        parser.error('Ethernet synthesis completed. Routing/export require qualified GMII I/O and CDC timing constraints; see hardware/kc705_ethernet/README.md')
     if not args.chipdb.is_file():
         parser.error("Missing Kintex-7 chip database")
     # Never allow a timing failure to masquerade as a valid board image.
@@ -392,6 +465,12 @@ def main():
         validate_route_log(route_log)
     except ValueError as error:
         raise SystemExit("Unsafe route: {}. Do not program its output.".format(error))
+
+    (build / "implementation-configuration.json").write_text(json.dumps({
+        "cpu": args.cpu, "tpu_transport": args.tpu_transport, "cordic": args.cordic,
+        "io_transport": "udp" if args.ethernet else "uart",
+        "no_ddr": args.no_ddr, "clock_hz": 100000000 if vex else 40000000,
+        "route_guard_passed": True, "physical_validation": False}, indent=2) + "\n")
 
 
 if __name__ == "__main__":

@@ -7,6 +7,76 @@ Targets may override these coefficients without changing the frontend/pass.
 """
 from dataclasses import dataclass
 import math
+from .mmio_codegen import tile_statistics
+
+
+@dataclass(frozen=True)
+class GemmCostModel:
+    """VexRiscv + packed mailbox estimates, calibrated with full-SoC RTL.
+
+    CPU MAC cost includes loads and loop control. Transport is per accelerator
+    register, including the mailbox envelope, not a bare AXI clock count.
+    Auto placement requires a margin; callers can force either exact backend.
+    No sparsity or particular application/weight values are assumed.
+    """
+    name: str = 'vexriscv-mailbox-retained-v1'
+    cpu_mac_cycles: float = 52.
+    cpu_output_cycles: float = 12.
+    register_cycles: float = 800.
+    tile_packing_cycles: float = 1200.
+    minimum_speedup: float = 1.15
+
+    def __post_init__(self):
+        if not all(math.isfinite(v) and v >= 0 for v in
+                   (self.cpu_mac_cycles, self.cpu_output_cycles,
+                    self.register_cycles, self.tile_packing_cycles)):
+            raise ValueError('GEMM cost coefficients must be finite and nonnegative')
+        if not math.isfinite(self.minimum_speedup) or self.minimum_speedup < 1:
+            raise ValueError('minimum_speedup must be finite and at least one')
+
+    def estimate(self, m, k, n):
+        traffic = tile_statistics(m, k, n)
+        launches = traffic['launches']
+        transactions = traffic['register_transactions_min']
+        cpu = m*k*n*self.cpu_mac_cycles+m*n*self.cpu_output_cycles
+        tpu = transactions*self.register_cycles+launches*self.tile_packing_cycles
+        return dict(model=self.name, cpu_cycles=cpu, tpu_cycles=tpu,
+                    schedule=traffic['schedule'], launches=launches,
+                    minimum_speedup=self.minimum_speedup,
+                    profitable=tpu*self.minimum_speedup < cpu)
+
+
+@dataclass(frozen=True)
+class SpecializedGemmCostModel(GemmCostModel):
+    """Conservative direct-MMIO kernel estimate from full VexRiscv RTL runs.
+
+    Charge all operand words for dynamic packing, even when prepacked constants
+    make the actual kernel cheaper. Keep the generic model as a separate target
+    property so disabling specialization also restores its placement estimate.
+    """
+    name: str = 'vexriscv-direct-specialized-v1'
+    register_cycles: float = 52.
+    tile_packing_cycles: float = 0.
+    word_packing_cycles: float = 20.
+    launch_cycles: float = 40.
+    result_store_cycles: float = 10.
+
+    def __post_init__(self):
+        super().__post_init__()
+        if not all(math.isfinite(v) and v>=0 for v in
+                   (self.word_packing_cycles,self.launch_cycles,self.result_store_cycles)):
+            raise ValueError('GEMM cost coefficients must be finite and nonnegative')
+
+    def estimate(self,m,k,n):
+        traffic=tile_statistics(m,k,n)
+        cpu=m*k*n*self.cpu_mac_cycles+m*n*self.cpu_output_cycles
+        tpu=(traffic['register_transactions_min']*self.register_cycles+
+             traffic['operand_word_writes']*self.word_packing_cycles+
+             traffic['launches']*self.launch_cycles+
+             traffic['result_reads']*self.result_store_cycles)
+        return dict(model=self.name,cpu_cycles=cpu,tpu_cycles=tpu,**traffic,
+                    minimum_speedup=self.minimum_speedup,
+                    profitable=tpu*self.minimum_speedup<cpu)
 
 
 @dataclass(frozen=True)
@@ -29,16 +99,8 @@ class AffineCostModel:
             raise ValueError('minimum_speedup must be finite and at least one')
 
     def gemm_cycles(self,m,k,n):
-        row_tiles=math.ceil(m/8)*math.ceil(k/4)
-        k_tiles=math.ceil(m/4)*math.ceil(k/8)
-        row_parallel=row_tiles<=k_tiles
-        launches=min(row_tiles,k_tiles)*math.ceil(n/4)
-        # One initial status read, packed A/B rows, launch + completion poll,
-        # and four transactions for each useful core result. Only K<=4 can
-        # retain the complete B tile across all row batches.
-        weights=8*math.ceil(n/4) if k<=4 else 8*launches
-        results=m*n*(math.ceil(k/4) if row_parallel else math.ceil(k/8)+k//8+(k%8>4))
-        return (1+8*launches+weights+2*launches+4*results)*self.register_cycles
+        traffic=tile_statistics(m,k,n)
+        return traffic['register_transactions_min']*self.register_cycles
 
     def estimate(self,plan,outputs,roots,params):
         # Find work actually eliminated. Shared intermediates retained by a

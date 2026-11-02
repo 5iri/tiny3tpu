@@ -51,8 +51,8 @@ class ExecutionPlan:
         shape = tuple(shape)
         if dtype not in DTYPES:
             raise ProgramError(f'unsupported IR dtype {dtype}')
-        if any(not isinstance(d, (int, np.integer)) or d <= 0 for d in shape):
-            raise ProgramError(f'IR requires positive static dimensions, got {shape}')
+        if any(not isinstance(d, (int, np.integer)) or d < 0 for d in shape):
+            raise ProgramError(f'IR requires nonnegative static dimensions, got {shape}')
         shape = tuple(int(d) for d in shape)
         if math.prod(shape) > 0x7fffffff:
             raise ProgramError('tensor exceeds signed 32-bit indexing limit')

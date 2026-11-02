@@ -1,0 +1,1438 @@
+{
+  "schema_version": 1,
+  "recorded_date": "2026-10-08",
+  "summary": "Hardware Gigabit Ethernet UDP path implemented and synthesized; 100 us transport exchange demonstrated in digital simulation. Fresh banana inference remains 4.15010 ms.",
+  "physical_validation": false,
+  "routed": false,
+  "full_digital_gmii": {
+    "passed": true,
+    "requests": 17,
+    "clock_hz": 100000000,
+    "with_mac": true,
+    "scope": "Production CPU/TPU firmware plus two actual LiteEth MAC/ARP/IPv4/UDP nodes over digital GMII; 100 MHz system and 125 MHz Ethernet clocks simulated at 1 ns resolution; excludes analog PHY, cable, OS and Python socket latency",
+    "gmii_clock_hz": 125000000,
+    "time_resolution_ns": 1,
+    "startup_delay_cycles": 20000,
+    "host_endpoint": "five 32-bit beats per 16 system clocks; one outstanding application request",
+    "network_manifest": {
+      "versions": {
+        "liteeth": "2024.12",
+        "litex": "2024.12",
+        "migen": "0.9.2"
+      },
+      "udp_port": 9001,
+      "system_clock_hz": 100000000,
+      "gmii_tx_clock_hz": 125000000,
+      "gmii_rx_clock_hz": 125000000,
+      "data_width": 32,
+      "last_be": "one-hot final valid byte: 1,2,4,8",
+      "payload_byte_order": "data[7:0] is the first byte",
+      "simulation_primitives": true,
+      "receive_commit": "Complete MAC frames buffered; CRC/RX_ER/oversize frames discarded before ARP/IP/UDP",
+      "hardware_protocols": [
+        "Ethernet MAC CRC",
+        "ARP",
+        "IPv4",
+        "ICMP",
+        "UDP"
+      ],
+      "udp_checksum": "Transmit zero; LiteEth 2024.12 does not validate RX UDP checksum. MAC CRC remains enabled.",
+      "physical_validation": false,
+      "sha256": "5afe0c3c34bea4ed2c41663f75eb407f45c537e20512b7f0da13b371eda7a222"
+    },
+    "mac_errors": {
+      "board_crc": 0,
+      "host_crc": 0,
+      "board_preamble": 0,
+      "host_preamble": 0
+    },
+    "firmware_sha256": "280ea26d4b117e6afe845aa5552680ad99e696e1142c3dcd667ec31cb341d70a",
+    "report": {
+      "path": "build-ethernet/showcase-full-mac/report.json",
+      "sha256": "37fd86553c59074395470e972cbdf35a50df3ef0bb93f4371821c57e22c0d120"
+    },
+    "checks": [
+      {
+        "frame": 0,
+        "roundtrip_cycles": 1603,
+        "datagrams": 1,
+        "host_gmii_octets": 222,
+        "board_gmii_octets": 238,
+        "host_gmii_frames": 3,
+        "board_gmii_frames": 3,
+        "name": "startup-handshake",
+        "kind": "hello",
+        "roundtrip_us": 16.03
+      },
+      {
+        "frame": 1,
+        "roundtrip_cycles": 811,
+        "datagrams": 1,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 90,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "echo-16",
+        "kind": "echo",
+        "roundtrip_us": 8.11
+      },
+      {
+        "frame": 2,
+        "roundtrip_cycles": 9000,
+        "datagrams": 1,
+        "host_gmii_octets": 1342,
+        "board_gmii_octets": 1342,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "echo-1268",
+        "kind": "echo",
+        "roundtrip_us": 90.0
+      },
+      {
+        "frame": 3,
+        "roundtrip_cycles": 72421,
+        "datagrams": 1,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 182,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "mode-0",
+        "kind": "inference",
+        "roundtrip_us": 724.21,
+        "compute_cycles": 67391,
+        "verified_words": 20,
+        "backend_calls": 0,
+        "compact": false,
+        "outside_compute_us": 50.3
+      },
+      {
+        "frame": 4,
+        "roundtrip_cycles": 2091,
+        "datagrams": 1,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 182,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "mode-0-duplicate",
+        "kind": "duplicate",
+        "roundtrip_us": 20.91
+      },
+      {
+        "frame": 5,
+        "roundtrip_cycles": 1787595,
+        "datagrams": 1,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 358,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "mode-1",
+        "kind": "inference",
+        "roundtrip_us": 17875.95,
+        "compute_cycles": 1780294,
+        "verified_words": 64,
+        "backend_calls": 0,
+        "compact": false,
+        "outside_compute_us": 73.01
+      },
+      {
+        "frame": 6,
+        "roundtrip_cycles": 3019,
+        "datagrams": 1,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 358,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "mode-1-duplicate",
+        "kind": "duplicate",
+        "roundtrip_us": 30.19
+      },
+      {
+        "frame": 7,
+        "roundtrip_cycles": 1184796,
+        "datagrams": 1,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 358,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "mode-2",
+        "kind": "inference",
+        "roundtrip_us": 11847.96,
+        "compute_cycles": 1177482,
+        "verified_words": 64,
+        "backend_calls": 0,
+        "compact": false,
+        "outside_compute_us": 73.14
+      },
+      {
+        "frame": 8,
+        "roundtrip_cycles": 3016,
+        "datagrams": 1,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 358,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "mode-2-duplicate",
+        "kind": "duplicate",
+        "roundtrip_us": 30.16
+      },
+      {
+        "frame": 9,
+        "roundtrip_cycles": 531476,
+        "datagrams": 1,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 1342,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "mode-2147483651",
+        "kind": "inference",
+        "roundtrip_us": 5314.76,
+        "compute_cycles": 380644,
+        "verified_words": 613,
+        "backend_calls": 0,
+        "compact": true,
+        "outside_compute_us": 1508.32
+      },
+      {
+        "frame": 10,
+        "roundtrip_cycles": 7781,
+        "datagrams": 1,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 1342,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "mode-2147483651-duplicate",
+        "kind": "duplicate",
+        "roundtrip_us": 77.81
+      },
+      {
+        "frame": 11,
+        "roundtrip_cycles": 415010,
+        "datagrams": 2,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 2628,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 2,
+        "name": "mode-3",
+        "kind": "inference",
+        "roundtrip_us": 4150.1,
+        "compute_cycles": 381332,
+        "verified_words": 613,
+        "backend_calls": 0,
+        "compact": false,
+        "outside_compute_us": 336.78
+      },
+      {
+        "frame": 12,
+        "roundtrip_cycles": 12289,
+        "datagrams": 2,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 2628,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 2,
+        "name": "mode-3-duplicate",
+        "kind": "duplicate",
+        "roundtrip_us": 122.89
+      },
+      {
+        "frame": 13,
+        "roundtrip_cycles": 3714,
+        "datagrams": 1,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 102,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "mode-99",
+        "kind": "inference",
+        "roundtrip_us": 37.14,
+        "compute_cycles": 78,
+        "verified_words": 0,
+        "backend_calls": 0,
+        "compact": false,
+        "outside_compute_us": 36.36
+      },
+      {
+        "frame": 14,
+        "roundtrip_cycles": 1499,
+        "datagrams": 1,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 102,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "mode-99-duplicate",
+        "kind": "duplicate",
+        "roundtrip_us": 14.99
+      },
+      {
+        "frame": 15,
+        "roundtrip_cycles": 895,
+        "datagrams": 1,
+        "host_gmii_octets": 78,
+        "board_gmii_octets": 94,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "reconnect-handshake",
+        "kind": "hello",
+        "roundtrip_us": 8.95
+      },
+      {
+        "frame": 16,
+        "roundtrip_cycles": 1297,
+        "datagrams": 1,
+        "host_gmii_octets": 90,
+        "board_gmii_octets": 102,
+        "host_gmii_frames": 1,
+        "board_gmii_frames": 1,
+        "name": "replay-after-handshake",
+        "kind": "duplicate",
+        "roundtrip_us": 12.97
+      }
+    ]
+  },
+  "udp_boundary_regressions": {
+    "showcase": {
+      "passed": true,
+      "requests": 17,
+      "clock_hz": 100000000,
+      "scope": "Verify production Ethernet firmware in the real CPU/TPU/packet-buffer RTL.\n\nMeasurements stop at the UDP stream boundary and exclude MAC, PHY, ARP and host\nlatency. The generated LiteEth GMII test exercises those hardware layers separately.\n",
+      "firmware_sha256": "280ea26d4b117e6afe845aa5552680ad99e696e1142c3dcd667ec31cb341d70a",
+      "report": {
+        "path": "build-ethernet/showcase-udp-soc/report.json",
+        "sha256": "56c37e6d65f52da8d24dc14d3200c2205877836be9af916e27b1b91ea34849e9"
+      },
+      "checks": [
+        {
+          "frame": 0,
+          "roundtrip_cycles": 12329,
+          "datagrams": 1,
+          "name": "startup-handshake",
+          "kind": "hello",
+          "roundtrip_us": 123.29
+        },
+        {
+          "frame": 1,
+          "roundtrip_cycles": 562,
+          "datagrams": 1,
+          "name": "echo-16",
+          "kind": "echo",
+          "roundtrip_us": 5.62
+        },
+        {
+          "frame": 2,
+          "roundtrip_cycles": 7429,
+          "datagrams": 1,
+          "name": "echo-1268",
+          "kind": "echo",
+          "roundtrip_us": 74.29
+        },
+        {
+          "frame": 3,
+          "roundtrip_cycles": 72107,
+          "datagrams": 1,
+          "name": "mode-0",
+          "kind": "inference",
+          "roundtrip_us": 721.07,
+          "compute_cycles": 67391,
+          "verified_words": 20,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 47.16
+        },
+        {
+          "frame": 4,
+          "roundtrip_cycles": 1768,
+          "datagrams": 1,
+          "name": "mode-0-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 17.68
+        },
+        {
+          "frame": 5,
+          "roundtrip_cycles": 1787157,
+          "datagrams": 1,
+          "name": "mode-1",
+          "kind": "inference",
+          "roundtrip_us": 17871.57,
+          "compute_cycles": 1780294,
+          "verified_words": 64,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 68.63
+        },
+        {
+          "frame": 6,
+          "roundtrip_cycles": 2558,
+          "datagrams": 1,
+          "name": "mode-1-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 25.58
+        },
+        {
+          "frame": 7,
+          "roundtrip_cycles": 1184338,
+          "datagrams": 1,
+          "name": "mode-2",
+          "kind": "inference",
+          "roundtrip_us": 11843.38,
+          "compute_cycles": 1177482,
+          "verified_words": 64,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 68.56
+        },
+        {
+          "frame": 8,
+          "roundtrip_cycles": 2558,
+          "datagrams": 1,
+          "name": "mode-2-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 25.58
+        },
+        {
+          "frame": 9,
+          "roundtrip_cycles": 530258,
+          "datagrams": 1,
+          "name": "mode-2147483651",
+          "kind": "inference",
+          "roundtrip_us": 5302.58,
+          "compute_cycles": 380644,
+          "verified_words": 613,
+          "backend_calls": 0,
+          "compact": true,
+          "outside_compute_us": 1496.14
+        },
+        {
+          "frame": 10,
+          "roundtrip_cycles": 6564,
+          "datagrams": 1,
+          "name": "mode-2147483651-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 65.64
+        },
+        {
+          "frame": 11,
+          "roundtrip_cycles": 414316,
+          "datagrams": 2,
+          "name": "mode-3",
+          "kind": "inference",
+          "roundtrip_us": 4143.16,
+          "compute_cycles": 381332,
+          "verified_words": 613,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 329.84
+        },
+        {
+          "frame": 12,
+          "roundtrip_cycles": 11604,
+          "datagrams": 2,
+          "name": "mode-3-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 116.04
+        },
+        {
+          "frame": 13,
+          "roundtrip_cycles": 3448,
+          "datagrams": 1,
+          "name": "mode-99",
+          "kind": "inference",
+          "roundtrip_us": 34.48,
+          "compute_cycles": 78,
+          "verified_words": 0,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 33.7
+        },
+        {
+          "frame": 14,
+          "roundtrip_cycles": 1256,
+          "datagrams": 1,
+          "name": "mode-99-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 12.56
+        },
+        {
+          "frame": 15,
+          "roundtrip_cycles": 658,
+          "datagrams": 1,
+          "name": "reconnect-handshake",
+          "kind": "hello",
+          "roundtrip_us": 6.58
+        },
+        {
+          "frame": 16,
+          "roundtrip_cycles": 1051,
+          "datagrams": 1,
+          "name": "replay-after-handshake",
+          "kind": "duplicate",
+          "roundtrip_us": 10.51
+        }
+      ]
+    },
+    "classifier": {
+      "passed": true,
+      "requests": 47,
+      "clock_hz": 100000000,
+      "scope": "Verify production Ethernet firmware in the real CPU/TPU/packet-buffer RTL.\n\nMeasurements stop at the UDP stream boundary and exclude MAC, PHY, ARP and host\nlatency. The generated LiteEth GMII test exercises those hardware layers separately.\n",
+      "firmware_sha256": "143e22a4356ebc3ece054877430412c8c955075635d4fa57e86e9f32bb2e623b",
+      "report": {
+        "path": "build-ethernet/classifier-udp-soc/report.json",
+        "sha256": "982d53641629df114989c58cafc23a4dadfe35af87d0a8cd0b6d6d42ab8ee354"
+      },
+      "checks": [
+        {
+          "frame": 0,
+          "roundtrip_cycles": 3740,
+          "datagrams": 1,
+          "name": "startup-handshake",
+          "kind": "hello",
+          "roundtrip_us": 37.4
+        },
+        {
+          "frame": 1,
+          "roundtrip_cycles": 533,
+          "datagrams": 1,
+          "name": "echo-16",
+          "kind": "echo",
+          "roundtrip_us": 5.33
+        },
+        {
+          "frame": 2,
+          "roundtrip_cycles": 8994,
+          "datagrams": 1,
+          "name": "echo-1268",
+          "kind": "echo",
+          "roundtrip_us": 89.94
+        },
+        {
+          "frame": 3,
+          "roundtrip_cycles": 385000,
+          "datagrams": 1,
+          "name": "mode-0",
+          "kind": "inference",
+          "roundtrip_us": 3850.0,
+          "compute_cycles": 381329,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 36.71
+        },
+        {
+          "frame": 4,
+          "roundtrip_cycles": 1617,
+          "datagrams": 1,
+          "name": "mode-0-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 16.17
+        },
+        {
+          "frame": 5,
+          "roundtrip_cycles": 384607,
+          "datagrams": 1,
+          "name": "mode-1",
+          "kind": "inference",
+          "roundtrip_us": 3846.07,
+          "compute_cycles": 381205,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 34.02
+        },
+        {
+          "frame": 6,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-1-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 7,
+          "roundtrip_cycles": 384574,
+          "datagrams": 1,
+          "name": "mode-2",
+          "kind": "inference",
+          "roundtrip_us": 3845.74,
+          "compute_cycles": 381176,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 33.98
+        },
+        {
+          "frame": 8,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-2-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 9,
+          "roundtrip_cycles": 384456,
+          "datagrams": 1,
+          "name": "mode-3",
+          "kind": "inference",
+          "roundtrip_us": 3844.56,
+          "compute_cycles": 381064,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 33.92
+        },
+        {
+          "frame": 10,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-3-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 11,
+          "roundtrip_cycles": 384677,
+          "datagrams": 1,
+          "name": "mode-4",
+          "kind": "inference",
+          "roundtrip_us": 3846.77,
+          "compute_cycles": 381278,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 33.99
+        },
+        {
+          "frame": 12,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-4-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 13,
+          "roundtrip_cycles": 384568,
+          "datagrams": 1,
+          "name": "mode-5",
+          "kind": "inference",
+          "roundtrip_us": 3845.68,
+          "compute_cycles": 381177,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 33.91
+        },
+        {
+          "frame": 14,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-5-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 15,
+          "roundtrip_cycles": 384613,
+          "datagrams": 1,
+          "name": "mode-6",
+          "kind": "inference",
+          "roundtrip_us": 3846.13,
+          "compute_cycles": 381210,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 34.03
+        },
+        {
+          "frame": 16,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-6-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 17,
+          "roundtrip_cycles": 384680,
+          "datagrams": 1,
+          "name": "mode-7",
+          "kind": "inference",
+          "roundtrip_us": 3846.8,
+          "compute_cycles": 381280,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 34.0
+        },
+        {
+          "frame": 18,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-7-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 19,
+          "roundtrip_cycles": 384875,
+          "datagrams": 1,
+          "name": "mode-8",
+          "kind": "inference",
+          "roundtrip_us": 3848.75,
+          "compute_cycles": 381474,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 34.01
+        },
+        {
+          "frame": 20,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-8-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 21,
+          "roundtrip_cycles": 384786,
+          "datagrams": 1,
+          "name": "mode-9",
+          "kind": "inference",
+          "roundtrip_us": 3847.86,
+          "compute_cycles": 381386,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 34.0
+        },
+        {
+          "frame": 22,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-9-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 23,
+          "roundtrip_cycles": 384484,
+          "datagrams": 1,
+          "name": "mode-10",
+          "kind": "inference",
+          "roundtrip_us": 3844.84,
+          "compute_cycles": 381083,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 34.01
+        },
+        {
+          "frame": 24,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-10-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 25,
+          "roundtrip_cycles": 384732,
+          "datagrams": 1,
+          "name": "mode-11",
+          "kind": "inference",
+          "roundtrip_us": 3847.32,
+          "compute_cycles": 381330,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 34.02
+        },
+        {
+          "frame": 26,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-11-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 27,
+          "roundtrip_cycles": 384606,
+          "datagrams": 1,
+          "name": "mode-12",
+          "kind": "inference",
+          "roundtrip_us": 3846.06,
+          "compute_cycles": 381205,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 34.01
+        },
+        {
+          "frame": 28,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-12-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 29,
+          "roundtrip_cycles": 384530,
+          "datagrams": 1,
+          "name": "mode-13",
+          "kind": "inference",
+          "roundtrip_us": 3845.3,
+          "compute_cycles": 381128,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 34.02
+        },
+        {
+          "frame": 30,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-13-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 31,
+          "roundtrip_cycles": 384529,
+          "datagrams": 1,
+          "name": "mode-14",
+          "kind": "inference",
+          "roundtrip_us": 3845.29,
+          "compute_cycles": 381131,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 33.98
+        },
+        {
+          "frame": 32,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-14-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 33,
+          "roundtrip_cycles": 384703,
+          "datagrams": 1,
+          "name": "mode-15",
+          "kind": "inference",
+          "roundtrip_us": 3847.03,
+          "compute_cycles": 381312,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 33.91
+        },
+        {
+          "frame": 34,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-15-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 35,
+          "roundtrip_cycles": 384763,
+          "datagrams": 1,
+          "name": "mode-16",
+          "kind": "inference",
+          "roundtrip_us": 3847.63,
+          "compute_cycles": 381361,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 34.02
+        },
+        {
+          "frame": 36,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-16-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 37,
+          "roundtrip_cycles": 384664,
+          "datagrams": 1,
+          "name": "mode-17",
+          "kind": "inference",
+          "roundtrip_us": 3846.64,
+          "compute_cycles": 381263,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 34.01
+        },
+        {
+          "frame": 38,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-17-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 39,
+          "roundtrip_cycles": 384587,
+          "datagrams": 1,
+          "name": "mode-18",
+          "kind": "inference",
+          "roundtrip_us": 3845.87,
+          "compute_cycles": 381188,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 33.99
+        },
+        {
+          "frame": 40,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-18-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 41,
+          "roundtrip_cycles": 384664,
+          "datagrams": 1,
+          "name": "mode-19",
+          "kind": "inference",
+          "roundtrip_us": 3846.64,
+          "compute_cycles": 381274,
+          "verified_words": 11,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 33.9
+        },
+        {
+          "frame": 42,
+          "roundtrip_cycles": 1560,
+          "datagrams": 1,
+          "name": "mode-19-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 15.6
+        },
+        {
+          "frame": 43,
+          "roundtrip_cycles": 2382,
+          "datagrams": 1,
+          "name": "mode-20",
+          "kind": "inference",
+          "roundtrip_us": 23.82,
+          "compute_cycles": 4,
+          "verified_words": 0,
+          "backend_calls": 0,
+          "compact": false,
+          "outside_compute_us": 23.78
+        },
+        {
+          "frame": 44,
+          "roundtrip_cycles": 1013,
+          "datagrams": 1,
+          "name": "mode-20-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 10.13
+        },
+        {
+          "frame": 45,
+          "roundtrip_cycles": 671,
+          "datagrams": 1,
+          "name": "reconnect-handshake",
+          "kind": "hello",
+          "roundtrip_us": 6.71
+        },
+        {
+          "frame": 46,
+          "roundtrip_cycles": 1019,
+          "datagrams": 1,
+          "name": "replay-after-handshake",
+          "kind": "duplicate",
+          "roundtrip_us": 10.19
+        }
+      ]
+    },
+    "cloth": {
+      "passed": true,
+      "requests": 7,
+      "clock_hz": 100000000,
+      "scope": "Verify production Ethernet firmware in the real CPU/TPU/packet-buffer RTL.\n\nMeasurements stop at the UDP stream boundary and exclude MAC, PHY, ARP and host\nlatency. The generated LiteEth GMII test exercises those hardware layers separately.\n",
+      "firmware_sha256": "b437b5b86a670915d6d6cbff0854691c79ac903aab2f7b98e6a37191d9417557",
+      "report": {
+        "path": "build-ethernet/cloth-udp-soc/report.json",
+        "sha256": "3f0184fa7fb3bd7ea4bad933c58fb0aace5ea8207040bd4dd31aff7190fa404d"
+      },
+      "checks": [
+        {
+          "frame": 0,
+          "roundtrip_cycles": 14572,
+          "datagrams": 1,
+          "name": "startup-handshake",
+          "kind": "hello",
+          "roundtrip_us": 145.72
+        },
+        {
+          "frame": 1,
+          "roundtrip_cycles": 831,
+          "datagrams": 1,
+          "name": "echo-16",
+          "kind": "echo",
+          "roundtrip_us": 8.31
+        },
+        {
+          "frame": 2,
+          "roundtrip_cycles": 7640,
+          "datagrams": 1,
+          "name": "echo-1268",
+          "kind": "echo",
+          "roundtrip_us": 76.4
+        },
+        {
+          "frame": 3,
+          "roundtrip_cycles": 9273230,
+          "datagrams": 1,
+          "name": "cloth-step-and-snapshot",
+          "kind": "cloth",
+          "roundtrip_us": 92732.3,
+          "compute_cycles": 9257508,
+          "verified_words": 264,
+          "backend_calls": 0,
+          "outside_compute_us": 157.22
+        },
+        {
+          "frame": 4,
+          "roundtrip_cycles": 5999,
+          "datagrams": 1,
+          "name": "cloth-step-and-snapshot-duplicate",
+          "kind": "duplicate",
+          "roundtrip_us": 59.99
+        },
+        {
+          "frame": 5,
+          "roundtrip_cycles": 897,
+          "datagrams": 1,
+          "name": "reconnect-handshake",
+          "kind": "hello",
+          "roundtrip_us": 8.97
+        },
+        {
+          "frame": 6,
+          "roundtrip_cycles": 5823,
+          "datagrams": 1,
+          "name": "replay-after-handshake",
+          "kind": "duplicate",
+          "roundtrip_us": 58.23
+        }
+      ]
+    }
+  },
+  "uart_regression": {
+    "passed": true,
+    "requests": 10,
+    "clock_hz": 100000000,
+    "uart_cycles_per_bit": 109,
+    "tpu_transport": "mailbox",
+    "gemm_policy": "auto",
+    "scope": "Actual firmware, CPU, UART, TPU and CORDIC RTL; exact output words and backend counts. Includes UART round trip; no physical board or host-render timing.",
+    "report": {
+      "path": "build-ethernet/showcase-uart-soc/report.json",
+      "sha256": "f8fc7c6835b8cc4fef8304768ed11ee420727a50da0a4693680d51a7f4d9c0e2"
+    },
+    "checks": [
+      {
+        "frame": 0,
+        "mode": 0,
+        "repeats": 1,
+        "words": 20,
+        "backend_calls": 0,
+        "compute_cycles": 69768,
+        "roundtrip_cycles": 205465,
+        "response_bytes": 108,
+        "compact": false
+      },
+      {
+        "frame": 1,
+        "mode": 1,
+        "repeats": 1,
+        "words": 64,
+        "backend_calls": 0,
+        "compute_cycles": 1747918,
+        "roundtrip_cycles": 2075796,
+        "response_bytes": 284,
+        "compact": false
+      },
+      {
+        "frame": 2,
+        "mode": 2,
+        "repeats": 1,
+        "words": 64,
+        "backend_calls": 0,
+        "compute_cycles": 1182382,
+        "roundtrip_cycles": 1510304,
+        "response_bytes": 284,
+        "compact": false
+      },
+      {
+        "frame": 3,
+        "mode": 0,
+        "repeats": 1,
+        "words": 20,
+        "backend_calls": 0,
+        "compute_cycles": 69600,
+        "roundtrip_cycles": 205247,
+        "response_bytes": 108,
+        "compact": false
+      },
+      {
+        "frame": 4,
+        "mode": 1,
+        "repeats": 1,
+        "words": 64,
+        "backend_calls": 0,
+        "compute_cycles": 1747720,
+        "roundtrip_cycles": 2075578,
+        "response_bytes": 284,
+        "compact": false
+      },
+      {
+        "frame": 5,
+        "mode": 2,
+        "repeats": 1,
+        "words": 64,
+        "backend_calls": 0,
+        "compute_cycles": 1182382,
+        "roundtrip_cycles": 1510304,
+        "response_bytes": 284,
+        "compact": false
+      },
+      {
+        "frame": 6,
+        "mode": 3,
+        "repeats": 1,
+        "words": 613,
+        "backend_calls": 0,
+        "compute_cycles": 299873,
+        "roundtrip_cycles": 3025840,
+        "response_bytes": 2480,
+        "compact": false
+      },
+      {
+        "frame": 7,
+        "mode": 3,
+        "repeats": 1,
+        "words": 613,
+        "backend_calls": 0,
+        "compute_cycles": 300825,
+        "roundtrip_cycles": 1771686,
+        "response_bytes": 1268,
+        "compact": true
+      },
+      {
+        "frame": 8,
+        "mode": 0,
+        "repeats": 3,
+        "words": 20,
+        "backend_calls": 0,
+        "compute_cycles": 207606,
+        "roundtrip_cycles": 343350,
+        "response_bytes": 108,
+        "compact": false
+      },
+      {
+        "frame": 9,
+        "mode": 99,
+        "repeats": 1,
+        "words": 0,
+        "backend_calls": 0,
+        "compute_cycles": 136,
+        "roundtrip_cycles": 48396,
+        "response_bytes": 28,
+        "compact": false
+      }
+    ]
+  },
+  "uart_comparison_caveat": "Separately linked firmware and consecutive banana poses; not identical machine instructions, physical USB latency or host-render measurements.",
+  "ip_validation": {
+    "passed": true,
+    "scope": "RTL simulation only; no physical PHY, routing, cable or host network timing",
+    "tests": {
+      "mdio": {
+        "passed": true,
+        "checks": "PHY address, gigabit-only advertisements, turnaround release, BMSR double-read, link loss, no PHY response, recovery, reset"
+      },
+      "gmii": {
+        "passed": true,
+        "valid_udp_packets": 8,
+        "rejected_packets": 4,
+        "checks": "Hardware ARP; byte order; lengths1/2/3/4/17/1400/1472; one-hot tail byte; RX backpressure; Ethernet minimum padding; bad CRC/RX_ER/wrong UDP port/oversized frame rejection; recovery",
+        "system_clock_hz": 100000000,
+        "gmii_clock_hz": 125000000,
+        "generated_rtl_sha256": "5618c5ad9bc24ef8871fb11866573f7838e7c60029dee507ec75ed0cf9af2a63"
+      }
+    },
+    "source_sha256": {
+      "generate.py": "5364a50a9c68a0880d269fc745e0105c7b9651c4a17b05d6eaf3b9cf1af251f1",
+      "kc705_vexriscv_ethernet_top.sv": "67e845b6c8f9efac9d4ba37565b2335538fa515bc32f6e225f2ab9956125f021",
+      "test_mdio.sv": "d33106754b089720a814701378396996f0dddb4ab9ef7e3654e699ad6118de8e",
+      "test.py": "cd6c7ed508c856499095a4c0e3c8399ecacdf0a1296a5d50af488da478b1f59a",
+      "constraints.py": "888250c497312b9fb9082e7ac4141606783afe30bda1adb8f462520acffd4e40",
+      "test_gmii.sv": "9870e78fba1d73102e4fbee94787fbe5584319216d947da67a1e3de3c1ae877d",
+      "kc705_phy_mdio.sv": "734313908a8f0b1234091741c77d48c85f2dc1781222682b1ae1ed1b36bc2a3c"
+    },
+    "report": {
+      "path": "build-throughput-impl/ethernet-validation/report.json",
+      "sha256": "7a2239cb6110bf37cdb871dc01a04e1b6d683c923cbff39e75cdd676541f482a"
+    }
+  },
+  "ctest": {
+    "passed": true,
+    "distinct_tests_passed": 47,
+    "scope": "Full 46-test suite followed by five relevant tests after adding MDIO; four repeated tests and one newly registered test. Not a single 47-test run.",
+    "runs": [
+      {
+        "tests": 46,
+        "report": {
+          "path": "build-ethernet/ctest.log",
+          "sha256": "3bf3a17f41b24f4b54510252b64c5145e764d54c07000560804b71aaba6343ac"
+        }
+      },
+      {
+        "tests": 5,
+        "report": {
+          "path": "build-ethernet/ctest-ethernet-final.log",
+          "sha256": "706769cea8d4c58d2396daff1c6f477f08ad5f8b40d91416c184a406c32c94ab"
+        }
+      }
+    ]
+  },
+  "synthesis": {
+    "passed": true,
+    "top": "kc705_vexriscv_ethernet_top",
+    "check_problems": 0,
+    "resources": {
+      "BUFG": 3,
+      "CARRY4": 559,
+      "DSP48E1": 32,
+      "FDCE": 2697,
+      "FDPE": 17,
+      "FDRE": 4506,
+      "FDSE": 136,
+      "IBUF": 13,
+      "IBUFDS": 1,
+      "INV": 424,
+      "IOBUF": 1,
+      "LUT1": 37,
+      "LUT2": 3820,
+      "LUT3": 1497,
+      "LUT4": 997,
+      "LUT5": 1222,
+      "LUT6": 2709,
+      "MUXF7": 346,
+      "MUXF8": 96,
+      "OBUF": 22,
+      "ODDR": 1,
+      "PLLE2_ADV": 1,
+      "RAM32M": 40,
+      "RAM64M": 26,
+      "RAMB18E1": 6,
+      "RAMB36E1": 19,
+      "SRL16E": 32
+    },
+    "log": {
+      "path": "build-ethernet/board-synth-final/synth.log",
+      "sha256": "5e785ecfb2491462f983ceeafa302d7052b223b3ef0cb9ab65ad3d875d76df80"
+    },
+    "netlist": {
+      "path": "build-ethernet/board-synth-final/soc.json",
+      "sha256": "b3494c19fab8f4f91254d55f9365f17161da0281b0c3a9a76f84e8b83ccabed4"
+    },
+    "firmware_hex": {
+      "path": "build-ethernet/board-synth-final/firmware.hex",
+      "sha256": "8328390f1d7567426d1b3b7e52e7cd4baf04ff25ab5df007e7e4ac6615aadb9c"
+    },
+    "firmware_hex_matches_full_digital_gmii": true,
+    "constraint_manifest": {
+      "physical_timing_qualified": false,
+      "route_allowed": false,
+      "phy": "Marvell 88E1111, GMII, Clause22 address7; 1000BASE-T full duplex only",
+      "clocks_hz": {
+        "sys": 100000000,
+        "eth_tx": 125000000,
+        "eth_rx": 125000000
+      },
+      "pins": {
+        "gmii_rx_clk": "U27",
+        "gmii_gtx_clk": "K30",
+        "gmii_rx_dv": "R28",
+        "gmii_rx_er": "V26",
+        "gmii_tx_en": "M27",
+        "gmii_tx_er": "N29",
+        "phy_rst_n": "L20",
+        "phy_mdc": "R23",
+        "phy_mdio": "J21",
+        "gmii_rx_data[0]": "U30",
+        "gmii_rx_data[1]": "U25",
+        "gmii_rx_data[2]": "T25",
+        "gmii_rx_data[3]": "U28",
+        "gmii_rx_data[4]": "R19",
+        "gmii_rx_data[5]": "T27",
+        "gmii_rx_data[6]": "T26",
+        "gmii_rx_data[7]": "T28",
+        "gmii_tx_data[0]": "N27",
+        "gmii_tx_data[1]": "N25",
+        "gmii_tx_data[2]": "M29",
+        "gmii_tx_data[3]": "L28",
+        "gmii_tx_data[4]": "J26",
+        "gmii_tx_data[5]": "K26",
+        "gmii_tx_data[6]": "L30",
+        "gmii_tx_data[7]": "J28"
+      },
+      "phy_reset_ms": 10,
+      "references": [
+        "https://docs.amd.com/api/khub/documents/g0YC14NTyJ_D9ZQTSmzzWg/content",
+        "https://www.marvell.com/content/dam/marvell/en/public-collateral/transceivers/marvell-phys-transceivers-alaska-88e1111-datasheet.pdf"
+      ],
+      "remaining": [
+        "Verify PCB clock/data skew",
+        "Qualify external GMII/MDIO setup and hold",
+        "Constrain and inspect asynchronous FIFO CDC",
+        "Run physical link/error/packet tests"
+      ]
+    }
+  },
+  "firmware": {
+    "showcase": {
+      "manifest": {
+        "path": "build-ethernet/showcase/build-manifest.json",
+        "sha256": "7012add3649cfea9b988a7d3a31ad50395b955b624b4a62087fe4bbf72631fa7"
+      },
+      "optimization": "O2",
+      "io_transport": "udp",
+      "tpu_transport": "mailbox",
+      "memory": {
+        "ram_bytes": 65536,
+        "static_end": 2147529380,
+        "static_bytes": 45732,
+        "stack_reserved_bytes": 4096,
+        "remaining_after_stack_bytes": 15708,
+        "scope": "Static linker allocation; runtime peak stack is not measured"
+      },
+      "elf": {
+        "path": "build-ethernet/showcase/firmware.elf",
+        "sha256": "280ea26d4b117e6afe845aa5552680ad99e696e1142c3dcd667ec31cb341d70a"
+      },
+      "hex": {
+        "path": "build-ethernet/showcase/firmware.hex",
+        "sha256": "8328390f1d7567426d1b3b7e52e7cd4baf04ff25ab5df007e7e4ac6615aadb9c"
+      }
+    },
+    "classifier": {
+      "manifest": {
+        "path": "build-ethernet/classifier/build-manifest.json",
+        "sha256": "13bd70dfc1c8b07f153afa5934f5b2f16af023dbb316c23b14066f595fa06e88"
+      },
+      "optimization": "O2",
+      "io_transport": "udp",
+      "tpu_transport": "mailbox",
+      "memory": {
+        "ram_bytes": 65536,
+        "static_end": 2147516736,
+        "static_bytes": 33088,
+        "stack_reserved_bytes": 4096,
+        "remaining_after_stack_bytes": 28352,
+        "scope": "Static linker allocation; runtime peak stack is not measured"
+      },
+      "elf": {
+        "path": "build-ethernet/classifier/firmware.elf",
+        "sha256": "143e22a4356ebc3ece054877430412c8c955075635d4fa57e86e9f32bb2e623b"
+      },
+      "hex": {
+        "path": "build-ethernet/classifier/firmware.hex",
+        "sha256": "02d1c28f8cee142fa4187b34e99bae692eebb5666f478b48a249ce7b22058f5d"
+      }
+    },
+    "cloth": {
+      "manifest": {
+        "path": "build-ethernet/cloth/application-manifest.json",
+        "sha256": "f38169c627ff379cd1d1e108e6151eca2256f335946e88111f4898ba6662d5c2"
+      },
+      "optimization": "O2",
+      "io_transport": "udp",
+      "tpu_transport": "mailbox",
+      "memory": {
+        "ram_bytes": 65536,
+        "static_end": 2147542372,
+        "static_bytes": 58724,
+        "stack_reserved_bytes": 4096,
+        "remaining_after_stack_bytes": 2716,
+        "scope": "Static linker allocation; runtime peak stack is not measured"
+      },
+      "elf": {
+        "path": "build-ethernet/cloth/firmware.elf",
+        "sha256": "b437b5b86a670915d6d6cbff0854691c79ac903aab2f7b98e6a37191d9417557"
+      },
+      "hex": {
+        "path": "build-ethernet/cloth/firmware.hex",
+        "sha256": "f3ecb03b0ebe9458e6a1292a8f7e145d5fa8443a15ae94b15ae5481640c9cb4f"
+      }
+    }
+  },
+  "source_sha256": {
+    "../synapse32/rtl/core_modules/uart.v": "1fcff923cce212e9ba99924edeedf2fafd47896c312431398fbc717e56b03828",
+    "CMakeLists.txt": "91bfafac5e93007a41628b4b601f8f55e83bbb65240dc19dc7a3d0b41a50a48a",
+    "build-ethernet/showcase-full-mac/check.cpp": "98c789abc071f183cbf5460d75b3961016f6170f12e24165ccf82b5c989623fe",
+    "build-ethernet/showcase-full-mac/liteeth/kc705_liteeth_udp.v": "5afe0c3c34bea4ed2c41663f75eb407f45c537e20512b7f0da13b371eda7a222",
+    "build-ethernet/showcase-full-mac/liteeth/liteeth-manifest.json": "cb669022fa792ad4c761647f4ab55e8aa8b825692642b9993f02a32d9f75127a",
+    "build-ethernet/showcase-full-mac/requests.h": "64c1398c2f6706f7581fd1b54a20988217d2d2181be2ec4ea3f482ef8ae2148d",
+    "build-ethernet/showcase/firmware.elf": "280ea26d4b117e6afe845aa5552680ad99e696e1142c3dcd667ec31cb341d70a",
+    "build-ethernet/showcase/firmware.hex": "8328390f1d7567426d1b3b7e52e7cd4baf04ff25ab5df007e7e4ac6615aadb9c",
+    "hardware/kc705_ethernet/constraints.py": "888250c497312b9fb9082e7ac4141606783afe30bda1adb8f462520acffd4e40",
+    "hardware/kc705_ethernet/generate.py": "5364a50a9c68a0880d269fc745e0105c7b9651c4a17b05d6eaf3b9cf1af251f1",
+    "hardware/kc705_ethernet/kc705_phy_mdio.sv": "734313908a8f0b1234091741c77d48c85f2dc1781222682b1ae1ed1b36bc2a3c",
+    "hardware/kc705_ethernet/kc705_vexriscv_ethernet_top.sv": "67e845b6c8f9efac9d4ba37565b2335538fa515bc32f6e225f2ab9956125f021",
+    "hardware/kc705_ethernet/test.py": "cd6c7ed508c856499095a4c0e3c8399ecacdf0a1296a5d50af488da478b1f59a",
+    "hardware/kc705_ethernet/test_gmii.sv": "9870e78fba1d73102e4fbee94787fbe5584319216d947da67a1e3de3c1ae877d",
+    "hardware/kc705_ethernet/test_mdio.sv": "d33106754b089720a814701378396996f0dddb4ab9ef7e3654e699ad6118de8e",
+    "hardware/kc705_vexriscv/tiny3tpu_udp_peripheral.sv": "19a28928945a13c84b0438f66ebbe654d10b64e4a0c6af3aac970d1a5c15559a",
+    "hardware/kc705_vexriscv/vexriscv_tpu_soc.sv": "872ad0219d5e683bd5adedfc39841d89919e3c90b2a7b05cdc8bca7a5b875b4b",
+    "hardware/math/tiny3tpu_cordic_exp.sv": "8823032751f6681060b1dd23f0ee8586c52f90e3e77340a5149d9b69e6a085cd",
+    "hardware/math/tiny3tpu_cordic_mmio.sv": "ee46c3aad6cb85925e9141ba8b8e61c7bf8a9e0a5042e170d4ef115272c570d4",
+    "include/tiny3tpu_demo_transport.h": "67ad899a513a043dcc5c9ddbbb15275e8467c373329a0a11cc398ef4ed47133b",
+    "multi-core/synapse32_axis_mailbox.sv": "21f7b27b0da09dcff9146066fc30e92828dfcab6dd262ae015e80d3049ce4b6b",
+    "multi-core/synapse32_tpu_peripheral.sv": "e8b3ebbef65fc57e0216060133d56d7a7047e3f43689c828e172e3c7fed227f8",
+    "multi-core/tiny3tpu_axi.sv": "6435ae488fe54a64f732cf0dc620a65b95c49f08ed31067b9797df1172c330f7",
+    "multi-core/tiny3tpu_axis.sv": "7068dfcaddf4da84d4654d7a6d9574a0cb11922dd1833235539a730fa5164b1f",
+    "multi-core/tiny3tpu_axis_bridge.sv": "9ba6a1d30cf22358c7a8f75b2460b081917f73239834b30af76e989cff6934cb",
+    "multi-core/tiny3tpu_direct_peripheral.sv": "927ccbce7689fa41cbdf35a1960b23829cad2b8d9ce53aeda477d18d5eba7d67",
+    "multi-core/top.v": "e8c010fa050fc64ff4d6e532a30416e99392ab2a6ae22350c9ea571bf889c767",
+    "multi-core/tpu_core_wrapper.sv": "8bacd7dbce1193879ee7d9f0ab0151cb203a2a827771c6d274b32a673e047d0a",
+    "sidequests/showcase/udp_transport.py": "3ca9b41a4d9f99ef60c8c66eb335e719a2d1b7b9dac1295bec0cdd47a30df8c9",
+    "systolic_array/rtl/NxN_systolic_array.v": "3d34466234240425d431a77e85ceb3551e537f885176d45d0d96e4e9599bd0c6",
+    "systolic_array/rtl/pe.v": "d102d469baa26a3ce5859aafb391b5cb0c91d7b48b651bbce1c93b12a65f1547",
+    "tests/demo_transport_test.c": "70ce88d6e065602e474c39d8fc144e1e2283a5213568e2178a65577dc53067e6",
+    "tests/demo_uart_transport_test.c": "ecf8ba9a170b0ad76e7c78c5cd31e930aac3c83da7e23921e8d4ec30bca1ad93",
+    "tests/tb_udp_peripheral.sv": "71332207cea14682b0eff5b3c1af9d28e74dd2e1264ad44ce2c134434d6ed641",
+    "tests/test_udp_soc.py": "ef32e841984eb2bd3e9999e8890a46603dd09fcd747433577762060b41fc6046",
+    "tests/test_udp_transport.py": "e37279b7a8fc2612aaf994fbb90cfd0ea1711285bee7deed955f964bfad1bcc7",
+    "tests/vexriscv_udp_test_top.sv": "fa101553f3beaf593681a0d6374cee0651656e3adcc40b9d2c1bddced6680f0c",
+    "third_party/vexriscv/VexRiscv_Lite.v": "90e0b8f5912df2532d12bc766b110a632c1b85dd82b8aecd431d715c25f4cbbe",
+    "tools/kc705_open_build.py": "f76807ef20c004cd5820a84f081c1000d3bbd7a57684eb74d3db96096ba76d60"
+  },
+  "remaining": [
+    "Qualify external GMII/MDIO setup and hold, PCB skew, and asynchronous FIFO timing before routing/export.",
+    "Measure physical PHY, cable, NIC, OS and Python latency distributions on hardware.",
+    "Reduce CPU compute and result-copy cost for 100 us fresh inference; current raw banana compute alone is 3.81332 ms.",
+    "Add UDP checksum validation if required; pinned LiteEth transmits zero and does not validate RX UDP checksum. Ethernet CRC checking is enabled.",
+    "Current application ownership is one peer until firmware reset; one outstanding request and no automatic stateful retry."
+  ]
+}

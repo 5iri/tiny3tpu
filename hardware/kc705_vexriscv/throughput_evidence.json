@@ -1,0 +1,350 @@
+{
+  "schema": "tiny3tpu-throughput-evidence-v1",
+  "date": "2026-10-08",
+  "clock_hz": 100000000,
+  "physical_validation": false,
+  "compute": {
+    "classifier": {
+      "baseline_cycles": 3514573,
+      "optimized_cycles": 378169,
+      "speedup": 9.293657068665068,
+      "baseline": "Audited mailbox TPU placement at -Os; original math; cloth has no GEMM",
+      "optimized": "auto placement, -O2, optimized freestanding math, mailbox-compatible firmware",
+      "scope": "Complete generated program in VexRiscv/TPU RTL; excludes UART and host; cloth first physics step only, no camera",
+      "verified_output_words": 10,
+      "optimized_tpu_calls": 0,
+      "generated_program_sha256": "41d96a88f9700f7cdf33b585ddbb60ef46b8ef3cf29a3d0b0a85220ce3846355",
+      "fixture_sha256": "784a0a8fb554064a88fa00b902716bbd01a9747043043e949ff1900ff466e48a",
+      "firmware_sha256": "a92af463eedadc0b63a31c7d0cdc9e087771b69342ec73740b77348784f474b8"
+    },
+    "banana": {
+      "baseline_cycles": 1103627,
+      "optimized_cycles": 298456,
+      "speedup": 3.697787948642346,
+      "baseline": "Audited mailbox TPU placement at -Os; original math; cloth has no GEMM",
+      "optimized": "auto placement, -O2, optimized freestanding math, mailbox-compatible firmware",
+      "scope": "Complete generated program in VexRiscv/TPU RTL; excludes UART and host; cloth first physics step only, no camera",
+      "verified_output_words": 613,
+      "optimized_tpu_calls": 0,
+      "generated_program_sha256": "e8fe312542ed85d30334dbbe01ffa12e9f8e0f93ba749ee95e1ac921e6696301",
+      "fixture_sha256": "c5e5cd356c449752b6c79fa8a244b90d2e9c359923d7e8054b0b3440bbcea991",
+      "firmware_sha256": "4b2d885eda38e81aa5d3d63e33e984ab17df177df651586f8c6e982cced2f5a5"
+    },
+    "attention": {
+      "baseline_cycles": 2044179,
+      "optimized_cycles": 1173752,
+      "speedup": 1.7415765851730178,
+      "baseline": "Audited mailbox TPU placement at -Os; original math; cloth has no GEMM",
+      "optimized": "auto placement, -O2, optimized freestanding math, mailbox-compatible firmware",
+      "scope": "Complete generated program in VexRiscv/TPU RTL; excludes UART and host; cloth first physics step only, no camera",
+      "verified_output_words": 64,
+      "optimized_tpu_calls": 0,
+      "generated_program_sha256": "e87d72e1a1375cc2b10fa54c16502447518c0f86c54884e02d23f87383a97e5d",
+      "fixture_sha256": "ff128b48433d25dd8282f98af8463919f51d014952baa2d295e9c12eca523864",
+      "firmware_sha256": "33535d5919635b00c12188f5d1f78d42348575b37f20a1893d7d23f4bec14bc1"
+    },
+    "cloth": {
+      "baseline_cycles": 11143078,
+      "optimized_cycles": 8451772,
+      "speedup": 1.3184309751848489,
+      "baseline": "Audited mailbox TPU placement at -Os; original math; cloth has no GEMM",
+      "optimized": "auto placement, -O2, optimized freestanding math, mailbox-compatible firmware",
+      "scope": "Complete generated program in VexRiscv/TPU RTL; excludes UART and host; cloth first physics step only, no camera",
+      "verified_output_words": 180,
+      "optimized_tpu_calls": 0,
+      "generated_program_sha256": "ee6c7eab1912a3121a0f9b0ec84411e8670f843e72a50d6c0749eb40a3296fc3",
+      "fixture_sha256": "e44465e6aab60f54c416234a2e669cd4bcbbe82b1b7526515244a8c18cd22f22",
+      "firmware_sha256": "9ec85711e9d34e0ccb31006f05207839473a4551395dbe7266cdf12e79a86a3f"
+    }
+  },
+  "direct_tpu_full_tile": {
+    "shape_mkn": [
+      16,
+      256,
+      16
+    ],
+    "cpu_cycles": 3117525,
+    "auto_cycles": 2274051,
+    "forced_tpu_cycles": 2274051,
+    "auto_tpu_calls": 1,
+    "verified_output_words": 256,
+    "cpu_to_auto_speedup": 1.3709125257085264,
+    "comparison_sha256": "45a3916be40ffb3a2991f7f3999b207071930cf20f36d3b056cd922de974d283",
+    "toolchain": {
+      "riscv64-unknown-elf-gcc": "riscv64-unknown-elf-gcc (g1b306039a) 15.1.0",
+      "verilator": "Verilator 5.046 2026-02-28 rev vUNKNOWN-built20260228"
+    },
+    "fixture_sha256": "e683479a05e4239f44aef3ed9f6a57bd3aed36807937bc8fca3afa1f149236d6"
+  },
+  "uart": {
+    "passed": true,
+    "requests": 10,
+    "clock_hz": 100000000,
+    "uart_cycles_per_bit": 109,
+    "tpu_transport": "mailbox",
+    "gemm_policy": "auto",
+    "checks": [
+      {
+        "frame": 0,
+        "mode": 0,
+        "repeats": 1,
+        "words": 20,
+        "backend_calls": 0,
+        "compute_cycles": 68536,
+        "roundtrip_cycles": 204157,
+        "response_bytes": 108,
+        "compact": false
+      },
+      {
+        "frame": 1,
+        "mode": 1,
+        "repeats": 1,
+        "words": 64,
+        "backend_calls": 0,
+        "compute_cycles": 1763474,
+        "roundtrip_cycles": 2091383,
+        "response_bytes": 284,
+        "compact": false
+      },
+      {
+        "frame": 2,
+        "mode": 2,
+        "repeats": 1,
+        "words": 64,
+        "backend_calls": 0,
+        "compute_cycles": 1180692,
+        "roundtrip_cycles": 1508560,
+        "response_bytes": 284,
+        "compact": false
+      },
+      {
+        "frame": 3,
+        "mode": 0,
+        "repeats": 1,
+        "words": 20,
+        "backend_calls": 0,
+        "compute_cycles": 68391,
+        "roundtrip_cycles": 203939,
+        "response_bytes": 108,
+        "compact": false
+      },
+      {
+        "frame": 4,
+        "mode": 1,
+        "repeats": 1,
+        "words": 64,
+        "backend_calls": 0,
+        "compute_cycles": 1763300,
+        "roundtrip_cycles": 2091165,
+        "response_bytes": 284,
+        "compact": false
+      },
+      {
+        "frame": 5,
+        "mode": 2,
+        "repeats": 1,
+        "words": 64,
+        "backend_calls": 0,
+        "compute_cycles": 1180692,
+        "roundtrip_cycles": 1508560,
+        "response_bytes": 284,
+        "compact": false
+      },
+      {
+        "frame": 6,
+        "mode": 3,
+        "repeats": 1,
+        "words": 613,
+        "backend_calls": 0,
+        "compute_cycles": 407041,
+        "roundtrip_cycles": 3132987,
+        "response_bytes": 2480,
+        "compact": false
+      },
+      {
+        "frame": 7,
+        "mode": 3,
+        "repeats": 1,
+        "words": 613,
+        "backend_calls": 0,
+        "compute_cycles": 407915,
+        "roundtrip_cycles": 1883847,
+        "response_bytes": 1268,
+        "compact": true
+      },
+      {
+        "frame": 8,
+        "mode": 0,
+        "repeats": 3,
+        "words": 20,
+        "backend_calls": 0,
+        "compute_cycles": 204245,
+        "roundtrip_cycles": 339862,
+        "response_bytes": 108,
+        "compact": false
+      },
+      {
+        "frame": 9,
+        "mode": 99,
+        "repeats": 1,
+        "words": 0,
+        "backend_calls": 0,
+        "compute_cycles": 50,
+        "roundtrip_cycles": 48287,
+        "response_bytes": 28,
+        "compact": false
+      }
+    ],
+    "scope": "Actual firmware, CPU, UART, TPU and CORDIC RTL; exact output words and backend counts. Includes UART round trip; no physical board or host-render timing."
+  },
+  "tile": {
+    "old_top_busy_cycles": 84,
+    "new_top_busy_cycles": 20,
+    "core_busy_cycles": 17,
+    "verified_words": 32,
+    "test": "tests/tb_top_direct_load.sv"
+  },
+  "synthesis": {
+    "top": "kc705_vexriscv_noddr_top",
+    "DIRECT_TPU": 1,
+    "ENABLE_CORDIC": 1,
+    "DSP48E1": 32,
+    "RAMB36E1": 16,
+    "RAMB18E1": 4,
+    "check_assert_passed": true,
+    "routed": false,
+    "netlist_sha256": "24ea9e16e1832e9108f40e219f8b329f2df4f2c729ac0b9f00e6756965b121cd"
+  },
+  "numerics": {
+    "sqrt": "Correctly rounded binary32, exhaustively checked for all significands of both normal exponent parities and every subnormal; differs from old Newton approximation by at most 1 ULP in compatibility sampling",
+    "legacy_macro": "TINY3TPU_LEGACY_SQRT=1",
+    "cloth_trajectory": [
+      {
+        "steps": 1,
+        "old_vs_libm": {
+          "position_error_m": 0.0,
+          "velocity_error": 0.0
+        },
+        "new_vs_libm": {
+          "position_error_m": 0.0,
+          "velocity_error": 0.0
+        },
+        "new_vs_old": {
+          "position_error_m": 0.0,
+          "velocity_error": 0.0
+        }
+      },
+      {
+        "steps": 128,
+        "old_vs_libm": {
+          "position_error_m": 3.0547380447387695e-07,
+          "velocity_error": 0.00012815505033358932
+        },
+        "new_vs_libm": {
+          "position_error_m": 0.0,
+          "velocity_error": 0.0
+        },
+        "new_vs_old": {
+          "position_error_m": 3.0547380447387695e-07,
+          "velocity_error": 0.00012815505033358932
+        }
+      },
+      {
+        "steps": 768,
+        "old_vs_libm": {
+          "position_error_m": 1.6711419448256493e-06,
+          "velocity_error": 0.0003217887133359909
+        },
+        "new_vs_libm": {
+          "position_error_m": 0.0,
+          "velocity_error": 0.0
+        },
+        "new_vs_old": {
+          "position_error_m": 1.6711419448256493e-06,
+          "velocity_error": 0.0003217887133359909
+        }
+      },
+      {
+        "steps": 7680,
+        "old_vs_libm": {
+          "position_error_m": 1.195073127746582e-05,
+          "velocity_error": 0.0014642272144556046
+        },
+        "new_vs_libm": {
+          "position_error_m": 2.6226043701171875e-06,
+          "velocity_error": 0.0037806034088134766
+        },
+        "new_vs_old": {
+          "position_error_m": 1.2139789760112762e-05,
+          "velocity_error": 0.003145948052406311
+        }
+      },
+      {
+        "steps": 11520,
+        "old_vs_libm": {
+          "position_error_m": 0.07011890411376953,
+          "velocity_error": 16.14564323425293
+        },
+        "new_vs_libm": {
+          "position_error_m": 0.07669588923454285,
+          "velocity_error": 17.462182998657227
+        },
+        "new_vs_old": {
+          "position_error_m": 0.09743045270442963,
+          "velocity_error": 13.118429183959961
+        }
+      }
+    ]
+  },
+  "reproduce": [
+    "tests/profile_end_to_end.py",
+    "sidequests/showcase/build_board.py",
+    "sidequests/showcase/build_classifier.py",
+    "sidequests/showcase/uart_sim.py",
+    "sidequests/showcase/classifier_uart_sim.py"
+  ],
+  "remaining_limits": [
+    "No connected KC705 serial device; no new image flashed or physically measured",
+    "No Kintex-7 chip database at configured route paths; full synthesis completed, place/route pending",
+    "TPU still issues one register transaction at a time, four-byte packed writes are serialized, and K is tiled in groups of four",
+    "CPU soft-float, 64 KiB working RAM and unqualified DDR remain limits; cloth is not real-time"
+  ],
+  "validation": {
+    "ctest": {
+      "passed": 42,
+      "failed": 0,
+      "log_sha256": "fa82fb1b7f3556f34dcdc75e85e0354fc7b89924a3face2c3328d9bcbd63a142"
+    },
+    "production_uart_requests": 64,
+    "production_uart_suites": [
+      {
+        "suite": "showcase-uart-auto",
+        "requests": 10,
+        "transport": "mailbox",
+        "gemm_policy": "auto",
+        "report_sha256": "ecbaf9d130cea4eaffe5a2fa99675a3b47002da32af7cb2e82e35e0811ac27fe"
+      },
+      {
+        "suite": "showcase-uart-direct-tpu",
+        "requests": 10,
+        "transport": "direct",
+        "gemm_policy": "tpu",
+        "report_sha256": "c8d740c89701287f6c6e2482e7da0810971511447176d8a9836099731fc38243"
+      },
+      {
+        "suite": "classifier-uart-auto",
+        "requests": 22,
+        "transport": "mailbox",
+        "gemm_policy": "auto",
+        "report_sha256": "7136ecef1fe3aab1c56a2fbf48d272cb7afda261312657c3ad85f9acf75c2c7f"
+      },
+      {
+        "suite": "classifier-uart-direct-tpu",
+        "requests": 22,
+        "transport": "direct",
+        "gemm_policy": "tpu",
+        "report_sha256": "1d7305051c2c6be38fcfaf1c62aea63b78da62751e47cba3665da25bf603bafe"
+      }
+    ]
+  }
+}

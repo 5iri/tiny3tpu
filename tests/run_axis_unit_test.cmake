@@ -18,6 +18,14 @@ if(MODULE STREQUAL "synapse32_tpu_mmio")
     "${SOURCE_DIR}/systolic_array/rtl/NxN_systolic_array.v"
     "${SOURCE_DIR}/systolic_array/rtl/pe.v")
 endif()
+if(MODULE STREQUAL "tiny3tpu_direct_peripheral")
+  set(extra_sources
+    "${SOURCE_DIR}/multi-core/tiny3tpu_axi.sv"
+    "${SOURCE_DIR}/multi-core/top.v"
+    "${SOURCE_DIR}/multi-core/tpu_core_wrapper.sv"
+    "${SOURCE_DIR}/systolic_array/rtl/NxN_systolic_array.v"
+    "${SOURCE_DIR}/systolic_array/rtl/pe.v")
+endif()
 execute_process(COMMAND "${IVERILOG}" -g2012 -Wall -s "tb_${MODULE}" -o "${sim}"
   "${SOURCE_DIR}/multi-core/tb_${MODULE}.sv"
   "${SOURCE_DIR}/multi-core/${MODULE}.sv"

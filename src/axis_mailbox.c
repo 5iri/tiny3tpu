@@ -36,7 +36,7 @@ static int submit_and_wait(tiny3tpu_axis_mailbox *mailbox,
 
     if (mailbox == NULL || mailbox->read32 == NULL ||
         mailbox->write32 == NULL || mailbox->poll_limit == 0U ||
-        mailbox->poisoned || target_offset > UINT32_C(0xff) ||
+        mailbox->poisoned || target_offset > UINT32_C(0x3ff) ||
         (!is_write && value == NULL))
         return -1;
 
@@ -53,6 +53,7 @@ static int submit_and_wait(tiny3tpu_axis_mailbox *mailbox,
     payload = is_write ? payload : 0U;
     if (write_local(mailbox, TINY3TPU_AXIS_MAILBOX_HEADER,
                     (target_offset & UINT32_C(0xff)) |
+                    ((target_offset & UINT32_C(0x300)) << 1) |
                     (is_write ? UINT32_C(1) << 8 : 0U) |
                     ((uint32_t)(wstrb & 0x0fU) << 12)) ||
         write_local(mailbox, TINY3TPU_AXIS_MAILBOX_DATA, payload) ||

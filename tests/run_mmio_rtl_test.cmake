@@ -62,3 +62,10 @@ if(NOT rc STREQUAL "0" OR NOT out MATCHES "${pass_pattern}")
   message(FATAL_ERROR "C/RTL integration failed: ${out}\n${err}")
 endif()
 message(STATUS "${out}")
+execute_process(COMMAND "${BINARY_DIR}/obj/V${rtl_top}" --profile
+  RESULT_VARIABLE rc OUTPUT_FILE "${BINARY_DIR}/accumulation-profile.json"
+  ERROR_VARIABLE err TIMEOUT 30)
+if(NOT rc STREQUAL "0")
+  message(FATAL_ERROR "Accumulation A/B measurement failed: ${err}")
+endif()
+message(STATUS "Accumulation A/B report: ${BINARY_DIR}/accumulation-profile.json")
