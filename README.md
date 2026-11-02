@@ -14,8 +14,6 @@ that's it. the cpu has a bram connected 64KiB over a 32-bit data bus. containing
 ## driver 
 - its a baremetal c driver runs on VexRiscv. its main job is to move the work from cpu ram and start compute and copy results back.
 
-![TPU C driver flow: status checks, matrix tiling, operand loading, computation, polling, and result readback](media/diagrams/tpu-driver-flow.png)
-
 ## software
 
 the application describes the math. our compiler turns that math into C code: some runs on the CPU, and some calls the driver to use the TPU.
